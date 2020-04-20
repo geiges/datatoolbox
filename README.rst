@@ -1,36 +1,31 @@
-A Python Project Stub
+DATA TOOL BOX
 =====================
 
-This is a stub for a new python project. It contains the following features:
+This is a python tool box project for handling global datasets. It contains the following features:
 
-1. Installable module
-2. Unit tests
-3. Continuous integration on Linux and Windows
-4. Automatic documentation
+1.
+2.
+
+Authors:
+Andreas Geiges 
+
 
 Dependencies
 ------------
 
-This stub depends on
-
 1. `nose <https://pypi.python.org/pypi/nose/1.3.7>`_
 2. `Sphinx <https://pypi.python.org/pypi/Sphinx>`_
 
-Making a New Project
+Download this project
 --------------------
 
 Choose a project name and run the following commands replacing ``<project
 name>`` with your choice::
 
-    git clone https://github.com/gidden/datatoolbox.git <project name>
-    cd <project name>
-    ./make_proj.sh <project name>
+    git clone https://gitlab.com/datatoolbox.git
 
 You should now have a fresh new repository with your project ready to go. You
 can sync it with Github via::
-
-    git remote add origin git@github.com:<user name>/<project name>
-    git push origin master
 
 Installing
 ----------
@@ -53,23 +48,6 @@ From the root directory, run::
 Continuous Integration
 -----------------------
 
-Once you have added your project to Github (or any other supported service), you
-can turn on continuous integration. Once turned on, future pull requests will be
-automatically tested.
-
-Linux builds are tested on TravisCI. You can turn on the new project at
-``https://travis-ci.com/profile/<user name>`` if the repository is *private* or
-``https://travis-ci.org/profile/<user name>`` if the repository is
-*public*. 
-
-Windows builds are tested on `Appveyor <https://ci.appveyor.com/projects>`_. You
-can add it by clicking the "New Project" button.
-
-Documentation
---------------
-
-On ReadTheDocs
-~~~~~~~~~~~~~~~
 
 This repository currently has its documentation on `ReadTheDocs
 <http://datatoolbox.readthedocs.org/en/latest/>`_. You can add any new project and
