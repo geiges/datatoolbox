@@ -40,7 +40,7 @@ def create_personal_setting():
     
     print ("\nfile_path_variable = ", file_path_variable)
     
-    fin = open('../personal_template.py', 'r')
+    fin = open('../data/personal_template.py', 'r')
     
     fout = open('../personal.py', 'w')
     
