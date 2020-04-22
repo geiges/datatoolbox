@@ -12,8 +12,10 @@ OS = platform
 #%% Personal setup
 if not os.path.isfile(os.path.dirname(__file__) + '/personal.py'):
     print(os.path.dirname(__file__) + '/personal.py')
-    from tools.install_support import create_personal_setting
-    
+    from .tools.install_support import create_personal_setting
+    create_personal_setting()
+    print('a')
+
 from .personal import CRUNCHER, PATH_TO_DATASHELF, DB_READ_ONLY
 #%% general setup
 DEBUG = True
