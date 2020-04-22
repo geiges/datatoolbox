@@ -25,10 +25,10 @@ def main():
         "name": "datatoolbox",
         "version": INFO['version'],
         # update the following:
-        # "description": 'The Python Geographic Data Manipulation and Visualization Library',
-        # "author": 'Matthew Gidden',
-        # "author_email": 'matthew.gidden@gmail.com',
-        # "url": 'http://github.com/gidden/datatoolbox',
+        "description": 'The Python Data Toolbox',
+        "author": 'Andreas Geiges',
+        "author_email": 'a.geiges@gmail.com',
+        "url": 'https://gitlab.com/climateanalytics/datatoolbox',
         "packages": packages,
         "package_dir": pack_dir,
         }
