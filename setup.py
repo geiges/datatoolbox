@@ -11,16 +11,22 @@ except ImportError:
     from distutils.core import setup
 
 INFO = {
-    'version': '0.0.1',
+    'version': '0.1.4',
     }
 
 def main():    
     packages = [
-        'datatoolbox', 
+        'datatoolbox',
+#	'tools',
+#	'data',
         ]
     pack_dir = {
         'datatoolbox': 'datatoolbox',
-        }
+#        'tools':'datatoolbox/tools',
+#	'data': 'datatoolbox/data'
+	}
+    package_data = {'datatoolbox': ['data/*', 'tools/*']}
+#    packages = find_packages()
     setup_kwargs = {
         "name": "datatoolbox",
         "version": INFO['version'],
@@ -31,6 +37,7 @@ def main():
         "url": 'https://gitlab.com/climateanalytics/datatoolbox',
         "packages": packages,
         "package_dir": pack_dir,
+        "package_data" : package_data
         }
     rtn = setup(**setup_kwargs)
 
