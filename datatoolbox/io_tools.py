@@ -97,17 +97,24 @@ def read_MAGICC6_BINOUT(filePath):
 
 def read_PRIMAP_Excel(fileName, sheet_name= 0):
     allDf = pd.read_excel(fileName, sheet_name = sheet_name, usecols=[0,1], index_col=0)
-    print(os.path.basename(fileName))
-#    return allDf
+    #print(os.path.basename(fileName))
+
     firstDataRow = allDf.loc['SHEET_FIRSTDATAROW','Unnamed: 1']
-    print(firstDataRow)
+    
+    #bugfix of old wrong formated PRIMAP files
+    try:
+        int(firstDataRow)
+    except:
+        firstDataRow = pd.np.where(allDf.index == "Countries\Years")[0][0]+3
+        
+    #print(firstDataRow)
     setup = dict()
     setup['filePath']  = os.path.dirname(fileName) +'/'
     setup['fileName']  = os.path.basename(fileName)
     setup['sheetName'] = sheet_name
     setup['timeIdxList']  = ('B' + str(firstDataRow-1), 'XX'+ str(firstDataRow-1))
     setup['spaceIdxList'] = ('A'+ str(firstDataRow), 'A1000')
-    print(setup)
+    #print(setup)
     ex = ExcelReader(setup)
     data = ex.gatherData().astype(float)
     #return data
