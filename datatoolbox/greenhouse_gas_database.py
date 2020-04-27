@@ -6,6 +6,7 @@ Created on Thu Jan 31 10:28:44 2019
 @author: and
 """
 import re
+import os
 import pandas as pd
 from fuzzywuzzy import process
 import pickle
@@ -30,7 +31,7 @@ class GreenhouseGasTable(object):
     
     def __init__(self):
         
-        self.data = pd.read_csv(config.MODULE_DATA_PATH + config.GHG_GAS_TABLE_FILE, index_col=0)
+        self.data = pd.read_csv(os.path.join(config.MODULE_DATA_PATH, config.GHG_GAS_TABLE_FILE), index_col=0)
         self.idData = GasDetector()
             
             
@@ -135,7 +136,7 @@ class GasDetector(object):
 #            print(DATA_STORAGE_LOCATION + self.FILENAME + 'not  found - init empty id data dict')
 #            self.data = dict()
 #        else:
-        fid = open(config.MODULE_DATA_PATH + config.GHG_NAMING_FILENAME,'rb')
+        fid = open(os.path.join(config.MODULE_DATA_PATH, config.GHG_NAMING_FILENAME),'rb')
         self.data = pickle.load(fid)
         fid.close()
             
@@ -151,7 +152,7 @@ class GasDetector(object):
             return self.data[ID_CONDITION_FUNC(string)]
 
         except:
-            key, score          = process.extract(ID_CONDITION_FUNC(string), list(self.data.keys()), limit=1)[0]
+            key, score = process.extract(ID_CONDITION_FUNC(string), list(self.data.keys()), limit=1)[0]
 
             if score > 95:
                 return self.data[key]

@@ -7,13 +7,13 @@ Created on Fri Mar  1 14:15:56 2019
 """
 import os
 import platform
-OS = platform
+OS = platform.system() #'win32' , linux, #darwin
 
 #%% Personal setup
 if not os.path.isfile(os.path.dirname(__file__) + '/personal.py'):
-    print(os.path.dirname(__file__) + '/personal.py')
     from .tools.install_support import create_personal_setting
-    create_personal_setting()
+    modulePath =  os.path.dirname(__file__) + '/'
+    create_personal_setting(modulePath, OS)
     
 
 from .personal import CRUNCHER, PATH_TO_DATASHELF, DB_READ_ONLY
@@ -34,15 +34,18 @@ ID_FIELDS = ['entity',
 META_DECLARATION = '### META ###\n'
 DATA_DECLARATION = '### DATA ###\n'
 
+MODULE_PATH = os.path.dirname(__file__)
+MODULE_DATA_PATH =  os.path.join(MODULE_PATH, 'data')
 
-PATH_TO_MAPPING = PATH_TO_DATASHELF + 'mappings/'
-PATH_TO_COUNTRY_FILE = PATH_TO_MAPPING + 'country_codes.csv'
-PATH_TO_REGION_FILE = PATH_TO_MAPPING + 'regions.csv'
+MAPPING_FILE_PATH = os.path.join(MODULE_DATA_PATH, 'region_mappings.csv')
+CONTINENT_FILE_PATH = os.path.join(MODULE_DATA_PATH, 'all.csv')
+PATH_TO_MAPPING = os.path.join(PATH_TO_DATASHELF, 'mappings')
+PATH_TO_COUNTRY_FILE = os.path.join(PATH_TO_MAPPING, 'country_codes.csv')
+PATH_TO_REGION_FILE =  os.path.join(PATH_TO_MAPPING, 'regions.csv')
+PATH_PINT_DEFINITIONS = os.path.join(MODULE_PATH, 'pint_definitions.txt')
 
-SOURCE_FILE   = PATH_TO_DATASHELF + 'sources.csv'
+SOURCE_FILE   =  os.path.join(PATH_TO_DATASHELF, 'sources.csv')
 
-MODULE_PATH = os.path.dirname(__file__) + '/'
-MODULE_DATA_PATH = MODULE_PATH + 'data/'
 
 SOURCE_META_FIELDS = ['SOURCE_ID',
                       'collected_by',
@@ -76,7 +79,7 @@ COUNTRY_LIST = ['AFG', 'ALA', 'ALB', 'DZA', 'ASM', 'AND', 'AGO', 'AIA', 'ATA', '
                 'MNP', 'VIR']
 
 logTables = False
-#### FUNCTION TESTS ########
 
+#### FUNCTION TESTS ########
 if __name__ == '__main__':
     pass

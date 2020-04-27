@@ -3,8 +3,9 @@ DATA TOOL BOX
 
 This is a python tool box project for handling global datasets. It contains the following features:
 
-1.
-2.
+1. Augumented pandas DataFrames adding meta data, 
+2. Automatic unit conversion and table based computations
+3. ID based data structure
 
 Authors:
 Andreas Geiges 
@@ -16,27 +17,12 @@ Dependencies
 1. `nose <https://pypi.python.org/pypi/nose/1.3.7>`_
 2. `Sphinx <https://pypi.python.org/pypi/Sphinx>`_
 
-Download this project
+Installation via pip
 --------------------
 
-Choose a project name and run the following commands replacing ``<project
-name>`` with your choice::
 
-    git clone https://gitlab.com/datatoolbox.git
+    pip install -i https://test.pypi.org/simple/ datatoolbox
 
-You should now have a fresh new repository with your project ready to go. You
-can sync it with Github via::
-
-Installing
-----------
-
-You can install the stub like any other python module::
-
-    ./setup.py install
-
-or for local installations::
-
-    ./setup.py install --user
 
 Testing
 ----------

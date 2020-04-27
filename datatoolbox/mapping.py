@@ -64,7 +64,7 @@ class RegionMapping:
     
     def loadContext(self, folderPath, fileName):
         name = fileName.replace('mapping_','').replace('.csv','')
-        mappingDataFrame =  pd.read_csv(folderPath + fileName, index_col=0)
+        mappingDataFrame =  pd.read_csv(os.path.join(folderPath, fileName), index_col=0)
         context = RegionContext(name, mappingDataFrame)
         
         # assure no regionID is duplicated
@@ -224,12 +224,11 @@ countries = CountryMapping(conf.PATH_TO_MAPPING)
             
 def initializeCountriesFromData():
     from hdx.location.country import Country
-    MAPPING_FILE_PATH = 'data/region_mappings.csv'
-    CONTINENT_FILE_PATH = 'data/all.csv'
+    
 
      
-    mappingDf = pd.read_csv(MAPPING_FILE_PATH, index_col=0)   
-    continentDf = pd.read_csv(CONTINENT_FILE_PATH, index_col=0)
+    mappingDf = pd.read_csv(conf.MAPPING_FILE_PATH, index_col=0)   
+    continentDf = pd.read_csv(conf.CONTINENT_FILE_PATH, index_col=0)
     continentDf = continentDf.set_index('alpha-3')
     
     countryNames = list()
@@ -262,17 +261,13 @@ def mappingSeries2Dict(mappingSeries):
     
 def initializeRegionsFromData():
     #%% SETUP
-    MAPPING_FILE_PATH = 'data/region_mappings.csv'
-    CONTINENT_FILE_PATH = 'data/all.csv'
-    
-    
 
     if  not os.path.exists(conf.PATH_TO_MAPPING):
         os.makedirs(conf.PATH_TO_MAPPING)
     
  
-    mappingDf = pd.read_csv(MAPPING_FILE_PATH, index_col=0)
-    continentDf = pd.read_csv(CONTINENT_FILE_PATH, index_col=0)
+    mappingDf = pd.read_csv(conf.MAPPING_FILE_PATH, index_col=0)
+    continentDf = pd.read_csv(conf.CONTINENT_FILE_PATH, index_col=0)
     continentDf = continentDf.set_index('alpha-3')    
     #CONTINENTS
     
