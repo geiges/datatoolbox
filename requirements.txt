@@ -1,6 +1,6 @@
 pandas==0.23.4
 gitpython
-openscm==0.1.0-alpha
+openscm-units
 pint==0.9
 pycountry
 fuzzywuzzy

@@ -10,8 +10,11 @@ try:
 except ImportError:
     from distutils.core import setup
 
+from datatoolbox import __version__
+
+
 INFO = {
-    'version': '0.1.4',
+    'version': __version__,
     }
 
 def main():    
@@ -37,7 +40,15 @@ def main():
         "url": 'https://gitlab.com/climateanalytics/datatoolbox',
         "packages": packages,
         "package_dir": pack_dir,
-        "package_data" : package_data
+        "package_data" : package_data,
+        "install_requires": [
+            "pandas",
+            "gitpython",
+            "openscm_units",
+            "pint==0.9",
+            "pycountry",
+            "fuzzywuzzy",
+            "tqdm"],
         }
     rtn = setup(**setup_kwargs)
 

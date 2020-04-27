@@ -5,6 +5,7 @@ DATA TOOLS by Andreas Geiges
 
 Climate Analytics
 """
+__version__ = "0.1.13"
 
 import os
 from . import config as conf
