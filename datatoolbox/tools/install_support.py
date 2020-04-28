@@ -5,14 +5,15 @@ Created on Mon Apr 20 17:21:28 2020
 
 @author: ageiges
 """
-
+import os
 def create_personal_setting(modulePath, OS):
+    
     
     # Linux 
     if OS == 'Linux':
         import tkinter as tk
         from tkinter import simpledialog, filedialog
-        import os
+        
         
         ROOT = tk.Tk()
         ROOT.withdraw()
@@ -42,8 +43,8 @@ def create_personal_setting(modulePath, OS):
     print ("\nfile_path_variable = ", file_path_variable)
     
     fin = open(modulePath + 'data/personal_template.py', 'r')
-    
-    fout = open(modulePath + 'personal.py', 'w')
+    os.makedirs(modulePath + 'settings/')
+    fout = open(modulePath + 'settings/personal.py', 'w')
     
     for line in fin.readlines():
         outLine = line.replace('XX',userName).replace('/PPP/PPP', file_path_variable)

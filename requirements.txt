@@ -1,4 +1,4 @@
-pandas==0.23.4
+pandas
 gitpython
 openscm-units
 pint==0.9

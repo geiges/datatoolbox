@@ -36,7 +36,7 @@ Continuous Integration
 
 
 This repository currently has its documentation on `ReadTheDocs
-<http://datatoolbox.readthedocs.org/en/latest/>`_. You can add any new project and
+[<http://datatoolbox.readthedocs.org/en/latest/]. You can add any new project and
 have it automatically hosted by doing the following
 
 - on Github
@@ -61,9 +61,6 @@ You can serve the documentation locally via::
 
     make serve
 	
-You can then view the docs at http://localhost:8000/build/html/
+You can then view the docs at [http://localhost:8000/build/html/]
 
-On Windows
-~~~~~~~~~~~~~~~~~
 
-Follow the above instructions replacing ``make`` with ``./make.bat``.

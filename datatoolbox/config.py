@@ -10,13 +10,13 @@ import platform
 OS = platform.system() #'win32' , linux, #darwin
 
 #%% Personal setup
-if not os.path.isfile(os.path.dirname(__file__) + '/personal.py'):
+if not os.path.isfile(os.path.dirname(__file__) + '/settings/personal.py'):
     from .tools.install_support import create_personal_setting
     modulePath =  os.path.dirname(__file__) + '/'
     create_personal_setting(modulePath, OS)
     
 
-from .personal import CRUNCHER, PATH_TO_DATASHELF, DB_READ_ONLY
+from .settings.personal import CRUNCHER, PATH_TO_DATASHELF, DB_READ_ONLY
 #%% general setup
 DEBUG = True
 

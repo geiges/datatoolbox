@@ -281,7 +281,18 @@ class Datatable(pd.DataFrame):
             out.meta['source'] = 'calculation'
         return out
 
-
+    def __repr__(self):
+        outStr = """"""
+        if 'ID' in self.meta.keys():
+            outStr += '=== Datatable - ' + self.meta['ID'] + ' ===\n'
+        else:
+            outStr += '=== Datatable ===\n'
+        for key in self.meta.keys():
+            if self.meta[key] is not None:
+                outStr += key + ': ' + str(self.meta[key]) + ' \n'
+        outStr += super(Datatable, self).__repr__()
+        return outStr
+    
     def __str__(self):
         outStr = """"""
         if 'ID' in self.meta.keys():
@@ -293,7 +304,19 @@ class Datatable(pd.DataFrame):
                 outStr += key + ': ' + str(self.meta[key]) + ' \n'
         outStr += super(Datatable, self).__str__()
         return outStr
-
+    
+    def _repr_html_(self):
+        outStr = """"""
+        if 'ID' in self.meta.keys():
+            outStr += '=== Datatable - ' + self.meta['ID'] + ' ===\n'
+        else:
+            outStr += '=== Datatable ===\n'
+        for key in self.meta.keys():
+            if self.meta[key] is not None:
+                outStr += key + ': ' + str(self.meta[key]) + ' \n'
+        outStr += super(Datatable, self)._repr_html_()
+        return outStr
+    
 class Visualization():
     """ 
     This class addes handy built-in visualizations to datatables
