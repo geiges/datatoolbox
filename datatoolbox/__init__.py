@@ -70,6 +70,8 @@ conversionFactor = core.conversionFactor
 # extract data for specific countries and sources
 countryDataExtract = util.getCountryExtract
 
+executeForAll = util.forAll
+
 #writeMAGICC6ScenFile = tools.wr
 
 from .tools.kaya_idendentiy_decomposition import kaya_decomposion

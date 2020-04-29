@@ -13,7 +13,7 @@ from datatoolbox import mapping as mapp
 from datatoolbox import core
 from datatoolbox import config
 from datatoolbox.data_structures import Datatable, read_csv
-from .greenhouse_gas_database import GreenhouseGasTable 
+from datatoolbox.greenhouse_gas_database import GreenhouseGasTable 
 import matplotlib.pylab as plt
 import os
 
@@ -589,3 +589,55 @@ def update_DB_from_folder(folderToRead, message=None):
                         append_data=True, 
                         update=True)
 
+#%%
+
+def forAll(funcHandle, subset='scenario', source='IAMC15_2019_R2'):
+    
+    outTables = list()
+    success = dict()
+    if subset == "scenario":
+        scenarios = dt.find(source=source).scenario.unique()
+        
+        for scenario in scenarios:
+            try:
+                outTables.append(funcHandle(scenario))
+                print('{} run successfully'.format(scenario))
+                success[scenario] = True
+            except:
+                #print('{} failed to run'.format(scenario))
+                success[scenario] = False
+                pass
+    return outTables, success
+#%%    
+if __name__ == '__main__':
+    #%%
+    def calculateTotalBiomass(scenario):
+        source = 'IAMC15_2019_R2'
+        tableID = core._createDatabaseID({"entity":"Primary_Energy|Biomass|Traditional",
+                                         "category":"",
+                                         "scenario":scenario,
+                                         "source":'IAMC15_2019_R2'})
+        tratBio = dt.getTable(tableID)
+        
+        tableID = core._createDatabaseID({"entity":"Primary_Energy|Biomass|Modern|wo_CCS",
+                                         "category":"",
+                                         "scenario":scenario,
+                                         "source":'IAMC15_2019_R2'})
+        modernBio = dt.getTable(tableID)
+        
+        tableID = core._createDatabaseID({"entity":"Primary_Energy|Biomass|Modern|w_CCS",
+                                         "category":"",
+                                         "scenario":scenario,
+                                         "source":'IAMC15_2019_R2'})
+        modernBioCCS = dt.getTable(tableID)
+        
+        table = tratBio + modernBio + modernBioCCS
+        
+        table.meta.update({"entity": "Primary_Energy|Biomass|Total",
+                           "scenario" : scenario,
+                           "source" : source,
+                           "calculated" : "calculatedTotalBiomass.py",
+                           "author" : 'AG'})
+        return table
+
+    outputTables, success = forAll(calculateTotalBiomass, "scenario")
