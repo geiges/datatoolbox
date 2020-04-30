@@ -7,8 +7,8 @@ Created on Tue Apr  2 11:20:42 2019
 """
 
 import datatoolbox as dt
-from . import config as conf
-from .data_structures import Datatable
+from datatoolbox import config as conf
+from datatoolbox.data_structures import Datatable
 
 import pandas as pd
 import os
@@ -59,7 +59,13 @@ class BaseImportTool():
         if dt.conf.OS == 'Linux':
             os.system('libreoffice ' + self.setup.MAPPING_FILE)
         elif dt.conf.OS == 'Darwin':
-            os.system('open -a "Microsoft Excel"' + self.setup.MAPPING_FILE)
+            os.system('open -a "Microsoft Excel" ' + self.setup.MAPPING_FILE)
+
+    def openRawData(self):
+        if dt.conf.OS == 'Linux':
+            os.system('libreoffice ' + self.setup.DATA_FILE )
+        elif dt.conf.OS == 'Darwin':
+            os.system('open -a "Microsoft Excel" ' + self.setup.DATA_FILE )
 
     def createSourceMeta(self):
         self.meta = {'SOURCE_ID': self.setup.SOURCE_ID,
@@ -3320,6 +3326,264 @@ class SDG_DATA_2019(BaseImportTool):
         
         return tablesToCommit   
 
+class HOESLY2018(BaseImportTool):
+    def __init__(self):
+        self.setup = setupStruct()
+        self.setup.SOURCE_ID    = "HOESLY2018"
+        self.setup.SOURCE_PATH  = conf.PATH_TO_DATASHELF + 'rawdata/HOESLY2018/'
+        self.setup.DATA_FILE    = self.setup.SOURCE_PATH + 'compiled_raw_hoesly.csv'
+        self.setup.MAPPING_FILE = self.setup.SOURCE_PATH + 'mapping.xlsx'
+        self.setup.LICENCE = ' Creative Commons Attribution 3.0 License'
+        self.setup.URL     = 'https://www.geosci-model-dev.net/11/369/2018/'
+        
+        self.setup.MODEL_COLUMN_NAME = 'model'
+        self.setup.SCENARIO_COLUMN_NAME = 'scenario'
+        self.setup.REGION_COLUMN_NAME   = 'region'
+        self.setup.VARIABLE_COLUMN_NAME   = 'variable'
+        
+        if not(os.path.exists(self.setup.MAPPING_FILE)):
+            self.createVariableMapping()
+            print("no mapping file found")
+        else:
+            self.mapping = dict()
+            
+            
+            for var in ['variable', 'scenario', 'model', 'region']:
+                df = pd.read_excel(self.setup.MAPPING_FILE, sheet_name=var +'_mapping', index_col=0)
+                df = df.loc[~df.loc[:,var].isna()]
+                self.mapping.update(df.to_dict())
+            
+        self.createSourceMeta()
+
+    def loadData(self):
+        self.data = pd.read_csv(self.setup.DATA_FILE,   index_col = None, header =0)
+        
+    def createVariableMapping(self):        
+        
+        # loading data if necessary
+        if not hasattr(self, 'data'):        
+            self.loadData()
+        
+        
+        import numpy as np
+ 
+        writer = pd.ExcelWriter(self.setup.MAPPING_FILE,
+                    engine='xlsxwriter',
+                    datetime_format='mmm d yyyy hh:mm:ss',
+                    date_format='mmmm dd yyyy')       
+        
+        #variables
+        #index = self.data[self.setup.VARIABLE_COLUMN_NAME].unique()
+        self.availableSeries = self.data.drop_duplicates('variable').set_index( self.setup.VARIABLE_COLUMN_NAME)['unit']
+        self.mapping = pd.DataFrame(index=self.availableSeries.index, columns =  [ self.setup.VARIABLE_COLUMN_NAME])
+        self.mapping = pd.concat([self.mapping, self.availableSeries], axis=1)
+        self.mapping = self.mapping.sort_index()
+        self.mapping.to_excel(writer, engine='openpyxl', sheet_name=VAR_MAPPING_SHEET)
+        
+        #models
+        index = np.unique(self.data[self.setup.MODEL_COLUMN_NAME].values)
+        
+        self.availableSeries = pd.DataFrame(index=index)
+        self.mapping = pd.DataFrame(index=index, columns = [self.setup.MODEL_COLUMN_NAME])
+        self.mapping = pd.concat([self.mapping, self.availableSeries], axis=1)
+        self.mapping = self.mapping.sort_index()
+        
+        self.mapping.to_excel(writer, engine='openpyxl', sheet_name='model_mapping')
+
+        #scenarios
+        index = np.unique(self.data[self.setup.SCENARIO_COLUMN_NAME].values)
+        
+        self.availableSeries = pd.DataFrame(index=index)
+        self.mapping = pd.DataFrame(index=index, columns = [self.setup.SCENARIO_COLUMN_NAME])
+        self.mapping = pd.concat([self.mapping, self.availableSeries], axis=1)
+        self.mapping = self.mapping.sort_index()
+        self.mapping.to_excel(writer, engine='openpyxl', sheet_name='scenario_mapping')
+        
+        #region
+        index = np.unique(self.data[self.setup.region_COLUMN_NAME].values)
+        
+        self.availableSeries = pd.DataFrame(index=index)
+        self.mapping = pd.DataFrame(index=index, columns = [self.setup.REGION_COLUMN_NAME])
+        self.mapping = pd.concat([self.mapping, self.availableSeries], axis=1)
+        self.mapping = self.mapping.sort_index()
+        
+        for idx in self.mapping.index:
+            iso = dt.util.identifyCountry(idx)
+            if iso is not None:
+                self.mapping.loc[idx,'region'] = iso
+        
+        self.mapping.to_excel(writer, engine='openpyxl', sheet_name='region_mapping')
+        writer.close()
+
+
+    def gatherMappedData(self, spatialSubSet = None, updateTables=False):
+        #%%
+        import tqdm
+        # loading data if necessary
+        if not hasattr(self, 'data'):
+            self.loadData()        
+      
+        tablesToCommit  = []
+        metaDict = dict()
+        metaDict['source'] = self.setup.SOURCE_ID
+        excludedTables = dict()
+        excludedTables['empty'] = list()
+        excludedTables['error'] = list()
+        excludedTables['exists'] = list()
+        
+        
+        for model in self.mapping['model'].keys():
+            tempMo = self.data.loc[self.data.model == model]
+            for scenario in self.mapping['scenario'].keys():
+                tempMoSc = tempMo.loc[self.data.scenario == scenario]
+#                for variable in self.mapping['variable'].keys():
+#                    tempMoScVa = tempMoSc.loc[self.data.variable == variable]    
+                    
+                tables = dt.interfaces.read_long_table(tempMoSc, list(self.mapping['variable'].keys()))
+                for table in tables:
+                    table.meta['category'] = ""
+                    table.meta['source'] = self.setup.SOURCE_ID
+                    table.index = table.index.map(self.mapping['region'])
+                    
+                    tableID = dt.core._createDatabaseID(table.meta)
+                    if not updateTables:
+                        if dt.core.DB.tableExist(tableID):
+                            excludedTables['exists'].append(tableID)
+                        else:
+                            tablesToCommit.append(table)
+        return tablesToCommit, excludedTables  
+
+class VANMARLE2017(BaseImportTool):
+    def __init__(self):
+        self.setup = setupStruct()
+        self.setup.SOURCE_ID    = "VANMARLE2017"
+        self.setup.SOURCE_PATH  = conf.PATH_TO_DATASHELF + 'rawdata/VANMARLE2017/'
+        self.setup.DATA_FILE    = self.setup.SOURCE_PATH + 'compiled_raw_vanmarle.csv'
+        self.setup.MAPPING_FILE = self.setup.SOURCE_PATH + 'mapping.xlsx'
+        self.setup.LICENCE = ' Creative Commons Attribution 3.0 License'
+        self.setup.URL     = 'https://www.geosci-model-dev.net/10/3329/2017/'
+        
+        self.setup.MODEL_COLUMN_NAME = 'model'
+        self.setup.SCENARIO_COLUMN_NAME = 'scenario'
+        self.setup.REGION_COLUMN_NAME   = 'region'
+        self.setup.VARIABLE_COLUMN_NAME   = 'variable'
+        
+        if not(os.path.exists(self.setup.MAPPING_FILE)):
+            self.createVariableMapping()
+            print("no mapping file found")
+        else:
+            self.mapping = dict()
+            
+            
+            for var in ['variable', 'scenario', 'model', 'region']:
+                df = pd.read_excel(self.setup.MAPPING_FILE, sheet_name=var +'_mapping', index_col=0)
+                df = df.loc[~df.loc[:,var].isna()]
+                self.mapping.update(df.to_dict())
+            
+        self.createSourceMeta()
+
+    def loadData(self):
+        self.data = pd.read_csv(self.setup.DATA_FILE,   index_col = None, header =0)
+        
+    def createVariableMapping(self):        
+        
+        # loading data if necessary
+        if not hasattr(self, 'data'):        
+            self.loadData()
+        
+        
+        import numpy as np
+ 
+        writer = pd.ExcelWriter(self.setup.MAPPING_FILE,
+                    engine='xlsxwriter',
+                    datetime_format='mmm d yyyy hh:mm:ss',
+                    date_format='mmmm dd yyyy')       
+        
+        #variables
+        #index = self.data[self.setup.VARIABLE_COLUMN_NAME].unique()
+        self.availableSeries = self.data.drop_duplicates('variable').set_index( self.setup.VARIABLE_COLUMN_NAME)['unit']
+        self.mapping = pd.DataFrame(index=self.availableSeries.index, columns =  [ self.setup.VARIABLE_COLUMN_NAME])
+        self.mapping = pd.concat([self.mapping, self.availableSeries], axis=1)
+        self.mapping = self.mapping.sort_index()
+        self.mapping.index.name = 'orignal'
+        self.mapping.to_excel(writer, engine='openpyxl', sheet_name=VAR_MAPPING_SHEET)
+        
+        #models
+        index = np.unique(self.data[self.setup.MODEL_COLUMN_NAME].values)
+        
+        self.availableSeries = pd.DataFrame(index=index)
+        self.mapping = pd.DataFrame(index=index, columns = [self.setup.MODEL_COLUMN_NAME])
+        self.mapping = pd.concat([self.mapping, self.availableSeries], axis=1)
+        self.mapping = self.mapping.sort_index()
+        self.mapping.index.name = 'orignal'
+        self.mapping.to_excel(writer, engine='openpyxl', sheet_name='model_mapping')
+
+        #scenarios
+        index = np.unique(self.data[self.setup.SCENARIO_COLUMN_NAME].values)
+        self.availableSeries = pd.DataFrame(index=index)
+        self.mapping = pd.DataFrame(index=index, columns = [self.setup.SCENARIO_COLUMN_NAME])
+        self.mapping = pd.concat([self.mapping, self.availableSeries], axis=1)
+        self.mapping = self.mapping.sort_index()
+        self.mapping.index.name = 'orignal'
+        self.mapping.to_excel(writer, engine='openpyxl', sheet_name='scenario_mapping')
+        
+        #region
+        index = np.unique(self.data[self.setup.REGION_COLUMN_NAME].values)
+        self.availableSeries = pd.DataFrame(index=index)
+        self.mapping = pd.DataFrame(index=index, columns = [self.setup.REGION_COLUMN_NAME])
+        self.mapping = pd.concat([self.mapping, self.availableSeries], axis=1)
+        self.mapping = self.mapping.sort_index()
+        self.mapping.index.name = 'orignal'
+        for idx in self.mapping.index:
+            iso = dt.util.identifyCountry(idx)
+            if iso is not None:
+                self.mapping.loc[idx,'region'] = iso
+        
+        self.mapping.to_excel(writer, engine='openpyxl', sheet_name='region_mapping')
+        writer.close()
+
+
+    def gatherMappedData(self, spatialSubSet = None, updateTables=False):
+        #%%
+        import tqdm
+        # loading data if necessary
+        if not hasattr(self, 'data'):
+            self.loadData()        
+      
+        tablesToCommit  = []
+        metaDict = dict()
+        metaDict['source'] = self.setup.SOURCE_ID
+        excludedTables = dict()
+        excludedTables['empty'] = list()
+        excludedTables['error'] = list()
+        excludedTables['exists'] = list()
+        
+        
+        for model in self.mapping['model'].keys():
+            tempMo = self.data.loc[self.data.model == model]
+            for scenario in self.mapping['scenario'].keys():
+                tempMoSc = tempMo.loc[self.data.scenario == scenario]
+#                for variable in self.mapping['variable'].keys():
+#                    tempMoScVa = tempMoSc.loc[self.data.variable == variable]    
+                    
+                tables = dt.interfaces.read_long_table(tempMoSc, list(self.mapping['variable'].keys()))
+                for table in tables:
+                    table.meta['category'] = ""
+                    table.meta['source'] = self.setup.SOURCE_ID
+                    table.index = table.index.map(self.mapping['region'])
+                    
+                    tableID = dt.core._createDatabaseID(table.meta)
+                    if not updateTables:
+                        if dt.core.DB.tableExist(tableID):
+                            excludedTables['exists'].append(tableID)
+                        else:
+                            tablesToCommit.append(table)
+        return tablesToCommit, excludedTables  
+                
+        #%%
+        
+        
+        
 class APEC(BaseImportTool):
     
     """
@@ -3329,8 +3593,8 @@ class APEC(BaseImportTool):
         self.setup = setupStruct()
         self.setup.SOURCE_ID    = "APEC_" + str(year)
         self.setup.SOURCE_PATH  = conf.PATH_TO_DATASHELF + 'rawdata/APEC/' + str(year) + '/'
-        self.setup.DATA_FILE    = self.setup.SOURCE_PATH + 'APEC_Energy_Outlook_7th_Edition_Tables.xlsx'
-        self.setup.MAPPING_FILE = self.setup.SOURCE_PATH + 'mapping_APEC.xlsx'
+        self.setup.DATA_FILE    = self.setup.SOURCE_PATH + 'compiled_raw_hoesly.csv'
+        self.setup.MAPPING_FILE = self.setup.SOURCE_PATH + 'mapping.xlsx'
         self.setup.LICENCE = '(c) 2019 Asia Pacific Economic Cooperation (APERC)'
         self.setup.URL     = 'https://www.apec.org/Publications/2019/05/APEC-Energy-Demand-and-Supply-Outlook-7th-Edition---Volume-I'
         
@@ -3760,14 +4024,23 @@ if __name__ == '__main__':
 #    dt.commitTables(tableList, 'AR5  data added', ar5_db.meta)
 #%% WEO
     weo = WEO(2019)
-    tableList, excludedTables = weo.gatherMappedData()
-    dt.commitTables(tableList, 'WEO  data updated', weo.meta, update=True)  
+#    tableList, excludedTables = weo.gatherMappedData()
+#    dt.commitTables(tableList, 'WEO  data updated', weo.meta, update=True)  
     
 #%% APEC
     apec = APEC(2019)
 #    tableList, excludedTables = apec.gatherMappedData()
     #dt.commitTables(tableList, 'AR5  data added', apec.meta) 
-#%% f
+
+#%% hoesley
+    hoesley = HOESLY2018()
+#    tableList, excludedTables = hoesley.gatherMappedData()
+#    dt.commitTables(tableList, 'Hoesley data updated', hoesley.meta, update=False)  
+#%% VANMARLE2017
+    vanmarle = VANMARLE2017()
+    tableList, excludedTables = vanmarle.gatherMappedData()
+#    dt.commitTables(tableList, 'vanmarle data updated', vanmarle.meta, update=False)  
+    #%%
 ##################################################################
 #    helper funtions
 ##################################################################  

@@ -355,7 +355,7 @@ class Visualization():
                 fig = plt.figure(self.df.meta['ID'])
             else:
                 fig = plt.figure('unkown')
-            fig, ax = fig.add_subplot(111)
+            ax = fig.add_subplot(111)
             kwargs['ax'] = ax[0]
         self.df.T.plot(**kwargs)
         #print(kwargs['ax'])

@@ -26,7 +26,9 @@ for file in __getAvailableFiles():
         continue
     
     __new_moduleName = file.replace('.py','')
-    globals()[__new_moduleName]= __import__(__new_moduleName)    
-
+    try:
+        globals()[__new_moduleName]= __import__(__new_moduleName)    
+    except:
+        print("failed to import workflow for {}".format(__new_moduleName))
 del file
 

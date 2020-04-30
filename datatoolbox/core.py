@@ -27,18 +27,19 @@ gases = {"CO2eq":"carbon_dioxide_equivalent",
 #    except:
 #        pass
 from openscm_units import unit_registry as ur
-ur._add_gases(gases)
+try:
+    ur._add_gases(gases)
 
 #import openscm
-ur.define('fraction = [] = frac')
-ur.define('percent = 1e-2 frac = pct')
-ur.define('ppm = 1e-6 fraction')
-ur.define('sqkm = km * km')
-ur.define('none = dimensionless')
-#try:
-ur.load_definitions(config.PATH_PINT_DEFINITIONS)
-#except:
-#    print('Using old unit defintions')
+    ur.define('fraction = [] = frac')
+    ur.define('percent = 1e-2 frac = pct')
+    ur.define('ppm = 1e-6 fraction')
+    ur.define('sqkm = km * km')
+    ur.define('none = dimensionless')
+    
+    ur.load_definitions(config.PATH_PINT_DEFINITIONS)
+except:
+    print('Using old unit defintions')
         
 import pint
 

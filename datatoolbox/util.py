@@ -98,10 +98,11 @@ class TableSet(dict):
             mode='a',
             datetime_format='mmm d yyyy hh:mm:ss',
             date_format='mmmm dd yyyy') 
-        for eKey in self.keys():
+        for i,eKey in enumerate(self.keys()):
             table = self[eKey].dropna(how='all', axis=1).dropna(how='all', axis=0)
-            print(table.meta['entity'])
-            table.to_excel(writer=writer, sheetName = table.meta['ID'][:31])
+            sheetName = str(i) + table.meta['ID'][:25]
+            print(sheetName)
+            table.to_excel(writer=writer, sheetName = sheetName)
             
         writer.close()
         
@@ -438,8 +439,8 @@ def identifyCountry(string):
     
     if len(string) == 3:
          
-        if string in dt.mapp.countries.codes.index:
-            return string
+        if string.upper() in dt.mapp.countries.codes.index:
+            return string.upper()
     
     try: 
         coISO = dt.getCountryISO(string)
@@ -448,7 +449,18 @@ def identifyCountry(string):
         print('not matching country found')    
         return None
             
+def convertIndexToISO(table):
+    replaceDict = dict()
     
+    for idx in table.index:
+        iso = identifyCountry(idx)
+        if iso is not None:
+            replaceDict[idx] = iso
+    table.index = table.index.map(replaceDict)           
+    table = table.loc[~table.index.isna(),:]
+  
+    return table
+
 def getCountryExtract(countryList, sourceList='all'):
     
     if sourceList == 'all':
