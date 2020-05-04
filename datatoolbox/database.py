@@ -27,15 +27,25 @@ class Database():
         self.sources   = pd.read_csv(conf.SOURCE_FILE, index_col='SOURCE_ID')
         
         if conf.DB_READ_ONLY:
-            print('database in read only mode')
+            print('databdase in read only mode')
+#            import traceback
+
+#            traceback.print_stack()
         else:
-            if self.repo.diff() is not '':
-                raise(Exception('database is inconsistent! - please check uncommitted modifications'))
-    
+            self._validateRepository()
+            
         if conf.OS == 'win32':
             self.getTable = self._getTableWindows
         else:
             self.getTable = self._getTableLinux
+
+    def _validateRepository(self):
+        if self.repo.diff() is not '':
+            raise(Exception('database is inconsistent! - please check uncommitted modifications'))
+        else:
+            conf.DB_READ_ONLY = False
+            print('databdase in write mode')
+            return True
 
     def _reloadInventory(self):
         self.inventory = pd.read_csv(self.INTVENTORY_PATH, index_col=0)
@@ -44,6 +54,8 @@ class Database():
         return source in self.sources.index
     
     def add2Inventory(self, datatable):
+        if conf.DB_READ_ONLY:
+            assert self._validateRepository()
         entry = [datatable.meta[key] for key in conf.ID_FIELDS]
         self.inventory.loc[datatable.ID] = entry
        
@@ -123,7 +135,8 @@ class Database():
 
         
     def commitTable(self, dataTable, message, sourceMetaDict):
-        
+        if conf.DB_READ_ONLY:
+            assert self._validateRepository()
         if not( sourceMetaDict['SOURCE_ID'] in self.sources.index):
             self._addNewSource(sourceMetaDict)
         
@@ -134,7 +147,8 @@ class Database():
         self._gitCommit(message)
 
     def commitTables(self, dataTables, message, sourceMetaDict, append_data=False, update=False, overwrite=False):
-        
+        if conf.DB_READ_ONLY:
+            assert self._validateRepository()
 
         # create a new source if not extisting
         if not(sourceMetaDict['SOURCE_ID'] in self.sources.index):
@@ -175,10 +189,14 @@ class Database():
         
 
     def updateTable(self, oldTableID, newDataTable, message):
+        if conf.DB_READ_ONLY:
+            assert self._validateRepository()
         self._updateTable(oldTableID, newDataTable)
         self._gitCommit(message)
     
     def updateTables(self, oldTableIDs, newDataTables, message):
+        if conf.DB_READ_ONLY:
+            assert self._validateRepository()
         """
         same as updateTable, but for list of tables
         """
@@ -226,6 +244,8 @@ class Database():
             print("csv file exists")
 
     def removeTables(self, IDList):
+        if conf.DB_READ_ONLY:
+            assert self._validateRepository()
         for ID in IDList:
             tablePath = self._getPathOfTable(ID)
             try:
@@ -240,7 +260,8 @@ class Database():
         self._gitCommit('Tables removed')
         
     def removeTable(self, ID):
-        
+        if conf.DB_READ_ONLY:
+            assert self._validateRepository()
         tablePath = self._getPathOfTable(ID)
         self.inventory.drop(ID, inplace=True)
         
@@ -335,28 +356,29 @@ class Database():
         This function updates all data values that are defined in the input sheet
         in the given excel file
         """
-    
+        if conf.DB_READ_ONLY:
+            assert self._validateRepository()
         ins = io.Inserter(fileName='demo.xlsx')
         for setup in ins.getSetups():
             dataTable = self.getTable(setup['dataID'])
             ins._writeData(setup, dataTable)
 
-    if conf.DB_READ_ONLY:
-        def commitTable(self, dataTable, message, sourceMetaDict):
-            
-            raise(BaseException('Not possible in read only mode'))
-    
-        def commitTables(self, dataTables, message, sourceMetaDict, append_data=False):
-    
-            raise(BaseException('Not possible in read only mode'))
-
-            
-    
-        def updateTable(self, oldTableID, newDataTable, message):
-            raise(BaseException('Not possible in read only mode'))
-        
-        def updateTables(self, oldTableIDs, newDataTables, message):
-            raise(BaseException('Not possible in read only mode'))
+#    if conf.DB_READ_ONLY:
+#        def commitTable(self, dataTable, message, sourceMetaDict):
+#            
+#            raise(BaseException('Not possible in read only mode'))
+#    
+#        def commitTables(self, dataTables, message, sourceMetaDict, append_data=False):
+#    
+#            raise(BaseException('Not possible in read only mode'))
+#
+#            
+#    
+#        def updateTable(self, oldTableID, newDataTable, message):
+#            raise(BaseException('Not possible in read only mode'))
+#        
+#        def updateTables(self, oldTableIDs, newDataTables, message):
+#            raise(BaseException('Not possible in read only mode'))
             
     #%% database mangement
     

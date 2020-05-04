@@ -3,7 +3,7 @@
 """
 Created on Thu Apr 30 19:32:13 2020
 
-@author: ageiges
+@author: Andreas Geiges
 
 SOURCES Tutorial
 """

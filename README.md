@@ -13,9 +13,13 @@ Andreas Geiges
 
 Dependencies
 ------------
-
-1. `nose <https://pypi.python.org/pypi/nose/1.3.7>`_
-2. `Sphinx <https://pypi.python.org/pypi/Sphinx>`_
+pandas
+gitpython
+openscm-units
+pint==0.9
+pycountry
+fuzzywuzzy
+tqdm
 
 Installation via pip
 --------------------
@@ -27,11 +31,11 @@ Installation via pip
 Testing
 ----------
 
-From the root directory, run::
+From the root directory, run:
 
-    nosetests -w tests
+    pytest
 
-Continuous Integration
+Continuous Integration (not done so far)
 -----------------------
 
 

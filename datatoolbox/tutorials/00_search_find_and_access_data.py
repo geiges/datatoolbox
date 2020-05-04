@@ -86,5 +86,6 @@ print(type(tables))
 # interface to pyam
 iamDataFrame = tables.to_IamDataFrame()
 
+# interface to excel
 tables.to_excel('output_test.xlsx')
 

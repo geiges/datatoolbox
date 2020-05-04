@@ -43,7 +43,7 @@ def create_personal_setting(modulePath, OS):
     print ("\nfile_path_variable = ", file_path_variable)
     
     fin = open(modulePath + 'data/personal_template.py', 'r')
-    os.makedirs(modulePath + 'settings/')
+    os.makedirs(modulePath + 'settings/',exist_ok=True)
     fout = open(modulePath + 'settings/personal.py', 'w')
     
     for line in fin.readlines():

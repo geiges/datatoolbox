@@ -5,7 +5,7 @@ DATA TOOLS by Andreas Geiges
 
 Climate Analytics
 """
-__version__ = "0.1.16"
+__version__ = "0.2.1"
 
 import os
 from . import config as conf
@@ -17,13 +17,13 @@ from .data_structures import Datatable, read_csv
 from . import database
 core.DB = database.Database()
 from . import mapping as mapp
-try:
-    from . import database
-    core.DB = database.Database()
-    from . import mapping as mapp
-except Exception as e:
-    print(e)
-    print('data base not initialized')
+#try:
+#    from . import database
+#    core.DB = database.Database()
+#    from . import mapping as mapp
+#except Exception as e:
+#    print(e)
+#    print('data base not initialized')
 from . import io_tools as io
 
 from . import interfaces

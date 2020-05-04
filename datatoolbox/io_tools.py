@@ -255,7 +255,7 @@ class ExcelReader():
 #        self.validate()
     
     def getAllSheetNames(self):
-        xlFile = pd.ExcelFile(self.filePath + self.fileName,)
+        xlFile = pd.ExcelFile(os.path.join(self.filePath, self.fileName))
         sheetNameList = xlFile.sheet_names
         xlFile.close()
         return sheetNameList
@@ -267,7 +267,7 @@ class ExcelReader():
 
     def gatherValue(self, excelIdx):
         if not hasattr(self, 'df'):
-            self.df = pd.read_excel(self.filePath + self.fileName, sheet_name=self.sheetName, header=None)
+            self.df = pd.read_excel(os.path.join(self.filePath, self.fileName), sheet_name=self.sheetName, header=None)
         elif core.config.DEBUG:
             print('use loaded df')
         return self.df.iloc[excelIdx2PandasIdx(excelIdx)]             
@@ -277,12 +277,12 @@ class ExcelReader():
         
     def openFile(self):
         import os
-        os.system('libreoffice ' + self.filePath + self.fileName) 
+        os.system('libreoffice ' + os.path.join(self.filePath, self.fileName)) 
                         
     def gatherData(self, load=True):
 
         if load:
-            self.df = pd.read_excel(self.filePath + self.fileName, sheet_name=self.sheetName, header=None)
+            self.df = pd.read_excel(os.path.join(self.filePath, self.fileName), sheet_name=self.sheetName, header=None)
             print('df loaded')
         elif core.config.DEBUG:
             print('use loaded df')

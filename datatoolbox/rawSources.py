@@ -3622,7 +3622,6 @@ class APEC(BaseImportTool):
 
     def gatherMappedData(self, spatialSubSet = None):
         
-#%%
         tablesToCommit  = dt.TableSet()
         setup = dict()
         setup['filePath']  = self.setup.SOURCE_PATH 
@@ -3692,7 +3691,6 @@ class APEC(BaseImportTool):
         return tablesList, []
 
 class WEO(BaseImportTool):
-    
     """
     WEO data import tool
     """
