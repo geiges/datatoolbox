@@ -232,16 +232,20 @@ class Datatable(pd.DataFrame):
         
     def __add__(self, other):
         if isinstance(other,Datatable):
+            
             factor = core.getUnit(other.meta['unit']).to(self.meta['unit']).m
             
             out = Datatable(super(Datatable, self).__add__(other * factor))
             out.meta['unit'] = self.meta['unit']
             out.meta['source'] = 'calculation'
         else:
+            
             out = Datatable(super(Datatable, self).__add__(other))
             out.meta['unit'] = self.meta['unit']
             out.meta['source'] = 'calculation'
         return out 
+
+    __radd__ = __add__
     
     def __sub__(self, other):
         if isinstance(other,Datatable):
@@ -251,6 +255,18 @@ class Datatable(pd.DataFrame):
             out.meta['source'] = 'calculation'
         else:
             out = Datatable(super(Datatable, self).__sub__(other))
+            out.meta['unit'] = self.meta['unit']
+            out.meta['source'] = 'calculation'
+        return out
+
+    def __rsub__(self, other):
+        if isinstance(other,Datatable):
+            factor = core.getUnit(other.meta['unit']).to(self.meta['unit']).m
+            out = Datatable(super(Datatable, self).__rsub__(other * factor))
+            out.meta['unit'] = self.meta['unit']
+            out.meta['source'] = 'calculation'
+        else:
+            out = Datatable(super(Datatable, self).__rsub__(other))
             out.meta['unit'] = self.meta['unit']
             out.meta['source'] = 'calculation'
         return out
@@ -267,6 +283,8 @@ class Datatable(pd.DataFrame):
             out.meta['unit'] = self.meta['unit']
             out.meta['source'] = 'calculation'
         return out    
+    
+    __rmul__ = __mul__
 
     def __truediv__(self, other):
         if isinstance(other,Datatable):
@@ -281,17 +299,30 @@ class Datatable(pd.DataFrame):
             out.meta['source'] = 'calculation'
         return out
 
-    def __repr__(self):
-        outStr = """"""
-        if 'ID' in self.meta.keys():
-            outStr += '=== Datatable - ' + self.meta['ID'] + ' ===\n'
+#    __rtruediv__ = __truediv__
+    def __rtruediv__(self, other):
+        if isinstance(other,Datatable):
+            newUnit = (core.getUnit(other.meta['unit']) / core.getUnit(self.meta['unit']))
+            out = Datatable(super(Datatable, self).__rtruediv__(other))
+            out.meta['unit'] = str(newUnit.u)
+            out.meta['source'] = 'calculation'
+            out.values[:] *= newUnit.m
         else:
-            outStr += '=== Datatable ===\n'
-        for key in self.meta.keys():
-            if self.meta[key] is not None:
-                outStr += key + ': ' + str(self.meta[key]) + ' \n'
-        outStr += super(Datatable, self).__repr__()
-        return outStr
+            out = Datatable(super(Datatable, self).__rtruediv__(other))
+            out.meta['unit'] = (core.getUnit(self.meta['unit'])**-1).u
+            out.meta['source'] = 'calculation'
+        return out
+#    def __repr__(self):
+#        outStr = """"""
+#        if 'ID' in self.meta.keys():
+#            outStr += '=== Datatable - ' + self.meta['ID'] + ' ===\n'
+#        else:
+#            outStr += '=== Datatable ===\n'
+#        for key in self.meta.keys():
+#            if self.meta[key] is not None:
+#                outStr += key + ': ' + str(self.meta[key]) + ' \n'
+#        outStr += super(Datatable, self).__repr__()
+#        return outStr
     
     def __str__(self):
         outStr = """"""
@@ -327,9 +358,12 @@ class Visualization():
     
     def availability(self):
         data = np.isnan(self.df.values)
+        availableRegions = self.df.index[~np.isnan(self.df.values).any(axis=1)]
+        print(availableRegions)
         plt.pcolormesh(data, cmap ='RdYlGn_r')
         self._formatTimeCol()
         self._formatSpaceCol()
+        return availableRegions
         
     def _formatTimeCol(self):
         years = self.df.columns.values

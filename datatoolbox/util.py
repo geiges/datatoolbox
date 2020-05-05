@@ -62,7 +62,7 @@ class TableSet(dict):
         return iter(self.values())
     
     def add(self, datatables=None, tableID=None):
-        if isinstance(datatables, list):
+        if isinstance(datatables, (list, TableSet)):
             for datatable in datatables:
                 self._add(datatable, tableID)
         else:
@@ -135,6 +135,48 @@ class TableSet(dict):
 
             
         return coTables
+
+    def to_LongTable(self):
+        #%%
+        import pyam
+        import copy
+        #self = dt.getTables(res.index)
+        tableList= list()
+        minMax = (-np.inf, np.inf)
+        for key in self.keys():
+            table= copy.copy(self[key])
+            #print(table.columns)
+            
+            oldColumns = list(table.columns)
+            minMax = (max(minMax[0], min(oldColumns)), min(minMax[1],max(oldColumns)))
+#            for field in config.ID_FIELDS:
+#                table.loc[:,field] = table.meta[field]
+            
+            table.loc[:,'region'] = table.index
+            table.loc[:,'unit']   = table.meta['unit']
+            table.loc[:,'variable']   = table.meta['entity']
+            
+            scenModel = table.meta['scenario'].split('|')
+            if len(scenModel) == 2:
+                table.loc[:,'model'] = scenModel[1]
+                table.loc[:,'scenario']   =scenModel[0]
+            else:
+                table.loc[:,'model'] = table.meta['scenario']
+                table.loc[:,'scenario']   = ''
+            tableNew = table.loc[:, ['variable','region', 'scenario',  'model', 'unit'] +  oldColumns]
+            tableNew.index= range(len(tableNew.index))
+            tableList.append(tableNew)
+        #df = pd.DataFrame(columns = ['variable','region', 'model', 'unit'] + list(range(minMax[0], minMax[1])))
+        
+#        iaDf = pyam.IamDataFrame(tableList[0])
+#        for table in tableList[1:]:
+#            iaDf.append(table)
+#        return iaDf
+        fullDf = pd.DataFrame(tableList[0])
+        for table in tableList[1:]:
+            #print(table)
+            fullDf = fullDf.append(pd.DataFrame(table))
+        return fullDf       
     
     def to_IamDataFrame(self):
         #%%

@@ -3562,22 +3562,25 @@ class VANMARLE2017(BaseImportTool):
         for model in self.mapping['model'].keys():
             tempMo = self.data.loc[self.data.model == model]
             for scenario in self.mapping['scenario'].keys():
-                tempMoSc = tempMo.loc[self.data.scenario == scenario]
+                tempMoSc = tempMo.loc[tempMo.scenario == scenario]
 #                for variable in self.mapping['variable'].keys():
 #                    tempMoScVa = tempMoSc.loc[self.data.variable == variable]    
-                    
-                tables = dt.interfaces.read_long_table(tempMoSc, list(self.mapping['variable'].keys()))
-                for table in tables:
-                    table.meta['category'] = ""
-                    table.meta['source'] = self.setup.SOURCE_ID
-                    table.index = table.index.map(self.mapping['region'])
-                    
-                    tableID = dt.core._createDatabaseID(table.meta)
-                    if not updateTables:
-                        if dt.core.DB.tableExist(tableID):
-                            excludedTables['exists'].append(tableID)
-                        else:
-                            tablesToCommit.append(table)
+                
+                for variable in list(self.mapping['variable'].keys()):
+                    tempMoScVar =  tempMoSc.loc[tempMoSc.variable == variable]
+                    tempMoScVar.unit = self.mapping['unit'][variable]
+                    tables = dt.interfaces.read_long_table(tempMoScVar, [variable])
+                    for table in tables:
+                        table.meta['category'] = ""
+                        table.meta['source'] = self.setup.SOURCE_ID
+                        table.index = table.index.map(self.mapping['region'])
+                        
+                        tableID = dt.core._createDatabaseID(table.meta)
+                        if not updateTables:
+                            if dt.core.DB.tableExist(tableID):
+                                excludedTables['exists'].append(tableID)
+                            else:
+                                tablesToCommit.append(table)
         return tablesToCommit, excludedTables  
                 
         #%%
@@ -3920,7 +3923,7 @@ def UN_WPP_2019_import():
 sources = sourcesStruct()
 _sourceClasses = [IEA_WEB_2019_New, WDI_2018, IEA_WEB_2018, ADVANCE_DB, IAMC15_2019, IRENA2019, 
                   SSP_DATA, SDG_DATA_2019, AR5_DATABASE, IEA_FUEL_2019, PRIMAP_HIST, SDG_DATA_2019,
-                  CRF_DATA, WDI_2019, APEC, WEO]
+                  CRF_DATA, WDI_2019, APEC, WEO, VANMARLE2017, HOESLY2018]
 
 for _sourceClass in _sourceClasses:
     try:
@@ -3996,8 +3999,8 @@ if __name__ == '__main__':
 #%% IAMC DATA
 
     iamc = IAMC15_2019()    
-#    tableList, excludedTables = iamc.gatherMappedData(updateTables=False)
-#    iamc.createSourceMeta()
+    tableList, excludedTables = iamc.gatherMappedData(updateTables=False)
+    iamc.createSourceMeta()
 #    dt.commitTables(tableList, 'update IAM 1.5 data R20', iamc.meta, update=False)
 #%% CD LINKS
 
@@ -4036,7 +4039,7 @@ if __name__ == '__main__':
 #    dt.commitTables(tableList, 'Hoesley data updated', hoesley.meta, update=False)  
 #%% VANMARLE2017
     vanmarle = VANMARLE2017()
-    tableList, excludedTables = vanmarle.gatherMappedData()
+#    tableList, excludedTables = vanmarle.gatherMappedData()
 #    dt.commitTables(tableList, 'vanmarle data updated', vanmarle.meta, update=False)  
     #%%
 ##################################################################

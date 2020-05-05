@@ -19,6 +19,7 @@ from . import mapping as mapp
 from . import greenhouse_gas_database as gh
 GHG_data = gh.GreenhouseGasTable()
 from .data_structures import Datatable
+from .util import TableSet
 
 REQUIRED_SETUP_FIELDS = ['filePath',
                          'fileName',
@@ -488,7 +489,18 @@ def iterData(dataIdxString, wksheet, xlsRow, xlsCol, timeIdx, spaceIdx, dataIdx)
         # assume fixed
         dataIdx = dataIdxString
         yield  [xlsRow, xlsCol, timeIdx, spaceIdx, dataIdx]
-        
+
+
+def _str2float(x):
+#    print(x)
+    if isinstance(x,float) or isinstance(x,int) or x is None:
+        return x
+    if '%' in x:
+        return float(x.replace('%',''))*100
+    else:
+        return float(x)
+def pandasStr2floatPercent(X):
+    return([_str2float(x) for x in X])        
 #%%
 if False:
     #%%
@@ -562,6 +574,8 @@ class ExcelWriter():
             self.setup = dict()
             self.setup['fileName'] = fileName
             fileSetup = False
+    
+
     
     def close(self):
         self.wb.close()
@@ -755,7 +769,7 @@ def PandasExcelWriter(fileName):
 #%%
 class ExcelReader_New():
     
-    def __init__(self, setup=None, fileName=None, overwrite=False, setupSheet = 'INPUT'):
+    def __init__(self, setup=None, fileName=None, overwrite=False, setupSheet = 'OUTPUT'):
         self.overwrite = overwrite
         self.setupSheet= setupSheet
         if setup:
@@ -769,7 +783,12 @@ class ExcelReader_New():
     def close(self):
         self.wb.close()
         
-        
+    def openSourceFile(self):
+        if config.OS == 'Linux':
+            os.system('libreoffice ' + self.setup['fileName'])
+        elif dt.conf.OS == 'Darwin':
+            os.system('open -a "Microsoft Excel" ' + self.setup['fileName'])        
+   
     def getSetups(self):
         self.wb_read = load_workbook(self.setup['fileName'], data_only=True)
         self.wb = load_workbook(self.setup['fileName'], data_only=True)
@@ -777,7 +796,7 @@ class ExcelReader_New():
         setup['fileName'] = self.setup['fileName']
         
         
-        mapping = pd.read_excel(self.setup['fileName'])
+        mapping = pd.read_excel(self.setup['fileName'], sheet_name =self.setupSheet)
         
         setupDict = {'sheetName'     : 'sheetName',
                      'timeIdxList'   : 'timeCells',
@@ -785,6 +804,15 @@ class ExcelReader_New():
                      'dataID'        : 'dataCells',
                      'unit'          : 'unit',
                      'unitTo'        : 'unitTo'}
+
+        setupDict = {'sheetName'     : 'Sheetname',
+                     'timeIdxList'   : 'Time',
+                     'spaceIdxList'  : 'Region',
+                     'dataID'        : 'Variable',
+                     'unit'          : 'Unit',
+                     'unitTo'        : 'UnitTo',
+                     'scenario'      : 'Scenario',
+                     'source'        : 'Source'}
         
         for i,setupMapp in mapping.iterrows():
             for key in setupDict.keys():
@@ -816,9 +844,12 @@ class ExcelReader_New():
         from copy import copy
 
         wb = load_workbook(self.setup['fileName'])
-
+        
         validSpatialIDs = mapp.getValidSpatialIDs()
         self.setupList = list()
+        
+        tablesToReturn = TableSet()
+        
         for setup in self.getSetups():
             if isinstance(setup['timeIdxList'], int):
                 setup['timeIdxList'] = str(setup['timeIdxList'])
@@ -828,21 +859,8 @@ class ExcelReader_New():
             self.setupList.append(copy(setup))
             args =  None, None, None, None, None
             wksSheet = wb[setup['sheetName']]
-            tableIDs = list()
-            for args in iterData(setup['dataID'], wksSheet, *args):
-                print(args)
-                if (~pd.isna(args[4])) and (args[4] is not None):
-                    tableIDs.append(args[4])
-            print(tableIDs)
-            tables = [dt.Datatable(meta = {'ID': ID}) for ID in tableIDs]
-            tables = core.DB.getTables(tableIDs)
+
             
-            if setup['unit'] is not None:
-                 for tableKey in tables.keys():
-                     table = tables[tableKey]
-                     tables[tableKey]= table.convert(setup['unit'])
-            
-#            wksSheet = load_workbook(setup['fileName'], data_only=True)[setup['sheetName']]
             
             args =  [None, None, None, None, None]
             iCount = 0
@@ -875,27 +893,56 @@ class ExcelReader_New():
                     for argData in iterData(setup['dataID'], wksSheet, *argsSpace):
                         if argData[DT_ARG] is None:
                             continue
-#                        print(argData)
-                        try:
+                        print(argData)
+                        meta = {'entity': argData[DT_ARG],
+                                                      'unit' : setup['unit'],
+                                                      'category':'',
+                                                      'scenario' : setup['scenario'],
+                                                      'source' : setup['source']}
+                        ID = core._createDatabaseID(meta)
+                        
+                        if ID not in tablesToReturn.keys():
+                            table = Datatable()
+                            table.meta = {'entity': argData[DT_ARG],
+                                                      'unit' : setup['unit'],
+                                                      'category':'',
+                                                      'scenario' : setup['scenario'],
+                                                      'source' : setup['source']}
+#                            print(table)
+                            tablesToReturn.add(table)
+                        
+                        
+#                        try:
 #                            print(argData)
-                            value = tables[argData[DT_ARG]].loc[argData[SP_ARG],int(argData[TI_ARG])]
-                            value = self._readValue(wksSheet, xlsRow=argData[0], xlsCol=argData[1], value=value)
-                            
+#                        value = tables[argData[DT_ARG]].loc[argData[SP_ARG],int(argData[TI_ARG])]
+                        value = self._readValue(wksSheet, xlsRow=argData[0], xlsCol=argData[1])
+#                            if argData[SP_ARG] not in table.index:
+#                                table.loc[argData[SP_ARG],:] = None
+#                                if argData[TI_ARG] not in table.colums:
+#                                    table.loc[:,argData[TI_ARG]] = None
+                        if isinstance(value, pd.DataFrame):
+                            value = pandasStr2floatPercent(value)
+                        else:
+                            value = _str2float(value)
+                        print(value)
+#                        sdf
+                        tablesToReturn[ID].loc[argData[SP_ARG],argData[TI_ARG]] = value
 #                            print('success')
-                            iCount +=1
+#                        iCount +=1
                             
-                        except Exception as e:
-#                            print(e)
-                            pass
+#                        except Exception as e:
+##                            print(e)
+#                            pass
 #                    self.wb.save(self.setup['fileName'])
 #                            import pdb
 #                            pdb.set_trace()
-            wb.save(self.setup['fileName'])
-            print('{} items inserted'.format(iCount))
-            
-            wb.close()
+        return tablesToReturn
+#            wb.save(self.setup['fileName'])
+#            print('{} items inserted'.format(iCount))
+#            
+#            wb.close()
 
-    def _readValue(self, wrkSheet, xlsRow, xlsCol, value):
+    def _readValue(self, wrkSheet, xlsRow, xlsCol):
 #        if self.overwrite or pd.isna():
 #            wrkSheet.cell(row=xlsRow, column=xlsCol, value = value)
         return wrkSheet.cell(row=xlsRow, column=xlsCol).value
