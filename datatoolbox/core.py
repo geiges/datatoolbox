@@ -158,8 +158,3 @@ def _AR4_conversionFactor(unitFrom, unitTo):
     factor = conversFactor * co2eq_factor
     return factor
     
-
-#### FUNCTION TESTS ########
-if __name__ == '__main__':
-    xx = 1 *ur('t oil_equivalent/capita')
-    xx.to('MJ/capita')

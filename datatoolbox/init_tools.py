@@ -79,6 +79,4 @@ CAT_countries = ['ARE', 'ARG', 'AUS', 'BRA', 'BTN', 'CAN', 'CHE', 'CHL', 'CHN', 
 #CAT_countries = CAT_countries + list(dt.mapp.regions.EU28.membersOf('EU28'))
 dt.mapp.regions.createNewContext('political',politicallDict)
 dt.mapp.regions.save()
-if __name__ == '__main__':
-    #initializeSpatialMapping()
-#    initSourceTable()
+

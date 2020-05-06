@@ -519,33 +519,4 @@ def read_csv(fileName):
 
     fid.close()
     return df
-    
-#    repo.execute(["git", "add", "test.csv"])
-#    repo.execute(["git", "commit", '-m' "first commit"])
-#%%
-if __name__ == '__main__':
-    ## TESTING
-    metaDict = {'source' : 'TEST',
-                'entity' : 'values',
-                'unit' : 'm'}
-    metaDict2 = {'source' : 'TEST2',
-                'entity' : 'area',
-                'unit' : 'km'}    
-    
-    data = np.asarray([[1,2.2,3,4 ],
-                       [2.3, np.nan, 3.4, np.nan],
-                       [1.3, np.nan, np.nan, np.nan],
-                       [np.nan, 3.4, 2.4, 3.2]])
-#                       [np.nan,1900,np.nan,np.nan]])
-    
-    data2 = np.asarray([[1,2.2,3,4.5 ],
-                   [2.3, np.nan, 3.4, np.nan],
-                   [1.1, np.nan, np.nan, np.nan],
-                   [np.nan, 3.3, 2.4, np.nan]])
-    
-    
-    dt = Datatable(data, meta=metaDict, columns = [2010, 2012, 2013, 2015], index = ['ARG', 'DEU', 'FRA', 'GBR'])
-    dt2 = Datatable(data2, meta=metaDict2, columns = [2009, 2012, 2013, 2015], index = ['ARG', 'DEU', 'FRA', 'GBR'])
-    dt.vis.availablitity()
-    data3 = dt / dt2
-    data / data2
+
