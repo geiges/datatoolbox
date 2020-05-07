@@ -13,7 +13,7 @@ import numpy as np
 from . import config
 
 from . import core
-from . import tools
+from . import util
 from . import mapping as mapp
 
 from . import greenhouse_gas_database as gh
@@ -705,7 +705,7 @@ class ExcelWriter():
                         if argsSpace[SP_ARG] in replaceDict.keys():
                             newID = replaceDict[argsSpace[SP_ARG]]
                         else:
-                            newID = tools.getCountryISO(argsSpace[SP_ARG])
+                            newID = util.getCountryISO(argsSpace[SP_ARG])
                         
 
                         if newID in validSpatialIDs:
@@ -879,7 +879,7 @@ class ExcelReader_New():
                         if argsSpace[SP_ARG] in replaceDict.keys():
                             newID = replaceDict[argsSpace[SP_ARG]]
                         else:
-                            newID = tools.getCountryISO(argsSpace[SP_ARG])
+                            newID = util.getCountryISO(argsSpace[SP_ARG])
                         
 
                         if newID in validSpatialIDs:
