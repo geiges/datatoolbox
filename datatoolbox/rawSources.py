@@ -4001,7 +4001,7 @@ if __name__ == '__main__':
     iamc = IAMC15_2019()    
     tableList, excludedTables = iamc.gatherMappedData(updateTables=False)
     iamc.createSourceMeta()
-#    dt.commitTables(tableList, 'update IAM 1.5 data R20', iamc.meta, update=False)
+    dt.commitTables(tableList, 'update IAM 1.5 data R20', iamc.meta, update=False)
 #%% CD LINKS
 
     cdlinks = CDLINKS_2018()    

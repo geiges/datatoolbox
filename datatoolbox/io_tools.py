@@ -868,7 +868,7 @@ class ExcelReader_New():
                 if argsTime[TI_ARG] is None:
                     print('No time defintion found')
                     print(setup['timeIdxList'])
-#                    sdf
+
                     continue
                 print(argsTime[TI_ARG])
                 for argsSpace in iterSpace(setup['spaceIdxList'], wksSheet, *argsTime):
@@ -899,7 +899,7 @@ class ExcelReader_New():
                         if argData[DT_ARG] is None:
                             print('No fitting dataID code found')
                             continue
-                        print(argData)
+
                         meta = {'entity': argData[DT_ARG],
                                                       'unit' : setup['unit'],
                                                       'category':'',
@@ -914,18 +914,11 @@ class ExcelReader_New():
                                                       'category':'',
                                                       'scenario' : setup['scenario'],
                                                       'source' : setup['source']}
-#                            print(table)
+
                             tablesToReturn.add(table)
                         
-                        
-#                        try:
-#                            print(argData)
-#                        value = tables[argData[DT_ARG]].loc[argData[SP_ARG],int(argData[TI_ARG])]
                         value = self._readValue(wksSheet, xlsRow=argData[0], xlsCol=argData[1])
-#                            if argData[SP_ARG] not in table.index:
-#                                table.loc[argData[SP_ARG],:] = None
-#                                if argData[TI_ARG] not in table.colums:
-#                                    table.loc[:,argData[TI_ARG]] = None
+
                         if isinstance(value, pd.DataFrame):
                             value = pandasStr2floatPercent(value)
                         else:
@@ -948,6 +941,7 @@ class ExcelReader_New():
 #                            pdb.set_trace()
                         
         for table in tablesToReturn:
+            table.columns = table.columns.astype(int)
             if '%' in table.meta['unit']:
                  table.loc[:,:] = table.loc[:,:]*100
                  tablesToReturn[table.ID] = table
