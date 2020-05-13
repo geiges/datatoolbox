@@ -34,7 +34,7 @@ class Database():
         else:
             self._validateRepository()
             
-        if conf.OS == 'win32':
+        if (conf.OS == 'win32') | (conf.OS == "Windows"):
             self.getTable = self._getTableWindows
         else:
             self.getTable = self._getTableLinux
@@ -307,7 +307,7 @@ class Database():
         sourcePath = conf.PATH_TO_DATASHELF + 'database/' + source + '/'
         filePath = sourcePath + ID + '.csv'
         
-        if conf.OS == "win32":
+        if (conf.OS == 'win32') | (conf.OS == "Windows"):
             filePath = filePath.replace('|','___')
         
         datatable = datatable.sort_index(axis='index')
@@ -339,15 +339,18 @@ class Database():
 
     def _addNewSource(self, sourceMetaDict):
         source_ID = sourceMetaDict['SOURCE_ID']
-        self.sources.loc[source_ID] = pd.Series(sourceMetaDict)
-        self.sources.to_csv(conf.SOURCE_FILE)
-        self._gitAddFile(conf.SOURCE_FILE)
-        self._gitCommit('added source: ' + source_ID)
-
-        sourcePath = conf.PATH_TO_DATASHELF + 'database/' + sourceMetaDict['SOURCE_ID'] + '/'
-        print('creating path for source')
-        os.mkdir(sourcePath)
-
+        
+        if not core.DB.sourceExists(source_ID):
+            self.sources.loc[source_ID] = pd.Series(sourceMetaDict)
+            self.sources.to_csv(conf.SOURCE_FILE)
+            self._gitAddFile(conf.SOURCE_FILE)
+            self._gitCommit('added source: ' + source_ID)
+    
+            sourcePath = conf.PATH_TO_DATASHELF + 'database/' + sourceMetaDict['SOURCE_ID'] + '/'
+            print('creating path for source')
+            os.mkdir(sourcePath)
+        else:
+            print('source already exists')
 
     
     

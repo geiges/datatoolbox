@@ -615,6 +615,13 @@ def compare_excel_files(file1, file2, eps=1e-6):
     writer.close()
     os.system('libreoffice ' + "diff_temp.xlsx")
     os.system('rm diff_temp.xlsx')
+
+
+def update_source_from_file(fileName, message=None):
+    fileName = '/media/sf_Documents/datashelf/temp/sourceMeta.csv'
+    sourceData = pd.read_csv(fileName)
+    for index in sourceData.index:
+        dt.core.DB._addNewSource(sourceData.loc[index,:].to_dict())
     
 def update_DB_from_folder(folderToRead, message=None):
     fileList = os.listdir(folderToRead)
@@ -623,7 +630,7 @@ def update_DB_from_folder(folderToRead, message=None):
     tablesToUpdate = dict()
 
     for file in fileList:
-        table = read_csv(folderToRead + file)
+        table = read_csv(os.path.join(folderToRead, file))
         source = table.meta['source']
         if source in tablesToUpdate.keys():
 
@@ -643,6 +650,49 @@ def update_DB_from_folder(folderToRead, message=None):
                         append_data=True, 
                         update=True)
 
+
+#%%
+def zipExport(IDList, fileName):
+    from zipfile import ZipFile
+    folder = os.path.join(config.PATH_TO_DATASHELF, 'exports/')
+    os.makedirs(folder, exist_ok=True)
+    zipObj = ZipFile(os.path.join(folder, fileName), 'w')
+#    root = config.PATH_TO_DATASHELF
+    
+    sources = list(dt.find().loc[IDList].source.unique())
+    sourceMeta = dt.core.DB.sources.loc[sources]
+    sourceMeta.to_csv(os.path.join(folder, 'sourceMeta.csv'))
+    
+    zipObj.write(os.path.join(folder, 'sourceMeta.csv'),'./sourceMeta.csv')
+    for ID in IDList:
+        # Add multiple files to the zip
+        tablePath = dt.core.DB._getPathOfTable(ID)
+        csvFileName = os.path.basename(tablePath) 
+        
+        zipObj.write(tablePath,os.path.join('./data/', csvFileName))
+#        zipObj.write(tablePath, os.path.relpath(os.path.join(root, file), os.path.join(tablePath, '..')))
+ 
+    # close the Zip File
+    zipObj.close()
+    
+
+def update_DB_from_zip(filePath):
+    
+#%%        
+        
+#def update_DB_from_zip(zipFile, message=None):
+    from zipfile import ZipFile
+    import shutil
+    zf = ZipFile(filePath, 'r')
+    
+    tempFolder = os.path.join(config.PATH_TO_DATASHELF, 'temp/')
+    shutil.rmtree(tempFolder, ignore_errors=True)
+    os.makedirs(tempFolder)
+    zf.extractall(tempFolder)
+    zf.close()
+    
+    update_source_from_file(os.path.join(tempFolder, 'soures.csv'))
+    update_DB_from_folder(os.path.join(tempFolder, 'data'), message= 'DB update from ' + os.path.basename(filePath))
 #%%
 
 def forAll(funcHandle, subset='scenario', source='IAMC15_2019_R2'):
