@@ -295,6 +295,8 @@ class Database():
         if not is_integer_dtype(datatable.columns):
             raise(BaseException('Sorry, year index is not integer'))
 
+        if sum(datatable.index.duplicated()) > 0:
+            raise(BaseException('Sorry, region index is unique'))
         return True
     
 
@@ -340,7 +342,7 @@ class Database():
     def _addNewSource(self, sourceMetaDict):
         source_ID = sourceMetaDict['SOURCE_ID']
         
-        if not core.DB.sourceExists(source_ID):
+        if not self.sourceExists(source_ID):
             self.sources.loc[source_ID] = pd.Series(sourceMetaDict)
             self.sources.to_csv(conf.SOURCE_FILE)
             self._gitAddFile(conf.SOURCE_FILE)
