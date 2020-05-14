@@ -57,6 +57,9 @@ except:
         return None
 
 class TableSet(dict):
+    def __init__(self):
+        super(dict, self).__init__()
+        self.inventory = pd.DataFrame(columns = config.ID_FIELDS)
     
     def __iter__(self):
         return iter(self.values())
@@ -73,12 +76,19 @@ class TableSet(dict):
         if datatable is None:
             # adding only the ID, the full table is only loaded when necessary
             self[tableID] = None
+            self.inventory.loc[tableID] = [None for x in dt.conf.ID_FIELDS]
         else:
             # loading the full table
             if datatable.ID is None:
                 datatable.generateTableID()
             self[datatable.ID] = datatable
+            self.inventory.loc[datatable.ID] = [datatable.meta[x] for x in dt.conf.ID_FIELDS]
+    
+    def remove(self, tableID):
+        del self[tableID]
+        self.inventory.drop(tableID, inplace=True)
         
+    
     def filter(self, ):
         pass
     
@@ -176,7 +186,8 @@ class TableSet(dict):
         for table in tableList[1:]:
             #print(table)
             fullDf = fullDf.append(pd.DataFrame(table))
-        return fullDf       
+        fullDf.index = range(len(fullDf))
+        return fullDf
     
     def to_IamDataFrame(self):
         #%%
@@ -216,7 +227,7 @@ class TableSet(dict):
 #        return iaDf
         iaDf = pyam.IamDataFrame(pd.DataFrame(tableList[0]))
         for table in tableList[1:]:
-            #print(table)
+            print(table)
             iaDf = iaDf.append(pd.DataFrame(table))
         return iaDf         
 
@@ -618,7 +629,6 @@ def compare_excel_files(file1, file2, eps=1e-6):
 
 
 def update_source_from_file(fileName, message=None):
-    fileName = '/media/sf_Documents/datashelf/temp/sourceMeta.csv'
     sourceData = pd.read_csv(fileName)
     for index in sourceData.index:
         dt.core.DB._addNewSource(sourceData.loc[index,:].to_dict())
@@ -640,7 +650,7 @@ def update_DB_from_folder(folderToRead, message=None):
             tablesToUpdate[source] = [table]
     if message is None:
 
-        message = 'External data added from folder by' + config.CRUNCHER
+        message = 'External data added from external source by ' + config.CRUNCHER
     for source in tablesToUpdate.keys():
         sourceMetaDict = dict()
         sourceMetaDict['SOURCE_ID']= source
@@ -661,9 +671,9 @@ def zipExport(IDList, fileName):
     
     sources = list(dt.find().loc[IDList].source.unique())
     sourceMeta = dt.core.DB.sources.loc[sources]
-    sourceMeta.to_csv(os.path.join(folder, 'sourceMeta.csv'))
+    sourceMeta.to_csv(os.path.join(folder, 'sources.csv'))
     
-    zipObj.write(os.path.join(folder, 'sourceMeta.csv'),'./sourceMeta.csv')
+    zipObj.write(os.path.join(folder, 'sources.csv'),'./sources.csv')
     for ID in IDList:
         # Add multiple files to the zip
         tablePath = dt.core.DB._getPathOfTable(ID)
@@ -679,8 +689,6 @@ def zipExport(IDList, fileName):
 def update_DB_from_zip(filePath):
     
 #%%        
-        
-#def update_DB_from_zip(zipFile, message=None):
     from zipfile import ZipFile
     import shutil
     zf = ZipFile(filePath, 'r')
@@ -691,7 +699,7 @@ def update_DB_from_zip(filePath):
     zf.extractall(tempFolder)
     zf.close()
     
-    update_source_from_file(os.path.join(tempFolder, 'soures.csv'))
+    update_source_from_file(os.path.join(tempFolder, 'sources.csv'))
     update_DB_from_folder(os.path.join(tempFolder, 'data'), message= 'DB update from ' + os.path.basename(filePath))
 #%%
 
