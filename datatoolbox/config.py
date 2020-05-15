@@ -13,12 +13,12 @@ OS = platform.system() #'win32' , linux, #darwin
 if not os.path.isfile(os.path.dirname(__file__) + '/settings/personal.py'):
     from .tools.install_support import create_initial_config
     modulePath =  os.path.dirname(__file__) + '/'
-    create_initial_config(modulePath)
+    CRUNCHER, PATH_TO_DATASHELF, DB_READ_ONLY = create_initial_config(modulePath)
 
-if not os.path.isfile(os.path.dirname(__file__) + '/settings/personal.py'):    
-    print("personal.py not found")
-    
-from .settings.personal import CRUNCHER, PATH_TO_DATASHELF, DB_READ_ONLY
+else:
+    from .settings.personal import CRUNCHER, PATH_TO_DATASHELF, DB_READ_ONLY
+  
+
 #%% general setup
 DEBUG = True
 

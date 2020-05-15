@@ -65,6 +65,7 @@ def create_initial_config(modulePath):
         fout.write(outLine)
     fin.close()
     fout.close()
+    return 'XXX', sandboxPath, True
 #%%
 
 if __name__ == '__main__':
