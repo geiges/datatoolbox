@@ -227,7 +227,34 @@ class Datatable(pd.DataFrame):
     def source(self):
         return self.meta['source']
 
-    
+    def append(self, other, **kwargs):
+
+        if isinstance(other,Datatable):
+            
+            if other.meta['entity'] != self.meta['entity']:
+                raise(BaseException('Physical entities do not match, please correct'))
+            if other.meta['unit'] != self.meta['unit']:
+                other = other.convert(self.meta['unit'])
+        
+        out =  super(Datatable, self).append(other, **kwargs)
+        
+        # only copy required keys
+        out.meta = {key: value for key, value in self.meta.items() if key in conf.REQUIRED_META_FIELDS}
+        
+        # overwrite scenario
+        out.meta['scenario'] = 'computed: ' + self.meta['scenario'] + '+' + other.meta['scenario']
+        return out
+#    def append(self, other, **kwargs):
+#        if isinstance(other,Datatable):
+#            
+#            if other.meta['entity'] != self.meta['entity']:
+#                raise(BaseException('Physical entities do not match, please correct'))
+#            if other.meta['unit'] != self.meta['unit']:
+#                other = other.convert(self.meta['unit'])
+#            
+#            
+#        
+#        super(Datatable, self).append(self, other, **kwargs)
     
         
     def __add__(self, other):
@@ -390,7 +417,7 @@ class Visualization():
             else:
                 fig = plt.figure('unkown')
             ax = fig.add_subplot(111)
-            kwargs['ax'] = ax[0]
+            kwargs['ax'] = ax
         self.df.T.plot(**kwargs)
         #print(kwargs['ax'])
         #super(Datatable, self.T).plot(ax=ax)

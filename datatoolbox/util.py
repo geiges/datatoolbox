@@ -57,6 +57,9 @@ except:
         return None
 
 class TableSet(dict):
+    def __init__(self):
+        super(dict, self).__init__()
+        self.inventory = pd.DataFrame(columns = config.ID_FIELDS)
     
     def __iter__(self):
         return iter(self.values())
@@ -73,12 +76,19 @@ class TableSet(dict):
         if datatable is None:
             # adding only the ID, the full table is only loaded when necessary
             self[tableID] = None
+            self.inventory.loc[tableID] = [None for x in dt.conf.ID_FIELDS]
         else:
             # loading the full table
             if datatable.ID is None:
                 datatable.generateTableID()
             self[datatable.ID] = datatable
+            self.inventory.loc[datatable.ID] = [datatable.meta[x] for x in dt.conf.ID_FIELDS]
+    
+    def remove(self, tableID):
+        del self[tableID]
+        self.inventory.drop(tableID, inplace=True)
         
+    
     def filter(self, ):
         pass
     
@@ -98,6 +108,7 @@ class TableSet(dict):
             mode='a',
             datetime_format='mmm d yyyy hh:mm:ss',
             date_format='mmmm dd yyyy') 
+        
         for i,eKey in enumerate(self.keys()):
             table = self[eKey].dropna(how='all', axis=1).dropna(how='all', axis=0)
             sheetName = str(i) + table.meta['ID'][:25]
@@ -135,6 +146,15 @@ class TableSet(dict):
 
             
         return coTables
+
+    def entities(self):
+        return list(self.inventory.entity.unique())
+
+    def scenarios(self):
+        return list(self.inventory.scenario.unique())
+    
+    def sources(self):
+        return list(self.inventory.source.unique())
 
     def to_LongTable(self):
         #%%
@@ -176,7 +196,8 @@ class TableSet(dict):
         for table in tableList[1:]:
             #print(table)
             fullDf = fullDf.append(pd.DataFrame(table))
-        return fullDf       
+        fullDf.index = range(len(fullDf))
+        return fullDf
     
     def to_IamDataFrame(self):
         #%%
@@ -216,7 +237,7 @@ class TableSet(dict):
 #        return iaDf
         iaDf = pyam.IamDataFrame(pd.DataFrame(tableList[0]))
         for table in tableList[1:]:
-            #print(table)
+            print(table)
             iaDf = iaDf.append(pd.DataFrame(table))
         return iaDf         
 
@@ -615,6 +636,12 @@ def compare_excel_files(file1, file2, eps=1e-6):
     writer.close()
     os.system('libreoffice ' + "diff_temp.xlsx")
     os.system('rm diff_temp.xlsx')
+
+
+def update_source_from_file(fileName, message=None):
+    sourceData = pd.read_csv(fileName)
+    for index in sourceData.index:
+        dt.core.DB._addNewSource(sourceData.loc[index,:].to_dict())
     
 def update_DB_from_folder(folderToRead, message=None):
     fileList = os.listdir(folderToRead)
@@ -623,7 +650,7 @@ def update_DB_from_folder(folderToRead, message=None):
     tablesToUpdate = dict()
 
     for file in fileList:
-        table = read_csv(folderToRead + file)
+        table = read_csv(os.path.join(folderToRead, file))
         source = table.meta['source']
         if source in tablesToUpdate.keys():
 
@@ -633,7 +660,7 @@ def update_DB_from_folder(folderToRead, message=None):
             tablesToUpdate[source] = [table]
     if message is None:
 
-        message = 'External data added from folder by' + config.CRUNCHER
+        message = 'External data added from external source by ' + config.CRUNCHER
     for source in tablesToUpdate.keys():
         sourceMetaDict = dict()
         sourceMetaDict['SOURCE_ID']= source
@@ -643,6 +670,47 @@ def update_DB_from_folder(folderToRead, message=None):
                         append_data=True, 
                         update=True)
 
+
+#%%
+def zipExport(IDList, fileName):
+    from zipfile import ZipFile
+    folder = os.path.join(config.PATH_TO_DATASHELF, 'exports/')
+    os.makedirs(folder, exist_ok=True)
+    zipObj = ZipFile(os.path.join(folder, fileName), 'w')
+#    root = config.PATH_TO_DATASHELF
+    
+    sources = list(dt.find().loc[IDList].source.unique())
+    sourceMeta = dt.core.DB.sources.loc[sources]
+    sourceMeta.to_csv(os.path.join(folder, 'sources.csv'))
+    
+    zipObj.write(os.path.join(folder, 'sources.csv'),'./sources.csv')
+    for ID in IDList:
+        # Add multiple files to the zip
+        tablePath = dt.core.DB._getPathOfTable(ID)
+        csvFileName = os.path.basename(tablePath) 
+        
+        zipObj.write(tablePath,os.path.join('./data/', csvFileName))
+#        zipObj.write(tablePath, os.path.relpath(os.path.join(root, file), os.path.join(tablePath, '..')))
+ 
+    # close the Zip File
+    zipObj.close()
+    
+
+def update_DB_from_zip(filePath):
+    
+#%%        
+    from zipfile import ZipFile
+    import shutil
+    zf = ZipFile(filePath, 'r')
+    
+    tempFolder = os.path.join(config.PATH_TO_DATASHELF, 'temp/')
+    shutil.rmtree(tempFolder, ignore_errors=True)
+    os.makedirs(tempFolder)
+    zf.extractall(tempFolder)
+    zf.close()
+    
+    update_source_from_file(os.path.join(tempFolder, 'sources.csv'))
+    update_DB_from_folder(os.path.join(tempFolder, 'data'), message= 'DB update from ' + os.path.basename(filePath))
 #%%
 
 def forAll(funcHandle, subset='scenario', source='IAMC15_2019_R2'):

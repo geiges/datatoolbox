@@ -13,7 +13,7 @@ import numpy as np
 from . import config
 
 from . import core
-from . import tools
+from . import util
 from . import mapping as mapp
 
 from . import greenhouse_gas_database as gh
@@ -448,7 +448,7 @@ def iterSpace(spaceIdxString, wksheet, xlsRow, xlsCol, timeIdx, spaceIdx, dataId
             #print(xlsRow, spaceIdx)
             yield  [xlsRow, xlsCol, timeIdx, spaceIdx, dataIdx]
     else:
-        # assume fixed
+        # assume fixed string
         spaceIdx = spaceIdxString
         yield  [xlsRow, xlsCol, timeIdx, spaceIdx, dataIdx]
         
@@ -705,7 +705,7 @@ class ExcelWriter():
                         if argsSpace[SP_ARG] in replaceDict.keys():
                             newID = replaceDict[argsSpace[SP_ARG]]
                         else:
-                            newID = tools.getCountryISO(argsSpace[SP_ARG])
+                            newID = util.getCountryISO(argsSpace[SP_ARG])
                         
 
                         if newID in validSpatialIDs:
@@ -843,7 +843,7 @@ class ExcelReader_New():
         from shutil import copyfile
         from copy import copy
 
-        wb = load_workbook(self.setup['fileName'])
+        wb = load_workbook(self.setup['fileName'], data_only=True)
         
         validSpatialIDs = mapp.getValidSpatialIDs()
         self.setupList = list()
@@ -863,37 +863,43 @@ class ExcelReader_New():
             
             
             args =  [None, None, None, None, None]
-            iCount = 0
             for argsTime in iterTime(setup['timeIdxList'], wksSheet, *args):
+                
                 if argsTime[TI_ARG] is None:
                     print('No time defintion found')
+                    print(setup['timeIdxList'])
+
                     continue
-                
+                print(argsTime[TI_ARG])
                 for argsSpace in iterSpace(setup['spaceIdxList'], wksSheet, *argsTime):
                     if argsSpace[SP_ARG] is None:
-                        print('not time defintion found')
+                        print('Not space defintion found')
                         continue
+                    
                     if argsSpace[SP_ARG] not in validSpatialIDs:
-                        print('not time defintion found')
-                        print(argsSpace[SP_ARG])
+                        print('No valid ISO code...')
+                        
+                        
                         if argsSpace[SP_ARG] in replaceDict.keys():
                             newID = replaceDict[argsSpace[SP_ARG]]
                         else:
-                            newID = tools.getCountryISO(argsSpace[SP_ARG])
+                            newID = util.getCountryISO(argsSpace[SP_ARG])
                         
 
                         if newID in validSpatialIDs:
                             argsSpace[SP_ARG] = newID
-                            print(argsSpace[SP_ARG])
+                            print('Set iso code to: ' + argsSpace[SP_ARG])
                         else:
+                            print('No ISO code found')
                             print(argsSpace[SP_ARG] + ' not found')
                             continue
                         
                     print(argsSpace[SP_ARG])
                     for argData in iterData(setup['dataID'], wksSheet, *argsSpace):
                         if argData[DT_ARG] is None:
+                            print('No fitting dataID code found')
                             continue
-                        print(argData)
+
                         meta = {'entity': argData[DT_ARG],
                                                       'unit' : setup['unit'],
                                                       'category':'',
@@ -908,23 +914,20 @@ class ExcelReader_New():
                                                       'category':'',
                                                       'scenario' : setup['scenario'],
                                                       'source' : setup['source']}
-#                            print(table)
+
                             tablesToReturn.add(table)
                         
-                        
-#                        try:
-#                            print(argData)
-#                        value = tables[argData[DT_ARG]].loc[argData[SP_ARG],int(argData[TI_ARG])]
                         value = self._readValue(wksSheet, xlsRow=argData[0], xlsCol=argData[1])
-#                            if argData[SP_ARG] not in table.index:
-#                                table.loc[argData[SP_ARG],:] = None
-#                                if argData[TI_ARG] not in table.colums:
-#                                    table.loc[:,argData[TI_ARG]] = None
+
                         if isinstance(value, pd.DataFrame):
                             value = pandasStr2floatPercent(value)
                         else:
-                            value = _str2float(value)
+                            if value != '#VALUE!':
+                                value = _str2float(value)
                         print(value)
+                        
+#                        if  setup['unit'] == '%':
+#                            value = value*100
 #                        sdf
                         tablesToReturn[ID].loc[argData[SP_ARG],argData[TI_ARG]] = value
 #                            print('success')
@@ -936,6 +939,13 @@ class ExcelReader_New():
 #                    self.wb.save(self.setup['fileName'])
 #                            import pdb
 #                            pdb.set_trace()
+                        
+        for table in tablesToReturn:
+            table.columns = table.columns.astype(int)
+            if '%' in table.meta['unit']:
+                 table.loc[:,:] = table.loc[:,:]*100
+                 tablesToReturn[table.ID] = table
+                        
         return tablesToReturn
 #            wb.save(self.setup['fileName'])
 #            print('{} items inserted'.format(iCount))

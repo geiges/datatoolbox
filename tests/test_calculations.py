@@ -90,7 +90,19 @@ def test_addition():
     assert obs.meta['unit']   == exp.meta['unit']
     assert obs.meta['source'] == 'calculation'
 
-
+def test_sum():
+    obs = sum([df3 + df1])
+    exp = dt.Datatable([[10050,  20050, pd.np.nan],
+                       [40040,  40040,  pd.np.nan]], 
+                       columns = [2000, 2010, 2020],
+                       index= ['DEU', 'IND'],
+                       meta = metaDict2)
+    
+    assert (obs.loc[:,[2000,2010]].values == exp.loc[:,[2000,2010]].values).all()
+    assert obs.loc[:,2020].isnull().all()
+    assert obs.meta['unit']   == exp.meta['unit']
+    assert obs.meta['source'] == 'calculation'  
+    
 def test_substraction():
     
     # adding integer
@@ -155,5 +167,8 @@ def test_substraction():
     assert obs.meta['unit']   == exp.meta['unit']
     assert obs.meta['source'] == 'calculation'
 
+    
+
 #test_addition()
+#test_sum()
 #test_substraction()
