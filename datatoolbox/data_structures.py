@@ -258,10 +258,13 @@ class Datatable(pd.DataFrame):
     
         
     def __add__(self, other):
+        print('other in' + str(other))
         if isinstance(other,Datatable):
             
             factor = core.getUnit(other.meta['unit']).to(self.meta['unit']).m
-            
+            print('factor: ' + str(factor))
+            print('other' + str(other))
+            print(other * factor)
             out = Datatable(super(Datatable, self).__add__(other * factor))
             out.meta['unit'] = self.meta['unit']
             out.meta['source'] = 'calculation'
@@ -339,17 +342,18 @@ class Datatable(pd.DataFrame):
             out.meta['unit'] = (core.getUnit(self.meta['unit'])**-1).u
             out.meta['source'] = 'calculation'
         return out
-#    def __repr__(self):
-#        outStr = """"""
-#        if 'ID' in self.meta.keys():
-#            outStr += '=== Datatable - ' + self.meta['ID'] + ' ===\n'
-#        else:
-#            outStr += '=== Datatable ===\n'
-#        for key in self.meta.keys():
-#            if self.meta[key] is not None:
-#                outStr += key + ': ' + str(self.meta[key]) + ' \n'
-#        outStr += super(Datatable, self).__repr__()
-#        return outStr
+    
+    def __repr__(self):
+        outStr = """"""
+        if 'ID' in self.meta.keys():
+            outStr += '=== Datatable - ' + self.meta['ID'] + ' ===\n'
+        else:
+            outStr += '=== Datatable ===\n'
+        for key in self.meta.keys():
+            if self.meta[key] is not None:
+                outStr += key + ': ' + str(self.meta[key]) + ' \n'
+        outStr += super(Datatable, self).__repr__()
+        return outStr
     
     def __str__(self):
         outStr = """"""

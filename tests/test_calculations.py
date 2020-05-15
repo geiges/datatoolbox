@@ -1,5 +1,6 @@
 import datatoolbox as dt
 import pandas as pd
+import numpy as np
 #%%
 
 metaDict = {'entity':'Emissions|Candy',
@@ -67,8 +68,8 @@ def test_addition():
 
     # adding two datatables + conversion
     obs = df1 + df3
-    exp = dt.Datatable([[10.05,  20.05, pd.np.nan],
-                       [40.04,  40.04,  pd.np.nan]], 
+    exp = dt.Datatable([[10.05,  20.05, np.nan],
+                       [40.04,  40.04,  np.nan]], 
                        columns = [2000, 2010, 2020],
                        index= ['DEU', 'IND'],
                        meta = metaDict)
@@ -79,8 +80,8 @@ def test_addition():
     assert obs.meta['source'] == 'calculation'
     
     obs = df3 + df1
-    exp = dt.Datatable([[10050,  20050, pd.np.nan],
-                       [40040,  40040,  pd.np.nan]], 
+    exp = dt.Datatable([[10050,  20050, np.nan],
+                       [40040,  40040,  np.nan]], 
                        columns = [2000, 2010, 2020],
                        index= ['DEU', 'IND'],
                        meta = metaDict2)
@@ -92,8 +93,8 @@ def test_addition():
 
 def test_sum():
     obs = sum([df3 + df1])
-    exp = dt.Datatable([[10050,  20050, pd.np.nan],
-                       [40040,  40040,  pd.np.nan]], 
+    exp = dt.Datatable([[10050,  20050, np.nan],
+                       [40040,  40040,  np.nan]], 
                        columns = [2000, 2010, 2020],
                        index= ['DEU', 'IND'],
                        meta = metaDict2)
@@ -144,8 +145,8 @@ def test_substraction():
 
     # adding two datatables + conversion
     obs = df1 - df3
-    exp = dt.Datatable([[9.95,  19.95, pd.np.nan],
-                       [39.96,  39.96,  pd.np.nan]], 
+    exp = dt.Datatable([[9.95,  19.95, np.nan],
+                       [39.96,  39.96,  np.nan]], 
                        columns = [2000, 2010, 2020],
                        index= ['DEU', 'IND'],
                        meta = metaDict)
@@ -156,8 +157,8 @@ def test_substraction():
     assert obs.meta['source'] == 'calculation'
     
     obs = df3 - df1
-    exp = dt.Datatable([[-9950.0, -19950.0, pd.np.nan],
-                       [-39960.0, -39960.0,  pd.np.nan]], 
+    exp = dt.Datatable([[-9950.0, -19950.0, np.nan],
+                       [-39960.0, -39960.0,  np.nan]], 
                        columns = [2000, 2010, 2020],
                        index= ['DEU', 'IND'],
                        meta = metaDict2)
@@ -169,6 +170,6 @@ def test_substraction():
 
     
 
-#test_addition()
-#test_sum()
-#test_substraction()
+test_addition()
+test_sum()
+test_substraction()

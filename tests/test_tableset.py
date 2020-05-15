@@ -110,7 +110,9 @@ def test_to_long_table():
              2012: {0: 2.2, 1: np.nan, 2: np.nan, 3: 3.4, 4: 2.2, 5: np.nan, 6: np.nan, 7: 3.3},
              2009: {0: np.nan, 1: np.nan, 2: np.nan, 3: np.nan, 4: 1.0, 5: 2.3, 6: 1.1, 7: np.nan}}
             )
-    assert all(longTable.values[~pd.isna(longTable)] == exp.values[~pd.isna(exp)])
+    exp = exp.loc[:,longTable.columns]
+    
+    assert (longTable.values[~pd.isna(longTable)] == exp.values[~pd.isna(exp)]).all()
 
 def test_supplement_material():
     tableSet = dt.TableSet()
