@@ -52,6 +52,19 @@ def create_personal_setting(modulePath, OS):
     fin.close()
     fout.close()
 
+
+def create_initial_config(modulePath):
+    fin = open(modulePath + 'data/personal_template.py', 'r')
+    os.makedirs(modulePath + 'settings/',exist_ok=True)
+    fout = open(modulePath + 'settings/personal.py', 'w')
+    
+    sandboxPath = os.path.join(modulePath, 'data/SANDBOX_datashelf')
+    
+    for line in fin.readlines():
+        outLine = line.replace('/PPP/PPP', sandboxPath)
+        fout.write(outLine)
+    fin.close()
+    fout.close()
 #%%
 
 if __name__ == '__main__':

@@ -29,6 +29,7 @@ from . import io_tools as io
 from . import interfaces
 
 from . import util as util
+from . import admin as admin
 
 from . import rawSources as _raw_sources
 
