@@ -22,7 +22,7 @@ class Database():
     def __init__(self):
         self.path = conf.PATH_TO_DATASHELF
         self.repo = git.Git(conf.PATH_TO_DATASHELF)
-        self.INTVENTORY_PATH = self.path + 'inventory.csv'
+        self.INTVENTORY_PATH = os.path.join(self.path, 'inventory.csv')
         self.inventory = pd.read_csv(self.INTVENTORY_PATH, index_col=0)
         self.sources   = pd.read_csv(conf.SOURCE_FILE, index_col='SOURCE_ID')
         
