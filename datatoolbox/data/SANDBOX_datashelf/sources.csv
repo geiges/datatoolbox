@@ -1,0 +1,36 @@
+SOURCE_ID,collected_by,date,source_url,licence
+WDI2018,AG,2019/04/02,https://datacatalog.worldbank.org/dataset/world-development-indicators,CC BY-4.0
+IAMC15_2019,AG,2019/04/09,https://data.ene.iiasa.ac.at/iamc-1.5c-explorer, CC-BY 4.0
+IEA_WEB_2018,AG,2019/05/22,https://webstore.iea.org/world-energy-balances-2018,restricted
+IRENA_2019,AG,2019/05/23,http://www.irena.org/IRENADocuments/IRENA_RE_electricity_statistics_-_Query_tool.xlsm,open source
+SDG_DB_2019,AG,2019/05/24,https://unstats.un.org/sdgs/indicators/database/,open access (UN)
+IAMC15_2019_R11,AG,2019/06/03,https://data.ene.iiasa.ac.at/iamc-1.5c-explorer, CC-BY 4.0
+SANDBOX,AG,2019/06/06,,
+SSP_DB_2013,AG,2019/06/11,tntcat.iiasa.ac.at/SspWorkDb,open access
+CAT_2019_06,Andreas Geiges,2019/07/08,https://climateactiontracker.org,CAT internal data
+CAT_2018_12,Andreas Geiges,2019/07/08,https://climateactiontracker.org,CAT internal data
+CAT_2017_11,AG,2019/07/08,https://climateactiontracker.org,CAT internal data
+CAT_2016_12,AG,2019/07/09,https://climateactiontracker.org,CAT internal data
+CAT_2015,AG,2019/07/09,https://climateactiontracker.org,CAT internal data
+CAT_2014,AG,2019/07/09,https://climateactiontracker.org,CAT internal data
+SIAMESE_2019,AG,2019/07/26,www.climateanalytics.org,open source
+ADVANCE_2016,AG,2019/07/26,https://db1.ene.iiasa.ac.at/ADVANCEDB/dsd?Action=htmlpage&page=about, CC-BY 4.0
+AR5_DB,AG,2019/08/01,https://db1.ene.iiasa.ac.at/ADVANCEDB/dsd?Action=htmlpage&page=about, CC-BY 4.0
+CA_PR_2019,AG,2019/08/02,own_calculation,internal use only
+IEA_CO2_FUEL_2018,AG,2019/08/05,https://www.iea.org/statistics/co2emissions/,restricted
+CA_NDCA_2019,AG,2019/08/07,own_calculation,internal use only
+PRIMAP_2018,AG,2019/08/13,https://www.pik-potsdam.de/primap-live/primap-hist/,open access (UN)
+UN_WPP2019,AG,2019/08/16,https://population.un.org/wpp/Download/Standard/Population/,open source
+CAT_2019_09,AG,2019/08/28,www.climateactiontracker.org,CA internal use only
+IEA_WEB_2019,AG,2019/09/02,https://webstore.iea.org/world-energy-balances-2019,restricted
+IAMC15_2019_R2,AG,2019/09/05,https://data.ene.iiasa.ac.at/iamc-1.5c-explorer, CC-BY 4.0
+UNFCCC_CRF_2019,AG,2019/10/17,https://unfccc.int/process-and-meetings/transparency-and-reporting/reporting-and-review-under-the-convention/greenhouse-gas-inventories-annex-i-parties/national-inventory-submissions-2019,open access (UN)
+UNFCCC_CRF_2018,AG,2019/10/17,https://unfccc.int/process-and-meetings/transparency-and-reporting/reporting-and-review-under-the-convention/greenhouse-gas-inventories-annex-i-parties/national-inventory-submissions-2018,open access (UN)
+WDI_2019,AG,2019/10/17,https://datacatalog.worldbank.org/dataset/world-development-indicators,CC BY-4.0
+CAT_2019_11,AG,2019/10/18,https://climateactiontracker.org,CAT internal data
+IEA_CO2_FUEL_2019,AG,2019/11/08,https://www.iea.org/statistics/co2emissions/,restricted
+WEO_2019,AG,2019/11/29,https://www.iea.org/weo/,IEA all rights reserved
+APAC_2019,AG,2019/11/30,https://www.apec.org/Publications/2019/05/APEC-Energy-Demand-and-Supply-Outlook-7th-Edition---Volume-I,(c) 2019 Asia Pacific Economic Cooperation (APERC)
+PRIMAP_2019,AG,2019/12/07,https://www.pik-potsdam.de/primap-live/primap-hist/,open access (UN)
+AIM_SSPx_DATA_2019,AG,2020/01/22,https://github.com/JGCRI/ssp-data,
+FAO_2019,AG,2020/05/13,http://www.fao.org/faostat/en/#data/GL,Food and Agriculture Organization of the United Nations (FAO)
