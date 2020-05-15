@@ -6,3 +6,4 @@ pycountry
 fuzzywuzzy
 tqdm
 matplotlib
+openpyxl
