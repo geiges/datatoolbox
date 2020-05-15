@@ -112,8 +112,18 @@ def test_to_long_table():
             )
     assert all(longTable.values[~pd.isna(longTable)] == exp.values[~pd.isna(exp)])
 
+def test_supplement_material():
+    tableSet = dt.TableSet()
+    tableSet.add([df, df2])
+
+    assert  tableSet.scenarios() == ['#1', '#2']
+    assert  tableSet.entities()  == ['values', 'area']
+    assert  tableSet.sources()   == ['TEST', 'TEST2']
+    
+    
 if __name__ == '__main__':    
     test_basics()
     test_add_remove()
     test_add_list()
     test_to_long_table()
+    test_supplement_material()

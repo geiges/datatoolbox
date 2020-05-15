@@ -108,6 +108,7 @@ class TableSet(dict):
             mode='a',
             datetime_format='mmm d yyyy hh:mm:ss',
             date_format='mmmm dd yyyy') 
+        
         for i,eKey in enumerate(self.keys()):
             table = self[eKey].dropna(how='all', axis=1).dropna(how='all', axis=0)
             sheetName = str(i) + table.meta['ID'][:25]
@@ -145,6 +146,15 @@ class TableSet(dict):
 
             
         return coTables
+
+    def entities(self):
+        return list(self.inventory.entity.unique())
+
+    def scenarios(self):
+        return list(self.inventory.scenario.unique())
+    
+    def sources(self):
+        return list(self.inventory.source.unique())
 
     def to_LongTable(self):
         #%%
