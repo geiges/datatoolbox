@@ -5,3 +5,4 @@ pint==0.9
 pycountry
 fuzzywuzzy
 tqdm
+matplotlib
