@@ -56,15 +56,15 @@ class BaseImportTool():
         pass
     
     def openMappingFile(self):
-        if dt.conf.OS == 'Linux':
+        if df.config.OS == 'Linux':
             os.system('libreoffice ' + self.setup.MAPPING_FILE)
-        elif dt.conf.OS == 'Darwin':
+        elif df.config.OS == 'Darwin':
             os.system('open -a "Microsoft Excel" ' + self.setup.MAPPING_FILE)
 
     def openRawData(self):
-        if dt.conf.OS == 'Linux':
+        if df.config.OS == 'Linux':
             os.system('libreoffice ' + self.setup.DATA_FILE )
-        elif dt.conf.OS == 'Darwin':
+        elif df.config.OS == 'Darwin':
             os.system('open -a "Microsoft Excel" ' + self.setup.DATA_FILE )
 
     def createSourceMeta(self):
@@ -4031,7 +4031,7 @@ def UN_WPP_2019_import():
     mappingDict = {int(x) : y for x,y  in zip(dt.mapp.countries.codes.numISO, dt.mapp.countries.codes.index) if not(pd.np.isnan(x))}
     mappingDict[900] = 'World'
     SOURCE = "UN_WPP2019"
-    SOURCE_PATH = dt.conf.PATH_TO_DATASHELF + 'rawdata/UN_WPP2019/'
+    SOURCE_PATH = df.config.PATH_TO_DATASHELF + 'rawdata/UN_WPP2019/'
     metaSetup = {'source'   : SOURCE,
                  'entity'   : 'population',
                  'unit'     : 'thousands',
@@ -4094,14 +4094,17 @@ def UN_WPP_2019_import():
 sources = sourcesStruct()
 _sourceClasses = [IEA_WEB_2019_New, WDI_2018, IEA_WEB_2018, ADVANCE_DB, IAMC15_2019, IRENA2019, 
                   SSP_DATA, SDG_DATA_2019, AR5_DATABASE, IEA_FUEL_2019, PRIMAP_HIST, SDG_DATA_2019,
-                  CRF_DATA, WDI_2019, APEC, WEO, VANMARLE2017, HOESLY2018]
+                  CRF_DATA, WDI_2019, APEC, WEO, VANMARLE2017, HOESLY2018, FAO]
 
+nSourceReader = 0
 for _sourceClass in _sourceClasses:
     try:
         _source = _sourceClass()
         sources[_source.setup.SOURCE_ID] = _source
+        nSourceReader +=1
     except:
-        print('source not found')
+        pass
+print('{} source reader found and added into "datatoolbox.sources".'.format(nSourceReader))
         
 if __name__ == '__main__':
 #%% PRIMAP

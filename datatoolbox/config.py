@@ -82,6 +82,8 @@ COUNTRY_LIST = ['AFG', 'ALA', 'ALB', 'DZA', 'ASM', 'AND', 'AGO', 'AIA', 'ATA', '
 
 logTables = False
 
+
+
 #### FUNCTION TESTS ########
 if __name__ == '__main__':
     pass

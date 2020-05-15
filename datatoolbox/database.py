@@ -28,9 +28,7 @@ class Database():
         
         if conf.DB_READ_ONLY:
             print('databdase in read only mode')
-#            import traceback
 
-#            traceback.print_stack()
         else:
             self._validateRepository()
             

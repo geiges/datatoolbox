@@ -76,13 +76,13 @@ class TableSet(dict):
         if datatable is None:
             # adding only the ID, the full table is only loaded when necessary
             self[tableID] = None
-            self.inventory.loc[tableID] = [None for x in dt.conf.ID_FIELDS]
+            self.inventory.loc[tableID] = [None for x in config.ID_FIELDS]
         else:
             # loading the full table
             if datatable.ID is None:
                 datatable.generateTableID()
             self[datatable.ID] = datatable
-            self.inventory.loc[datatable.ID] = [datatable.meta[x] for x in dt.conf.ID_FIELDS]
+            self.inventory.loc[datatable.ID] = [datatable.meta[x] for x in config.ID_FIELDS]
     
     def remove(self, tableID):
         del self[tableID]
@@ -581,7 +581,7 @@ def _res2Excel(resFull, countryList):
                 i = i+1
         
         outDf = outDf.loc[:,~outDf.isnull().all(axis=0)]
-        outDf.to_excel(dt.conf.MODULE_PATH + 'extracts/' + coISO + '.xlsx')
+        outDf.to_excel(config.MODULE_PATH + 'extracts/' + coISO + '.xlsx')
         
         
     #%%
