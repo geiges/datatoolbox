@@ -8,4 +8,4 @@ fuzzywuzzy
 tqdm
 matplotlib
 openpyxl
-pyam-iamc<0.3.0
+pyam-iamc<=0.3.0
