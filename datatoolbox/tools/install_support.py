@@ -58,6 +58,8 @@ def create_initial_config(modulePath):
     os.makedirs(modulePath + 'settings/',exist_ok=True)
     fout = open(modulePath + 'settings/personal.py', 'w')
     
+    DEBUG = False
+    READ_ONLY = TRUE
     sandboxPath = os.path.join(modulePath, 'data/SANDBOX_datashelf')
     
     for line in fin.readlines():
@@ -65,7 +67,7 @@ def create_initial_config(modulePath):
         fout.write(outLine)
     fin.close()
     fout.close()
-    return 'XXX', sandboxPath, True
+    return 'XXX', sandboxPath, READ_ONLY, DEBUG
 #%%
 
 if __name__ == '__main__':

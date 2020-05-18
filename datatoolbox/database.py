@@ -6,7 +6,7 @@ Created on Fri Mar 22 14:55:32 2019
 @author: and
 """
 
-from . import config as conf
+from . import config
 from .data_structures import Datatable, read_csv
 from . import mapping as mapp
 from . import io_tools as io
@@ -16,34 +16,34 @@ import pandas as pd
 import os 
 import git
 import tqdm
+import time
 
 class Database():
     
     def __init__(self):
-        self.path = conf.PATH_TO_DATASHELF
-        self.repo = git.Git(conf.PATH_TO_DATASHELF)
+        tt = time.time()
+        self.path = config.PATH_TO_DATASHELF
+        self.repo = Repository_Manager(config)
         self.INTVENTORY_PATH = os.path.join(self.path, 'inventory.csv')
         self.inventory = pd.read_csv(self.INTVENTORY_PATH, index_col=0)
-        self.sources   = pd.read_csv(conf.SOURCE_FILE, index_col='SOURCE_ID')
+        self.sources   = pd.read_csv(config.SOURCE_FILE, index_col='SOURCE_ID')
         
-        if conf.DB_READ_ONLY:
-            print('databdase in read only mode')
-
-        else:
-            self._validateRepository()
+#        if config.DB_READ_ONLY:
+#            print('databdase in read only mode')
+#
+#        else:
+        self.repo._validateRepository('main')
             
-        if (conf.OS == 'win32') | (conf.OS == "Windows"):
+        if (config.OS == 'win32') | (config.OS == "Windows"):
             self.getTable = self._getTableWindows
         else:
             self.getTable = self._getTableLinux
 
-    def _validateRepository(self):
-        if self.repo.diff() is not '':
-            raise(Exception('database is inconsistent! - please check uncommitted modifications'))
-        else:
-            conf.DB_READ_ONLY = False
-            print('databdase in write mode')
-            return True
+
+        if config.DEBUG:
+            print('core loaded in {:2.4f} seconds'.format(time.time()-tt))
+
+    
 
     def _reloadInventory(self):
         self.inventory = pd.read_csv(self.INTVENTORY_PATH, index_col=0)
@@ -52,9 +52,10 @@ class Database():
         return source in self.sources.index
     
     def add2Inventory(self, datatable):
-        if conf.DB_READ_ONLY:
+        if config.DB_READ_ONLY:
             assert self._validateRepository()
-        entry = [datatable.meta[key] for key in conf.ID_FIELDS]
+        entry = [datatable.meta[key] for key in config.ID_FIELDS]
+        print(entry)
         self.inventory.loc[datatable.ID] = entry
        
     def getInventory(self, **kwargs):
@@ -85,12 +86,12 @@ class Database():
     
     def _getTableFilePath(self,ID):
         source = self.inventory.loc[ID].source
-        sourcePath = conf.PATH_TO_DATASHELF + 'database/' + source + '/'
+        sourcePath = config.PATH_TO_DATASHELF + 'database/' + source + '/'
         return sourcePath + ID + '.csv'
     
     def _getTableLinux(self, ID):
         
-        if conf.logTables:
+        if config.logTables:
             core.LOG['tableIDs'].append(ID)
 
         filePath = self._getTableFilePath(ID)
@@ -98,32 +99,32 @@ class Database():
 
     def _getTableWindows(self, ID):
         
-        if conf.logTables:
+        if config.logTables:
             core.LOG['tableIDs'].append(ID)
 
         filePath = self._getTableFilePath(ID).replace('|','___')
         return read_csv(filePath)
 
     def getTables(self, iterIDs):
-        if conf.logTables:
+        if config.logTables:
             IDs = list()
         res = util.TableSet()
         for ID in iterIDs:
             table = self.getTable(ID)
-            if conf.logTables:
+            if config.logTables:
                 IDs.append(ID)
             res.add(table)
-        if conf.logTables:
+        if config.logTables:
             core.LOG['tableIDs'].extend(IDs)
         return res
   
     def startLogTables(self):
-        conf.logTables = True
+        config.logTables = True
         core.LOG['tableIDs'] = list()
     
     def stopLogTables(self):
         import copy
-        conf.logTables = False
+        config.logTables = False
         outList = copy.copy(core.LOG['tableIDs'])
         #core.LOG.TableList = list()
         return outList
@@ -133,7 +134,7 @@ class Database():
 
         
     def commitTable(self, dataTable, message, sourceMetaDict):
-        if conf.DB_READ_ONLY:
+        if config.DB_READ_ONLY:
             assert self._validateRepository()
         if not( sourceMetaDict['SOURCE_ID'] in self.sources.index):
             self._addNewSource(sourceMetaDict)
@@ -145,7 +146,7 @@ class Database():
         self._gitCommit(message)
 
     def commitTables(self, dataTables, message, sourceMetaDict, append_data=False, update=False, overwrite=False):
-        if conf.DB_READ_ONLY:
+        if config.DB_READ_ONLY:
             assert self._validateRepository()
 
         # create a new source if not extisting
@@ -187,13 +188,13 @@ class Database():
         
 
     def updateTable(self, oldTableID, newDataTable, message):
-        if conf.DB_READ_ONLY:
+        if config.DB_READ_ONLY:
             assert self._validateRepository()
         self._updateTable(oldTableID, newDataTable)
         self._gitCommit(message)
     
     def updateTables(self, oldTableIDs, newDataTables, message):
-        if conf.DB_READ_ONLY:
+        if config.DB_READ_ONLY:
             assert self._validateRepository()
         """
         same as updateTable, but for list of tables
@@ -237,12 +238,12 @@ class Database():
             print("source entry exists")
         if ID in self.inventory.index:
             print("inventory entry exists")
-        tablePath = conf.PATH_TO_DATASHELF + 'database/' + source + '/' + ID + '.csv'
+        tablePath = config.PATH_TO_DATASHELF + 'database/' + source + '/' + ID + '.csv'
         if os.path.isfile(tablePath):
             print("csv file exists")
 
     def removeTables(self, IDList):
-        if conf.DB_READ_ONLY:
+        if config.DB_READ_ONLY:
             assert self._validateRepository()
         for ID in IDList:
             tablePath = self._getPathOfTable(ID)
@@ -258,7 +259,7 @@ class Database():
         self._gitCommit('Tables removed')
         
     def removeTable(self, ID):
-        if conf.DB_READ_ONLY:
+        if config.DB_READ_ONLY:
             assert self._validateRepository()
         tablePath = self._getPathOfTable(ID)
         self.inventory.drop(ID, inplace=True)
@@ -271,7 +272,7 @@ class Database():
         return ID in self.inventory.index
     
     def _getPathOfTable(self, ID):
-        return conf.PATH_TO_DATASHELF + 'database/' + self.inventory.loc[ID].source + '/' + ID + '.csv'
+        return config.PATH_TO_DATASHELF + 'database/' + self.inventory.loc[ID].source + '/' + ID + '.csv'
 
     def tableExist(self, tableID):
         return self._tableExists(tableID)
@@ -303,11 +304,11 @@ class Database():
         
         ID = datatable.generateTableID()
         source = datatable.source()
-        datatable.meta['creator'] = conf.CRUNCHER
-        sourcePath = conf.PATH_TO_DATASHELF + 'database/' + source + '/'
-        filePath = sourcePath + ID + '.csv'
+        datatable.meta['creator'] = config.CRUNCHER
+        sourcePath = os.path.join(config.PATH_TO_DATASHELF, 'database', source)
+        filePath = os.path.join(sourcePath, 'tables',  ID + '.csv')
         
-        if (conf.OS == 'win32') | (conf.OS == "Windows"):
+        if (config.OS == 'win32') | (config.OS == "Windows"):
             filePath = filePath.replace('|','___')
         
         datatable = datatable.sort_index(axis='index')
@@ -320,19 +321,22 @@ class Database():
 #        if not self.sourceExists(source):
             
         
-        datatable.to_csv(filePath)
-        self._gitAddFile(filePath)
+        
+        self._gitAddTable(datatable, source, filePath)
         #self.add2Inventory(datatable)
         
+    def _gitAddTable(self, datatable, source, filePath):
+        datatable.to_csv(filePath)
+        self.repo._gitAddFile(source, filePath)
 
-    def _gitAddFile(self, filePath):
-        self.repo.execute(["git", "add", filePath])
+#    def _gitAddFile(self, filePath):
+        
         
     def _gitCommit(self, message):
         self.inventory.to_csv(self.INTVENTORY_PATH)
         self.repo.execute(["git", "add", self.INTVENTORY_PATH])
         try:
-            self.repo.execute(["git", "commit", '-m' "" +  message + " by " + conf.CRUNCHER])
+            self.repo.execute(["git", "commit", '-m' "" +  message + " by " + config.CRUNCHER])
         except:
             print('commit failed')   
             
@@ -342,13 +346,17 @@ class Database():
         
         if not self.sourceExists(source_ID):
             self.sources.loc[source_ID] = pd.Series(sourceMetaDict)
-            self.sources.to_csv(conf.SOURCE_FILE)
-            self._gitAddFile(conf.SOURCE_FILE)
-            self._gitCommit('added source: ' + source_ID)
+            self.sources.to_csv(config.SOURCE_FILE)
+            self.repo._gitAddFile('main', config.SOURCE_FILE)
+            self.repo._commit('main', 'added source: ' + source_ID)
+#            self._gitCommit()
     
-            sourcePath = conf.PATH_TO_DATASHELF + 'database/' + sourceMetaDict['SOURCE_ID'] + '/'
-            print('creating path for source')
-            os.mkdir(sourcePath)
+            sourcePath = config.PATH_TO_DATASHELF + 'database/' + sourceMetaDict['SOURCE_ID'] + '/'
+            
+            self.repo.init_new_repo(sourcePath, source_ID)
+            
+            for subFolder in config.SOURCE_SUB_FOLDERS:
+                os.makedirs(os.path.join(sourcePath, subFolder), exist_ok=True)
         else:
             print('source already exists')
 
@@ -359,14 +367,14 @@ class Database():
         This function updates all data values that are defined in the input sheet
         in the given excel file
         """
-        if conf.DB_READ_ONLY:
+        if config.DB_READ_ONLY:
             assert self._validateRepository()
         ins = io.Inserter(fileName='demo.xlsx')
         for setup in ins.getSetups():
             dataTable = self.getTable(setup['dataID'])
             ins._writeData(setup, dataTable)
 
-#    if conf.DB_READ_ONLY:
+#    if config.DB_READ_ONLY:
 #        def commitTable(self, dataTable, message, sourceMetaDict):
 #            
 #            raise(BaseException('Not possible in read only mode'))
@@ -404,3 +412,57 @@ class Database():
             pathToFile = self._getTableFilePath(ID)
             print()
             copyfile(pathToFile, folder + '/' + os.path.basename(pathToFile))
+            
+            
+            
+#%%
+class Repository_Manager(dict):
+    """
+    # Management of git repositories for fast access
+    """
+    def __init__(self, config):
+        self.PATH_TO_DATASHELF = config.PATH_TO_DATASHELF
+    
+    def __getitem__(self, *args, **kwargs):
+        """ 
+        Overwrites __getitem__ to automatically load git class of a 
+        repository and checks for uncommited changes
+        """
+        source = args[0]
+
+        try:
+            return super().__getattribute__(source)
+        except:
+            if source == 'main':
+                object.__setattr__(self,source, git.Git(self.PATH_TO_DATASHELF))
+            else:
+                object.__setattr__(self,source, git.Git(self.PATH_TO_DATASHELF  + 'database/' + source))
+            if super().__getattribute__(source).diff() != '':
+                raise(Exception('Git repository: "' + source + '" is inconsistent! - please check uncommitted modifications'))
+            return super().__getattribute__(source)
+        
+    def _validateRepository(self, repoName):
+        if self[repoName].diff() != '':
+            raise(Exception('Git repository: "{}" is inconsistent! - please check uncommitted modifications'.format(repoName)))
+        else:
+            config.DB_READ_ONLY = False
+            if config.DEBUG:
+                print('Repo {} is clean'.format(repoName))
+            return True
+        
+    def init_new_repo(self, repoPath, REPO_ID):
+        
+        print('creating folder ' + repoPath)
+        os.makedirs(repoPath, exist_ok=True)
+        git.Repo.init(repoPath, REPO_ID)
+        self[REPO_ID] = git.Git(repoPath)  
+        
+    def _gitAddFile(self, repoName, filePath):
+        self[repoName].execute(["git", "add", filePath])
+        
+    def _commit(self, repoName, message):
+        try:
+            self.repo[repoName].execute(["git", "commit", '-m' "" +  message + " by " + config.CRUNCHER])
+        except:
+            print('commit failed') 
+            

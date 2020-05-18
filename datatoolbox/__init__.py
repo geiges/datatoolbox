@@ -19,40 +19,22 @@ __version__ = "0.2.12"
 import os
 import time
 from . import config
-tt = time.time()
 from . import core
-print('{} in {:2.4f} seconds'.format('core',time.time()-tt))
-tt = time.time()
 
-tt = time.time()
+
 from .data_structures import Datatable, read_csv
-print('{} in {:2.4f} seconds'.format('data structure',time.time()-tt))
-tt = time.time()
+
 from . import database
 core.DB = database.Database()
-print('{} in {:2.4f} seconds'.format('core database',time.time()-tt))
-tt = time.time()
 from . import mapping as mapp
-print('{} in {:2.4f} seconds'.format('mapping',time.time()-tt))
-tt = time.time()
 from . import io_tools as io
-print('{} in {:2.4f} seconds'.format('IO',time.time()-tt))
-tt = time.time()
 from . import interfaces
-print('{} in {:2.4f} seconds'.format('Interfaces',time.time()-tt))
-tt = time.time()
 from . import util as util
-print('{} in {:2.4f} seconds'.format('utils',time.time()-tt))
-tt = time.time()
 from . import admin as admin
 from . import rawSources as _raw_sources
-print('{} in {:2.4f} seconds'.format('raw sources',time.time()-tt))
-tt = time.time()
 
 # Predefined sets for regions and scenrarios
 from datatoolbox.sets import REGIONS, SCENARIOS
-print('{} in {:2.4f} seconds'.format('sets',time.time()-tt))
-tt = time.time()
 # unit conversion package
 unitReg = core.ur
 

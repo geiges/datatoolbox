@@ -22,11 +22,12 @@ class Datatable(pd.DataFrame):
 
     def __init__(self, *args, **kwargs):
         
-        metaData = kwargs.pop('meta', {x:None for x in conf.REQUIRED_META_FIELDS})
+        metaData = kwargs.pop('meta', {x:'' for x in conf.REQUIRED_META_FIELDS})
         super(Datatable, self).__init__(*args, **kwargs)
 #        print(metaData)
         if metaData['unit'] is None or pd.isna(metaData['unit']):
             metaData['unit'] = ''
+        metaData['variable'] = metaData['entity'] + metaData['category']
         self.__appendMetaData__(metaData)
         self.vis = Visualization(self)
         try:
@@ -34,12 +35,9 @@ class Datatable(pd.DataFrame):
         except:
             self.ID = None
 
-
-#    def __getattr__(self, key):
-#        if key == 'ID' and self.ID is None:
-#            self.ID = self.generateTableID()
-#        else:
-#            return super(Datatable, self).__getitem__(key)
+        #compatibililty with v1
+        if not 'model' in self.meta.keys():
+            self.meta['model'] = ''
     
     @property
     def _constructor(self):
@@ -219,8 +217,7 @@ class Datatable(pd.DataFrame):
     
     #%%
     def generateTableID(self):
-        metaDict = self.meta
-        self.ID =  core._createDatabaseID(metaDict)
+        self.ID =  core._createDatabaseID(self.meta)
         self.meta['ID'] = self.ID
         return self.ID
     
@@ -541,9 +538,6 @@ def read_csv(fileName):
             break
         dataTuple = line.replace('\n','').split(',')
         meta[dataTuple[0]] = dataTuple[1].strip()
-
-    #print(meta.keys())
-    assert conf.REQUIRED_META_FIELDS.issubset(set(meta.keys()))
 
     df = Datatable(pd.read_csv(fid, index_col=0), meta=meta)
     df.columns = df.columns.map(int)

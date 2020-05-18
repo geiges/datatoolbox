@@ -13,24 +13,26 @@ OS = platform.system() #'win32' , linux, #darwin
 if not os.path.isfile(os.path.dirname(__file__) + '/settings/personal.py'):
     from .tools.install_support import create_initial_config
     modulePath =  os.path.dirname(__file__) + '/'
-    CRUNCHER, PATH_TO_DATASHELF, DB_READ_ONLY = create_initial_config(modulePath)
+    CRUNCHER, PATH_TO_DATASHELF, DB_READ_ONLY, DEBUG = create_initial_config(modulePath)
 
 else:
-    from .settings.personal import CRUNCHER, PATH_TO_DATASHELF, DB_READ_ONLY
+    from .settings.personal import CRUNCHER, PATH_TO_DATASHELF, DB_READ_ONLY, DEBUG
   
 
 #%% general setup
-DEBUG = True
+
 
 REQUIRED_META_FIELDS = {'entity',
                         'category',
                         'scenario',
+                        'model',
                         'source',
                         'unit'}
 
 ID_FIELDS = ['entity',
              'category',
              'scenario',
+             'model',
              'source']
 
 META_DECLARATION = '### META ###\n'
@@ -54,6 +56,10 @@ SOURCE_META_FIELDS = ['SOURCE_ID',
                       'date',
                       'source_url',
                       'licence']
+
+SOURCE_SUB_FOLDERS = ['tables',
+                      'raw_data'
+                      ]
 
 GHG_GAS_TABLE_FILE = 'GHG_properties_2019_CA.csv'
 GHG_NAMING_FILENAME = 'GHG_alternative_naming.pkl'

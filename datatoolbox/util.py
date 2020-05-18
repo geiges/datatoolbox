@@ -411,7 +411,7 @@ def cleanDataTable(dataTable):
     # clean meta data
     keysToDelete = list()
     for key in dataTable.meta.keys():
-        if pd.np.any(pd.isna(dataTable.meta[key])):
+        if np.any(pd.isna(dataTable.meta[key])):
             if key not in config.ID_FIELDS:
                 keysToDelete.append(key)
             else:
@@ -661,6 +661,7 @@ def update_DB_from_folder(folderToRead, message=None):
     if message is None:
 
         message = 'External data added from external source by ' + config.CRUNCHER
+    
     for source in tablesToUpdate.keys():
         sourceMetaDict = dict()
         sourceMetaDict['SOURCE_ID']= source

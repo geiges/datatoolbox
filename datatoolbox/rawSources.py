@@ -7,14 +7,16 @@ Created on Tue Apr  2 11:20:42 2019
 """
 
 import datatoolbox as dt
-from datatoolbox import config as conf
+from datatoolbox import config
 from datatoolbox.data_structures import Datatable
 
 import pandas as pd
 import os
+import time
 
+tt = time.time()
 
-MAPPING_COLUMNS = list(conf.ID_FIELDS) + ['unit','unitTo']
+MAPPING_COLUMNS = list(config.ID_FIELDS) + ['unit','unitTo']
 VAR_MAPPING_SHEET = 'variable_mapping'
 SPATIAL_MAPPING_SHEET = 'spatial_mapping'
 
@@ -56,25 +58,29 @@ class BaseImportTool():
         pass
     
     def openMappingFile(self):
-        if df.config.OS == 'Linux':
+        if dt.config.OS == 'Linux':
             os.system('libreoffice ' + self.setup.MAPPING_FILE)
-        elif df.config.OS == 'Darwin':
+        elif dt.config.OS == 'Darwin':
             os.system('open -a "Microsoft Excel" ' + self.setup.MAPPING_FILE)
 
     def openRawData(self):
-        if df.config.OS == 'Linux':
+        if dt.config.OS == 'Linux':
             os.system('libreoffice ' + self.setup.DATA_FILE )
-        elif df.config.OS == 'Darwin':
+        elif dt.config.OS == 'Darwin':
             os.system('open -a "Microsoft Excel" ' + self.setup.DATA_FILE )
 
     def createSourceMeta(self):
         self.meta = {'SOURCE_ID': self.setup.SOURCE_ID,
-                      'collected_by' : conf.CRUNCHER,
+                      'collected_by' : config.CRUNCHER,
                       'date': dt.core.getDateString(),
                       'source_url' : self.setup.URL,
                       'licence': self.setup.LICENCE }
 
 
+    def update(self, updateContent = False):   
+        tableList = self.gatherMappedData(updateTables=updateContent)
+        dt.commitTables(tableList, 'update WDI2019  data', self.meta, update=updateContent)
+ 
 
 class WDI_2018(BaseImportTool):
     
@@ -83,7 +89,7 @@ class WDI_2018(BaseImportTool):
         self.setup = setupStruct()
         
         self.setup.SOURCE_ID    = "WDI2018"
-        self.setup.SOURCE_PATH  = conf.PATH_TO_DATASHELF + 'rawdata/WDI2018/'
+        self.setup.SOURCE_PATH  = config.PATH_TO_DATASHELF + 'rawdata/WDI2018/'
         self.setup.DATA_FILE    = self.setup.SOURCE_PATH + 'WDIData.csv'
         self.setup.MAPPING_FILE = self.setup.SOURCE_PATH + 'mapping.xlsx'
         self.setup.LICENCE = 'CC BY-4.0'
@@ -100,10 +106,11 @@ class WDI_2018(BaseImportTool):
         self.createSourceMeta()
                 
         if not(os.path.exists(self.setup.MAPPING_FILE)):
+            
             self.createVariableMapping()
         else:
             self.mapping = pd.read_excel(self.setup.MAPPING_FILE, sheet_name=VAR_MAPPING_SHEET)
-        
+            
         
 
 
@@ -112,7 +119,7 @@ class WDI_2018(BaseImportTool):
         
         self.availableSeries = pd.read_csv(self.setup.SOURCE_PATH+ '/WDISeries.csv', index_col=None, header =0)
         print(self.availableSeries.index)
-        self.mapping = pd.DataFrame(index=self.availableSeries.index, columns = list(conf.REQUIRED_META_FIELDS) + ['unitTo'])
+        self.mapping = pd.DataFrame(index=self.availableSeries.index, columns = list(config.REQUIRED_META_FIELDS) + ['unitTo'])
         self.mapping = pd.concat([self.mapping, self.availableSeries], axis=1)
         self.mapping.source = self.setup.SOURCE_ID
         self.mapping.scenario = 'historic'
@@ -136,11 +143,11 @@ class WDI_2018(BaseImportTool):
             metaDf = self.mapping.loc[idx]
             
             
-            print(metaDf[conf.REQUIRED_META_FIELDS].isnull().all() == False)
+            print(metaDf[config.REQUIRED_META_FIELDS].isnull().all() == False)
             #print(metaData[self.setup.INDEX_COLUMN_NAME])
             
             
-            metaDict = {key : metaDf[key] for key in conf.REQUIRED_META_FIELDS.union({'unitTo'})}
+            metaDict = {key : metaDf[key] for key in config.REQUIRED_META_FIELDS.union({'unitTo'})}
 #            metaDict['unitTo'] = self.mappingEntity.loc[entity]['unitTo']
             seriesIdx = metaDf['Series Code']
             metaDict['original code'] = metaDf['Series Code']
@@ -167,16 +174,16 @@ class WDI_2018(BaseImportTool):
             tablesToCommit.append(dataTable)
         return tablesToCommit
 
-class WDI_2019(BaseImportTool):
+class WDI_2020(BaseImportTool):
     
     def __init__(self):
 
         self.setup = setupStruct()
         
-        self.setup.SOURCE_ID    = "WDI_2019"
-        self.setup.SOURCE_PATH  = conf.PATH_TO_DATASHELF + 'rawdata/WDI_2019/'
-        self.setup.DATA_FILE    = self.setup.SOURCE_PATH + 'WDIData.csv'
-        self.setup.MAPPING_FILE = self.setup.SOURCE_PATH + 'mapping.xlsx'
+        self.setup.SOURCE_ID    = "WDI_2020"
+        self.setup.SOURCE_PATH  = os.path.join(config.PATH_TO_DATASHELF, 'database', self.setup.SOURCE_ID)
+        self.setup.DATA_FILE    = 'WDIData.csv'
+        self.setup.MAPPING_FILE = os.path.join(self.setup.SOURCE_PATH, 'mapping.xlsx')
         self.setup.LICENCE = 'CC BY-4.0'
         self.setup.URL     = 'https://datacatalog.worldbank.org/dataset/world-development-indicators'
 
@@ -191,7 +198,9 @@ class WDI_2019(BaseImportTool):
         self.createSourceMeta()
                 
         if not(os.path.exists(self.setup.MAPPING_FILE)):
+            
             self.createVariableMapping()
+            
         else:
             self.mapping = pd.read_excel(self.setup.MAPPING_FILE, sheet_name=VAR_MAPPING_SHEET)
         
@@ -200,9 +209,10 @@ class WDI_2019(BaseImportTool):
         
     def createVariableMapping(self):
         
-        self.availableSeries = pd.read_csv(self.setup.SOURCE_PATH+ '/WDISeries.csv', index_col=None, header =0)
+        fullFilePath = os.path.join(self.setup.SOURCE_PATH, 'raw_data', self.setup.DATA_FILE)
+        self.availableSeries = pd.read_csv(fullFilePath, index_col=None, header =0)
         print(self.availableSeries.index)
-        self.mapping = pd.DataFrame(index=self.availableSeries.index, columns = list(conf.REQUIRED_META_FIELDS) + ['unitTo'])
+        self.mapping = pd.DataFrame(index=self.availableSeries.index, columns = list(config.REQUIRED_META_FIELDS) + ['unitTo'])
         self.mapping = pd.concat([self.mapping, self.availableSeries], axis=1)
         self.mapping.source = self.setup.SOURCE_ID
         self.mapping.scenario = 'historic'
@@ -211,7 +221,8 @@ class WDI_2019(BaseImportTool):
 
 
     def loadData(self):        
-        self.data = pd.read_csv(self.setup.DATA_FILE, index_col = self.setup.INDEX_COLUMN_NAME, header =0) 
+        fullFilePath = os.path.join(self.setup.SOURCE_PATH, 'raw_data', self.setup.DATA_FILE)
+        self.data = pd.read_csv(fullFilePath, index_col = self.setup.INDEX_COLUMN_NAME, header =0) 
     
     def gatherMappedData(self, spatialSubSet = None, updateTables = False):
         
@@ -226,11 +237,11 @@ class WDI_2019(BaseImportTool):
             metaDf = self.mapping.loc[idx]
             
             
-            print(metaDf[conf.REQUIRED_META_FIELDS].isnull().all() == False)
+            print(metaDf[config.REQUIRED_META_FIELDS].isnull().all() == False)
             #print(metaData[self.setup.INDEX_COLUMN_NAME])
             
             
-            metaDict = {key : metaDf[key] for key in conf.REQUIRED_META_FIELDS.union({'unitTo'})}
+            metaDict = {key : metaDf[key] for key in config.REQUIRED_META_FIELDS.union({'unitTo'})}
 #            metaDict['unitTo'] = self.mappingEntity.loc[entity]['unitTo']
             seriesIdx = metaDf['Series Code']
             metaDict['original code'] = metaDf['Series Code']
@@ -238,8 +249,10 @@ class WDI_2019(BaseImportTool):
 
             if pd.isnull(metaDict['category']):
                 metaDict['category'] = ''
-
+            if pd.isnull(metaDict['model']):
+                metaDict['model'] = ''
             if not updateTables:
+                #print(metaDict)
                 if dt.core.DB.tableExist(dt.core._createDatabaseID(metaDict)):
                     continue
                         
@@ -267,7 +280,7 @@ class IEA_FUEL_2018(BaseImportTool):
     def __init__(self):
         self.setup = setupStruct()
         self.setup.SOURCE_ID    = "IEA_CO2_FUEL_2018"
-        self.setup.SOURCE_PATH  = conf.PATH_TO_DATASHELF + 'rawdata/IEA_CO2_FUEL_2018/'
+        self.setup.SOURCE_PATH  = config.PATH_TO_DATASHELF + 'rawdata/IEA_CO2_FUEL_2018/'
         self.setup.DATA_FILE    = self.setup.SOURCE_PATH + 'World_CO2_emissions_fuel_2018.csv'
         self.setup.MAPPING_FILE = self.setup.SOURCE_PATH + 'mapping.xlsx'
         self.setup.LICENCE = 'restricted'
@@ -393,11 +406,11 @@ class IEA_FUEL_2018(BaseImportTool):
             metaDf = self.mapping.loc[idx]
             print(idx)
             
-            #print(metaDf[conf.REQUIRED_META_FIELDS].isnull().all() == False)
+            #print(metaDf[config.REQUIRED_META_FIELDS].isnull().all() == False)
             #print(metaData[self.setup.INDEX_COLUMN_NAME])
             
             
-            metaDict = {key : metaDf[key] for key in conf.REQUIRED_META_FIELDS.union({'unitTo'})} 
+            metaDict = {key : metaDf[key] for key in config.REQUIRED_META_FIELDS.union({'unitTo'})} 
             if pd.isna(metaDict['category']):
                 metaDict['category'] = ''
             metaDict['original codle'] = idx
@@ -452,7 +465,7 @@ class IEA_FUEL_DETAILED_2019(BaseImportTool):
     def __init__(self):
         self.setup = setupStruct()
         self.setup.SOURCE_ID    = "IEA_CO2_FUEL_2019"
-        self.setup.SOURCE_PATH  = conf.PATH_TO_DATASHELF + 'rawdata/IEA_CO2_FUEL_2019/'
+        self.setup.SOURCE_PATH  = config.PATH_TO_DATASHELF + 'rawdata/IEA_CO2_FUEL_2019/'
         self.setup.DATA_FILE    = self.setup.SOURCE_PATH + 'WOLRD_CO2_emissions_fuel_2019_detailed.csv'
         self.setup.MAPPING_FILE = self.setup.SOURCE_PATH + 'mapping_detailed.xlsx'
         self.setup.LICENCE = 'restricted'
@@ -611,7 +624,7 @@ class IEA_FUEL_2019(BaseImportTool):
     def __init__(self):
         self.setup = setupStruct()
         self.setup.SOURCE_ID    = "IEA_CO2_FUEL_2019"
-        self.setup.SOURCE_PATH  = conf.PATH_TO_DATASHELF + 'rawdata/IEA_CO2_FUEL_2019/'
+        self.setup.SOURCE_PATH  = config.PATH_TO_DATASHELF + 'rawdata/IEA_CO2_FUEL_2019/'
         self.setup.DATA_FILE    = self.setup.SOURCE_PATH + 'World_CO2_emissions_fuel_2019.csv'
         self.setup.MAPPING_FILE = self.setup.SOURCE_PATH + 'mapping.xlsx'
         self.setup.LICENCE = 'restricted'
@@ -735,11 +748,11 @@ class IEA_FUEL_2019(BaseImportTool):
             metaDf = self.mapping.loc[idx]
             print(idx)
             
-            #print(metaDf[conf.REQUIRED_META_FIELDS].isnull().all() == False)
+            #print(metaDf[config.REQUIRED_META_FIELDS].isnull().all() == False)
             #print(metaData[self.setup.INDEX_COLUMN_NAME])
             
             
-            metaDict = {key : metaDf[key] for key in conf.REQUIRED_META_FIELDS.union({'unitTo'})} 
+            metaDict = {key : metaDf[key] for key in config.REQUIRED_META_FIELDS.union({'unitTo'})} 
             if pd.isna(metaDict['category']):
                 metaDict['category'] = ''
             metaDict['original codle'] = idx
@@ -835,7 +848,7 @@ class IEA_WEB_2019_New(BaseImportTool):
     def __init__(self):
         self.setup = setupStruct()
         self.setup.SOURCE_ID    = "IEA_WEB_2019"
-        self.setup.SOURCE_PATH  = conf.PATH_TO_DATASHELF + 'rawdata/IEA_WEB_2019/'
+        self.setup.SOURCE_PATH  = config.PATH_TO_DATASHELF + 'rawdata/IEA_WEB_2019/'
         self.setup.DATA_FILE    = self.setup.SOURCE_PATH + 'World_Energy_Balances_2019_clean.csv'
         self.setup.MAPPING_FILE = self.setup.SOURCE_PATH + 'mapping.xlsx'
         self.setup.LICENCE = 'restricted'
@@ -991,7 +1004,7 @@ class IEA_WEB_2019(BaseImportTool):
     def __init__(self):
         self.setup = setupStruct()
         self.setup.SOURCE_ID    = "IEA_WEB_2019"
-        self.setup.SOURCE_PATH  = conf.PATH_TO_DATASHELF + 'rawdata/IEA_WEB_2019/'
+        self.setup.SOURCE_PATH  = config.PATH_TO_DATASHELF + 'rawdata/IEA_WEB_2019/'
         self.setup.DATA_FILE    = self.setup.SOURCE_PATH + 'World_Energy_Balances_2019_clean.csv'
         self.setup.MAPPING_FILE = self.setup.SOURCE_PATH + 'mapping.xlsx'
         self.setup.LICENCE = 'restricted'
@@ -1207,11 +1220,11 @@ class IEA_WEB_2019(BaseImportTool):
             metaDf = self.mapping.loc[idx]
             print(idx)
             
-            #print(metaDf[conf.REQUIRED_META_FIELDS].isnull().all() == False)
+            #print(metaDf[config.REQUIRED_META_FIELDS].isnull().all() == False)
             #print(metaData[self.setup.INDEX_COLUMN_NAME])
             
             #print(metaDf)
-            metaDict = {key : metaDf[key] for key in conf.REQUIRED_META_FIELDS.union({'unitTo'})} 
+            metaDict = {key : metaDf[key] for key in config.REQUIRED_META_FIELDS.union({'unitTo'})} 
             #print(metaDict)
             if pd.isnull(metaDict['category']):
                 metaDict['category'] = ''
@@ -1310,7 +1323,7 @@ class IEA_WEB_2018(BaseImportTool):
     def __init__(self):
         self.setup = setupStruct()
         self.setup.SOURCE_ID    = "IEA_WEB_2018"
-        self.setup.SOURCE_PATH  = conf.PATH_TO_DATASHELF + 'rawdata/IEA_WEB_2018/'
+        self.setup.SOURCE_PATH  = config.PATH_TO_DATASHELF + 'rawdata/IEA_WEB_2018/'
         self.setup.DATA_FILE    = self.setup.SOURCE_PATH + 'World_Energy_Balances_2018_clean.csv'
         self.setup.MAPPING_FILE = self.setup.SOURCE_PATH + 'mapping.xlsx'
         self.setup.LICENCE = 'restricted'
@@ -1526,11 +1539,11 @@ class IEA_WEB_2018(BaseImportTool):
             metaDf = self.mapping.loc[idx]
             print(idx)
             
-            #print(metaDf[conf.REQUIRED_META_FIELDS].isnull().all() == False)
+            #print(metaDf[config.REQUIRED_META_FIELDS].isnull().all() == False)
             #print(metaData[self.setup.INDEX_COLUMN_NAME])
             
             #print(metaDf)
-            metaDict = {key : metaDf[key] for key in conf.REQUIRED_META_FIELDS.union({'unitTo'})} 
+            metaDict = {key : metaDf[key] for key in config.REQUIRED_META_FIELDS.union({'unitTo'})} 
             #print(metaDict)
             if pd.isnull(metaDict['category']):
                 metaDict['category'] = ''
@@ -1627,7 +1640,7 @@ class IEA2016():
     def __init__(self):
         self.setup = setupStruct()
         self.setup.SOURCE_ID    = "IEA2016"
-        self.setup.SOURCE_PATH  = conf.PATH_TO_DATASHELF + 'rawdata/IEA2016/'
+        self.setup.SOURCE_PATH  = config.PATH_TO_DATASHELF + 'rawdata/IEA2016/'
         self.setup.DATA_FILE    = self.setup.SOURCE_PATH + 'IEA2016_energy_balance.csv'
         self.setup.MAPPING_FILE = self.setup.SOURCE_PATH + 'mapping.xlsx'
         self.setup.LICENCE = 'restricted'
@@ -1658,7 +1671,7 @@ class IEA2016():
         index = self.data['combined'].unique()
         
         self.availableSeries = pd.DataFrame(index=index)
-        self.mapping = pd.DataFrame(index=index, columns = list(conf.ID_FIELDS) + ['unitTo'])
+        self.mapping = pd.DataFrame(index=index, columns = list(config.ID_FIELDS) + ['unitTo'])
         self.mapping = pd.concat([self.mapping, self.availableSeries], axis=1)
         self.mapping.source = self.setup.SOURCE_ID
         self.mapping.scenario = 'historic'
@@ -1678,11 +1691,11 @@ class IEA2016():
             metaDf = self.mapping.loc[idx]
             print(idx)
             
-            print(metaDf[conf.REQUIRED_META_FIELDS].isnull().all() == False)
+            print(metaDf[config.REQUIRED_META_FIELDS].isnull().all() == False)
             #print(metaData[self.setup.INDEX_COLUMN_NAME])
             
             
-            metaDict = {key : metaDf[key] for key in conf.REQUIRED_META_FIELDS.union({'unitTo'})}
+            metaDict = {key : metaDf[key] for key in config.REQUIRED_META_FIELDS.union({'unitTo'})}
             
             seriesIdx = idx
             
@@ -1712,7 +1725,7 @@ class ADVANCE_DB(BaseImportTool):
     def __init__(self):
         self.setup = setupStruct()
         self.setup.SOURCE_ID    = "ADVANCE_2016"
-        self.setup.SOURCE_PATH  = conf.PATH_TO_DATASHELF + 'rawdata/ADVANCE_DB/'
+        self.setup.SOURCE_PATH  = config.PATH_TO_DATASHELF + 'rawdata/ADVANCE_DB/'
         self.setup.DATA_FILE    = self.setup.SOURCE_PATH + 'ADVANCE_Synthesis_version101_compare_20190619-143200.csv'
         #self.setup.META_FILE    = self.setup.SOURCE_PATH + 'sr15_metadata_indicators_r1.1.xlsx'
         self.setup.MAPPING_FILE = self.setup.SOURCE_PATH + 'mapping.xlsx'
@@ -1867,7 +1880,7 @@ class AR5_DATABASE(BaseImportTool):
     def __init__(self):
         self.setup = setupStruct()
         self.setup.SOURCE_ID    = "AR5_DB"
-        self.setup.SOURCE_PATH  = conf.PATH_TO_DATASHELF + 'rawdata/AR5_database/'
+        self.setup.SOURCE_PATH  = config.PATH_TO_DATASHELF + 'rawdata/AR5_database/'
         self.setup.DATA_FILE    = self.setup.SOURCE_PATH + 'ar5_public_version102_compare_compare_20150629-130000.csv'
         #self.setup.META_FILE    = self.setup.SOURCE_PATH + 'sr15_metadata_indicators_r1.1.xlsx'
         self.setup.MAPPING_FILE = self.setup.SOURCE_PATH + 'mapping.xlsx'
@@ -2023,7 +2036,7 @@ class IAMC15_2019(BaseImportTool):
     def __init__(self):
         self.setup = setupStruct()
         self.setup.SOURCE_ID    = "IAMC15_2019_R2"
-        self.setup.SOURCE_PATH  = conf.PATH_TO_DATASHELF + 'rawdata/IAMC15_2019b/'
+        self.setup.SOURCE_PATH  = config.PATH_TO_DATASHELF + 'rawdata/IAMC15_2019b/'
         self.setup.DATA_FILE    = self.setup.SOURCE_PATH + 'iamc15_scenario_data_all_regions_r2.0.xlsx'
         self.setup.META_FILE    = self.setup.SOURCE_PATH + 'sr15_metadata_indicators_r2.0.xlsx'
         self.setup.MAPPING_FILE = self.setup.SOURCE_PATH + 'mapping.xlsx'
@@ -2069,7 +2082,7 @@ class IAMC15_2019(BaseImportTool):
  
     def createSourceMeta(self):
         self.meta = {'SOURCE_ID': self.setup.SOURCE_ID,
-                      'collected_by' : conf.CRUNCHER,
+                      'collected_by' : config.CRUNCHER,
                       'date': dt.core.getDateString(),
                       'source_url' : self.setup.URL,
                       'licence': self.setup.LICENCE }
@@ -2232,7 +2245,7 @@ class CDLINKS_2018(BaseImportTool):
     def __init__(self):
         self.setup = setupStruct()
         self.setup.SOURCE_ID    = "CDLINKS_2018"
-        self.setup.SOURCE_PATH  = conf.PATH_TO_DATASHELF + 'rawdata/CDLINKS_2018/'
+        self.setup.SOURCE_PATH  = config.PATH_TO_DATASHELF + 'rawdata/CDLINKS_2018/'
         self.setup.DATA_FILE    = self.setup.SOURCE_PATH + 'cdlinks_public_version101_compare__20181010-142000.csv'
 #        self.setup.META_FILE    = self.setup.SOURCE_PATH + 'sr15_metadata_indicators_r2.0.xlsx'
         self.setup.MAPPING_FILE = self.setup.SOURCE_PATH + 'mapping.xlsx'
@@ -2389,7 +2402,7 @@ class AIM_SSP_DATA_2019(BaseImportTool):
     def __init__(self):
         self.setup = setupStruct()
         self.setup.SOURCE_ID    = "AIM_SSPx_DATA_2019"
-        self.setup.SOURCE_PATH  = conf.PATH_TO_DATASHELF + 'rawdata/AIM_SSP_scenarios/'
+        self.setup.SOURCE_PATH  = config.PATH_TO_DATASHELF + 'rawdata/AIM_SSP_scenarios/'
         self.setup.DATA_FILE    = [self.setup.SOURCE_PATH + '/data/ssp' + str(x) + '.csv' for x in range(1,5)]
         #self.setup.META_FILE    = self.setup.SOURCE_PATH + 'sr15_metadata_indicators_r2.0.xlsx'
         self.setup.MAPPING_FILE = self.setup.SOURCE_PATH + 'mapping.xlsx'
@@ -2428,7 +2441,7 @@ class AIM_SSP_DATA_2019(BaseImportTool):
         
 #    def createSourceMeta(self):
 #        self.meta = {'SOURCE_ID': self.setup.SOURCE_ID,
-#                      'collected_by' : conf.CRUNCHER,
+#                      'collected_by' : config.CRUNCHER,
 #                      'date': dt.core.getDateString(),
 #                      'source_url' : self.setup.URL,
 #                      'licence': self.setup.LICENCE }
@@ -2600,7 +2613,7 @@ class IRENA2019(BaseImportTool):
     def __init__(self):
         self.setup = setupStruct()
         self.setup.SOURCE_ID    = "IRENA_2019"
-        self.setup.SOURCE_PATH  = conf.PATH_TO_DATASHELF + 'rawdata/IRENA_2019/'
+        self.setup.SOURCE_PATH  = config.PATH_TO_DATASHELF + 'rawdata/IRENA_2019/'
         self.setup.DATA_FILE    = self.setup.SOURCE_PATH + 'IRENA_RE_electricity_statistics.xlsx'
         self.setup.MAPPING_FILE = self.setup.SOURCE_PATH + 'mapping.xlsx'
         self.setup.LICENCE = 'open source'
@@ -2739,11 +2752,11 @@ class IRENA2019(BaseImportTool):
             metaDf = self.mapping.loc[idx]
             print(idx)
             
-            #print(metaDf[conf.REQUIRED_META_FIELDS].isnull().all() == False)
+            #print(metaDf[config.REQUIRED_META_FIELDS].isnull().all() == False)
             #print(metaData[self.setup.INDEX_COLUMN_NAME])
             
             
-            metaDict = {key : metaDf[key] for key in conf.REQUIRED_META_FIELDS}           
+            metaDict = {key : metaDf[key] for key in config.REQUIRED_META_FIELDS}           
             
             metaDict['original code'] = idx
             metaDict['unitTo'] = metaDf['unitTo']
@@ -2788,7 +2801,7 @@ class SSP_DATA(BaseImportTool):
         self.setup = setupStruct()
         
         self.setup.SOURCE_ID    = "SSP_DB_2013"
-        self.setup.SOURCE_PATH  = conf.PATH_TO_DATASHELF + 'rawdata/SSP_DB/'
+        self.setup.SOURCE_PATH  = config.PATH_TO_DATASHELF + 'rawdata/SSP_DB/'
         self.setup.DATA_FILE    = self.setup.SOURCE_PATH + 'SspDb_country_data_2013-06-12.csv'
         self.setup.MAPPING_FILE = self.setup.SOURCE_PATH + 'mapping.xlsx'
         self.setup.LICENCE = 'open access'
@@ -2811,7 +2824,7 @@ class SSP_DATA(BaseImportTool):
 
     def createSourceMeta(self):
         self.meta = {'SOURCE_ID': self.setup.SOURCE_ID,
-                      'collected_by' : conf.CRUNCHER,
+                      'collected_by' : config.CRUNCHER,
                       'date': dt.core.getDateString(),
                       'source_url' : self.setup.URL,
                       'licence': self.setup.LICENCE }
@@ -2951,7 +2964,7 @@ class PRIMAP_HIST(BaseImportTool):
         self.setup = setupStruct()
         
         self.setup.SOURCE_ID    = "PRIMAP_" + str(year)
-        self.setup.SOURCE_PATH  = conf.PATH_TO_DATASHELF + 'rawdata/PRIMAP/'
+        self.setup.SOURCE_PATH  = config.PATH_TO_DATASHELF + 'rawdata/PRIMAP/'
         self.setup.DATA_FILE    = self.setup.SOURCE_PATH +  str(year) + '/PRIMAP-hist_' + str(year) + '.csv'
         self.setup.MAPPING_FILE = self.setup.SOURCE_PATH + 'mapping.xlsx'
         self.setup.LICENCE = 'open access (UN)'
@@ -3058,11 +3071,11 @@ class PRIMAP_HIST(BaseImportTool):
             metaDf = self.mapping.loc[idx]
             print(idx)
             
-            #print(metaDf[conf.REQUIRED_META_FIELDS].isnull().all() == False)
+            #print(metaDf[config.REQUIRED_META_FIELDS].isnull().all() == False)
             #print(metaData[self.setup.INDEX_COLUMN_NAME])
             
             
-            metaDict = {key : metaDf[key] for key in conf.REQUIRED_META_FIELDS.union({'unitTo'})}           
+            metaDict = {key : metaDf[key] for key in config.REQUIRED_META_FIELDS.union({'unitTo'})}           
             metaDict['source'] = self.setup.SOURCE_ID
             if pd.isna(metaDict['category']):
                 metaDict['category'] = ''
@@ -3119,7 +3132,7 @@ class CRF_DATA(BaseImportTool):
         self.year  = str(reportingYear)
         
         self.setup.SOURCE_ID    = "UNFCCC_CRF_" + str(reportingYear)
-        self.setup.SOURCE_PATH  = conf.PATH_TO_DATASHELF + 'rawdata/CRF_' + str(reportingYear) + '/'
+        self.setup.SOURCE_PATH  = config.PATH_TO_DATASHELF + 'rawdata/CRF_' + str(reportingYear) + '/'
         self.setup.LICENCE = 'open access (UN)'
         self.setup.URL     = 'https://unfccc.int/process-and-meetings/transparency-and-reporting/reporting-and-review-under-the-convention/greenhouse-gas-inventories-annex-i-parties/national-inventory-submissions-' + str(reportingYear)
     
@@ -3211,7 +3224,7 @@ class SDG_DATA_2019(BaseImportTool):
         self.setup = setupStruct()
         
         self.setup.SOURCE_ID    = "SDG_DB_2019"
-        self.setup.SOURCE_PATH  = conf.PATH_TO_DATASHELF + 'rawdata/SDG_DB_2019/'
+        self.setup.SOURCE_PATH  = config.PATH_TO_DATASHELF + 'rawdata/SDG_DB_2019/'
         self.setup.DATA_FILE    = self.setup.SOURCE_PATH + 'extract_05_2019.csv'
         self.setup.MAPPING_FILE = self.setup.SOURCE_PATH + 'mapping.xlsx'
         self.setup.LICENCE = 'open access (UN)'
@@ -3283,11 +3296,11 @@ class SDG_DATA_2019(BaseImportTool):
             metaDf = self.mapping.loc[idx]
             print(idx)
             
-            #print(metaDf[conf.REQUIRED_META_FIELDS].isnull().all() == False)
+            #print(metaDf[config.REQUIRED_META_FIELDS].isnull().all() == False)
             #print(metaData[self.setup.INDEX_COLUMN_NAME])
             
             
-            metaDict = {key : metaDf[key] for key in conf.REQUIRED_META_FIELDS.union({'unitTo'})}           
+            metaDict = {key : metaDf[key] for key in config.REQUIRED_META_FIELDS.union({'unitTo'})}           
             
             metaDict['original code'] = idx
             #metaDict['original name'] = metaDf['Indicator Name']
@@ -3330,7 +3343,7 @@ class HOESLY2018(BaseImportTool):
     def __init__(self):
         self.setup = setupStruct()
         self.setup.SOURCE_ID    = "HOESLY2018"
-        self.setup.SOURCE_PATH  = conf.PATH_TO_DATASHELF + 'rawdata/HOESLY2018/'
+        self.setup.SOURCE_PATH  = config.PATH_TO_DATASHELF + 'rawdata/HOESLY2018/'
         self.setup.DATA_FILE    = self.setup.SOURCE_PATH + 'compiled_raw_hoesly.csv'
         self.setup.MAPPING_FILE = self.setup.SOURCE_PATH + 'mapping.xlsx'
         self.setup.LICENCE = ' Creative Commons Attribution 3.0 License'
@@ -3457,7 +3470,7 @@ class VANMARLE2017(BaseImportTool):
     def __init__(self):
         self.setup = setupStruct()
         self.setup.SOURCE_ID    = "VANMARLE2017"
-        self.setup.SOURCE_PATH  = conf.PATH_TO_DATASHELF + 'rawdata/VANMARLE2017/'
+        self.setup.SOURCE_PATH  = config.PATH_TO_DATASHELF + 'rawdata/VANMARLE2017/'
         self.setup.DATA_FILE    = self.setup.SOURCE_PATH + 'compiled_raw_vanmarle.csv'
         self.setup.MAPPING_FILE = self.setup.SOURCE_PATH + 'mapping.xlsx'
         self.setup.LICENCE = ' Creative Commons Attribution 3.0 License'
@@ -3595,7 +3608,7 @@ class APEC(BaseImportTool):
     def __init__(self, year):
         self.setup = setupStruct()
         self.setup.SOURCE_ID    = "APEC_" + str(year)
-        self.setup.SOURCE_PATH  = conf.PATH_TO_DATASHELF + 'rawdata/APEC/' + str(year) + '/'
+        self.setup.SOURCE_PATH  = config.PATH_TO_DATASHELF + 'rawdata/APEC/' + str(year) + '/'
         self.setup.DATA_FILE    = self.setup.SOURCE_PATH + 'compiled_raw_hoesly.csv'
         self.setup.MAPPING_FILE = self.setup.SOURCE_PATH + 'mapping.xlsx'
         self.setup.LICENCE = '(c) 2019 Asia Pacific Economic Cooperation (APERC)'
@@ -3650,7 +3663,7 @@ class APEC(BaseImportTool):
                 #Capacity
                 setup['timeColIdx']  = tuple(metaDf['Time'].split(':'))
                 setup['spaceRowIdx'] = tuple([metaDf['What']])
-                #print(metaDf[conf.REQUIRED_META_FIELDS].isnull().all() == False)
+                #print(metaDf[config.REQUIRED_META_FIELDS].isnull().all() == False)
                 #print(metaData[self.setup.INDEX_COLUMN_NAME])
                 
                 ex.timeColIdx =  [dt.io.excelIdx2PandasIdx(x) for x in setup['timeColIdx']]
@@ -3700,7 +3713,7 @@ class FAO(BaseImportTool):
     def __init__(self, year):
         self.setup = setupStruct()
         self.setup.SOURCE_ID    = "FAO_" + str(year)
-        self.setup.SOURCE_PATH  = conf.PATH_TO_DATASHELF + 'rawdata/FAO_' + str(year) + '/'
+        self.setup.SOURCE_PATH  = config.PATH_TO_DATASHELF + 'rawdata/FAO_' + str(year) + '/'
         self.setup.DATA_FILE    = [os.path.join(self.setup.SOURCE_PATH, 'Emissions_Land_Use_Land_Use_Total_E_All_Data.csv'),
                                    os.path.join(self.setup.SOURCE_PATH, 'Emissions_Agriculture_Agriculture_total_E_All_Data.csv')]
         self.setup.MAPPING_FILE = os.path.join(self.setup.SOURCE_PATH, 'mapping.xlsx')
@@ -3871,9 +3884,9 @@ class WEO(BaseImportTool):
     def __init__(self, year):
         self.setup = setupStruct()
         self.setup.SOURCE_ID    = "WEO_" + str(year)
-        self.setup.SOURCE_PATH  = conf.PATH_TO_DATASHELF + 'rawdata/WEO/' + str(year) + '/'
+        self.setup.SOURCE_PATH  = config.PATH_TO_DATASHELF + 'rawdata/WEO/' + str(year) + '/'
         self.setup.DATA_FILE    = 'WEO' + str(year) + '_AnnexA.xlsx'
-        self.setup.MAPPING_FILE = conf.PATH_TO_DATASHELF + 'rawdata/WEO/' + str(year) + '/mapping_WEO_' + str(year) + '.xlsx'
+        self.setup.MAPPING_FILE = config.PATH_TO_DATASHELF + 'rawdata/WEO/' + str(year) + '/mapping_WEO_' + str(year) + '.xlsx'
         self.setup.LICENCE = 'IEA all rights reserved'
         self.setup.URL     = 'https://www.iea.org/weo/'
         
@@ -3919,7 +3932,7 @@ class WEO(BaseImportTool):
                 #Capacity
                 setup['timeIdxList']  = tuple(metaDf['Time'].split(':'))
                 setup['spaceIdxList'] = tuple([metaDf['What']])
-                #print(metaDf[conf.REQUIRED_META_FIELDS].isnull().all() == False)
+                #print(metaDf[config.REQUIRED_META_FIELDS].isnull().all() == False)
                 #print(metaData[self.setup.INDEX_COLUMN_NAME])
                 
                 if i == 0:
@@ -3968,7 +3981,7 @@ class WEO(BaseImportTool):
                 #Capacity
                 setup['timeIdxList']  = tuple(metaDf['Time'].split(':'))
                 setup['spaceIdxList'] = tuple([metaDf['What']])
-                #print(metaDf[conf.REQUIRED_META_FIELDS].isnull().all() == False)
+                #print(metaDf[config.REQUIRED_META_FIELDS].isnull().all() == False)
                 #print(metaData[self.setup.INDEX_COLUMN_NAME])
                 
                 if i == 0:
@@ -4092,9 +4105,9 @@ def UN_WPP_2019_import():
     return tables
 
 sources = sourcesStruct()
-_sourceClasses = [IEA_WEB_2019_New, WDI_2018, IEA_WEB_2018, ADVANCE_DB, IAMC15_2019, IRENA2019, 
+_sourceClasses = [IEA_WEB_2019_New, IEA_WEB_2018, ADVANCE_DB, IAMC15_2019, IRENA2019, 
                   SSP_DATA, SDG_DATA_2019, AR5_DATABASE, IEA_FUEL_2019, PRIMAP_HIST, SDG_DATA_2019,
-                  CRF_DATA, WDI_2019, APEC, WEO, VANMARLE2017, HOESLY2018, FAO]
+                  CRF_DATA, WDI_2020, APEC, WEO, VANMARLE2017, HOESLY2018, FAO]
 
 nSourceReader = 0
 for _sourceClass in _sourceClasses:
@@ -4106,6 +4119,12 @@ for _sourceClass in _sourceClasses:
         pass
 print('{} source reader found and added into "datatoolbox.sources".'.format(nSourceReader))
         
+
+if config.DEBUG:
+    print('Raw sources loaded in {:2.4f} seconds'.format(time.time()-tt))
+
+
+
 if __name__ == '__main__':
 #%% PRIMAP
     primap = PRIMAP_HIST(2019)
@@ -4123,7 +4142,7 @@ if __name__ == '__main__':
 #    tableList, excludedTables = advance.gatherMappedData()
 #    dt.commitTables(tableList, 'ADVANCE DB IAM data', advance.meta)
 #%%WDI data
-    wdi = WDI_2019()    
+    wdi = WDI_2020()    
 #    tableList = wdi.gatherMappedData(updateTables=True)
 #    iea.openMappingFile()
 #    dt.commitTables(tableList, 'update WDI2019  data', wdi.meta, update=True)

@@ -8,6 +8,7 @@ Created on Fri Mar  1 14:15:56 2019
 
 import time
 from . import config
+tt = time.time()
 #%% unit handling
 gases = {"CO2eq":"carbon_dioxide_equivalent",
          "CO2e" : "CO2eq",
@@ -158,3 +159,5 @@ def _AR4_conversionFactor(unitFrom, unitTo):
     factor = conversFactor * co2eq_factor
     return factor
     
+if config.DEBUG:
+    print('core loaded in {:2.4f} seconds'.format(time.time()-tt))
