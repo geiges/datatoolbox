@@ -56,15 +56,15 @@ class BaseImportTool():
         pass
     
     def openMappingFile(self):
-        if df.config.OS == 'Linux':
+        if dt.config.OS == 'Linux':
             os.system('libreoffice ' + self.setup.MAPPING_FILE)
-        elif df.config.OS == 'Darwin':
+        elif dt.config.OS == 'Darwin':
             os.system('open -a "Microsoft Excel" ' + self.setup.MAPPING_FILE)
 
     def openRawData(self):
-        if df.config.OS == 'Linux':
+        if dt.config.OS == 'Linux':
             os.system('libreoffice ' + self.setup.DATA_FILE )
-        elif df.config.OS == 'Darwin':
+        elif dt.config.OS == 'Darwin':
             os.system('open -a "Microsoft Excel" ' + self.setup.DATA_FILE )
 
     def createSourceMeta(self):

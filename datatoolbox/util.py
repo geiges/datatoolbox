@@ -16,6 +16,7 @@ from datatoolbox.data_structures import Datatable, read_csv
 from datatoolbox.greenhouse_gas_database import GreenhouseGasTable 
 import matplotlib.pylab as plt
 import os
+import tqdm
 
 #from .tools import kaya_idendentiy_decomposition
 
@@ -684,7 +685,7 @@ def zipExport(IDList, fileName):
     sourceMeta.to_csv(os.path.join(folder, 'sources.csv'))
     
     zipObj.write(os.path.join(folder, 'sources.csv'),'./sources.csv')
-    for ID in IDList:
+    for ID in tqdm.tqdm(IDList):
         # Add multiple files to the zip
         tablePath = dt.core.DB._getPathOfTable(ID)
         csvFileName = os.path.basename(tablePath) 
