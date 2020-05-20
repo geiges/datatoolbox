@@ -26,3 +26,9 @@ def test_GWP_conversion():
 def test_HFC_units():
     
     dt.core.ur('HFC134aeq') 
+    
+def test_function_getUnit():
+    
+    dt.core.getUnit('°C')
+    dt.core.getUnit('$')
+    dt.core.getUnit('€')
