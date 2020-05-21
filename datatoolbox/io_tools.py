@@ -20,6 +20,7 @@ from . import greenhouse_gas_database as gh
 GHG_data = gh.GreenhouseGasTable()
 from .data_structures import Datatable
 from .util import TableSet
+from openpyxl import load_workbook
 
 REQUIRED_SETUP_FIELDS = ['filePath',
                          'fileName',
@@ -344,7 +345,7 @@ class ExcelReader():
                 
                 return pd.DataFrame(data.values, columns=timeIdx, index=regions)
 
-from openpyxl import load_workbook
+
 
 REG_EXCEL_RANGE = re.compile('^[A-Z]{1,3}[0-9]{1,3}:[A-Z]{1,3}[0-9]{1,3}$')
 REG_EXCEL_ROW   = re.compile('^[0-9]{1,2}$')
@@ -409,9 +410,11 @@ def iterTime(timeIdxString, wksheet, xlsRow, xlsCol, timeIdx, spaceIdx, dataIdx)
             
     elif isColRange(timeIdxString):
         for timeCell in wksheet[timeIdxString]:
+#            print(timeCell[0].row)
             xlsRow = timeCell[0].row
             timeIdx = timeCell[0].value
             #print(xlsRow, timeIdx)
+#            print([xlsRow, xlsCol, timeIdx, spaceIdx, dataIdx])
             yield  [xlsRow, xlsCol, timeIdx, spaceIdx, dataIdx]
     else:
         # assume fixed
@@ -449,10 +452,13 @@ def iterSpace(spaceIdxString, wksheet, xlsRow, xlsCol, timeIdx, spaceIdx, dataId
             yield  [xlsRow, xlsCol, timeIdx, spaceIdx, dataIdx]
     else:
         # assume fixed string
+        print('fixed')
         spaceIdx = spaceIdxString
         yield  [xlsRow, xlsCol, timeIdx, spaceIdx, dataIdx]
         
 def iterData(dataIdxString, wksheet, xlsRow, xlsCol, timeIdx, spaceIdx, dataIdx):
+
+    #print([xlsRow, xlsCol, timeIdx, spaceIdx, dataIdx])
     if isRowRange(dataIdxString):
         # colum setup
         for dataCell in wksheet[dataIdxString][0]:
@@ -468,14 +474,23 @@ def iterData(dataIdxString, wksheet, xlsRow, xlsCol, timeIdx, spaceIdx, dataIdx)
             #print(xlsRow, timeIdx)
             yield  [xlsRow, xlsCol, timeIdx, spaceIdx, dataIdx]
     
+    
     elif isCol(dataIdxString):
-        for dataCell in wksheet[dataIdxString]:
-            xlsRow = dataCell.row
-            dataIdx = dataCell.value
+#        print('isCol')
+#        print([xlsRow, xlsCol, timeIdx, spaceIdx, dataIdx])
+    
+        for i, dataCell in enumerate(wksheet[dataIdxString]):
+#            print(dataCell)
+#            print(dataCell.col_idx)
+#            xlsRow = dataCell.row
+            xlsCol = dataCell.col_idx
+            if i == 0:
+                dataIdx = dataCell.value
             #print(xlsRow, timeIdx)
             yield  [xlsRow, xlsCol, timeIdx, spaceIdx, dataIdx]
             
     elif isColRange(dataIdxString):
+#        print('isColRange')
         for dataCell in wksheet[dataIdxString]:
             #print(dataCell)
             xlsRow = dataCell[0].row
@@ -498,7 +513,15 @@ def _str2float(x):
     if '%' in x:
         return float(x.replace('%',''))*100
     else:
+        if x.startswith('#') or x == '':
+            return np.nan
+#        try:
+        print(x)
         return float(x)
+#        except:
+#            print(x)
+#            sdf
+    
 def pandasStr2floatPercent(X):
     return([_str2float(x) for x in X])        
 #%%
@@ -871,6 +894,7 @@ class ExcelReader_New():
 
                     continue
                 print(argsTime[TI_ARG])
+                print(setup['spaceIdxList'])
                 for argsSpace in iterSpace(setup['spaceIdxList'], wksSheet, *argsTime):
                     if argsSpace[SP_ARG] is None:
                         print('Not space defintion found')
@@ -894,7 +918,7 @@ class ExcelReader_New():
                             print(argsSpace[SP_ARG] + ' not found')
                             continue
                         
-                    print(argsSpace[SP_ARG])
+                    print(argsSpace)
                     for argData in iterData(setup['dataID'], wksSheet, *argsSpace):
                         if argData[DT_ARG] is None:
                             print('No fitting dataID code found')
@@ -905,6 +929,7 @@ class ExcelReader_New():
                                                       'category':'',
                                                       'scenario' : setup['scenario'],
                                                       'source' : setup['source']}
+#                        print(meta)
                         ID = core._createDatabaseID(meta)
                         
                         if ID not in tablesToReturn.keys():
@@ -916,7 +941,7 @@ class ExcelReader_New():
                                                       'source' : setup['source']}
 
                             tablesToReturn.add(table)
-                        
+#                        print(argData)
                         value = self._readValue(wksSheet, xlsRow=argData[0], xlsCol=argData[1])
 
                         if isinstance(value, pd.DataFrame):
@@ -924,7 +949,7 @@ class ExcelReader_New():
                         else:
                             if value != '#VALUE!':
                                 value = _str2float(value)
-                        print(value)
+#                        print(value)
                         
 #                        if  setup['unit'] == '%':
 #                            value = value*100
