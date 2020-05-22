@@ -25,7 +25,7 @@ print('{} in {:2.4f} seconds'.format('core',time.time()-tt))
 tt = time.time()
 
 tt = time.time()
-from .data_structures import Datatable, read_csv
+from .data_structures import Datatable, TableSet, read_csv
 print('{} in {:2.4f} seconds'.format('data structure',time.time()-tt))
 tt = time.time()
 from . import database
@@ -73,7 +73,6 @@ isAvailable  = core.DB._tableExists
 
 updateExcelInput = core.DB.updateExcelInput
 
-TableSet = util.TableSet
 insertDataIntoExcelFile = io.insertDataIntoExcelFile
 sources = _raw_sources.sources
 

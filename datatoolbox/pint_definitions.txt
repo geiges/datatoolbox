@@ -17,8 +17,8 @@ USD_2016 = USD2016 = [dollar_currency_2016]
 USD_2018 = USD2018 = [dollar_currency_2018]
 
 billion_USD = 1e9 * USD
-billion_USD_2005 = 1e9 * USD_2005
-billion_USD_2010 = 1e9 * USD_2010
+billion_USD_2005 = 1e9 * USD_2005_ppp
+billion_USD_2010 = 1e9 * USD_2010_ppp
 
 
 EUR = [euro_currency] = eur

@@ -7,7 +7,7 @@ Created on Fri Mar 22 14:55:32 2019
 """
 
 from . import config as conf
-from .data_structures import Datatable, read_csv
+from .data_structures import Datatable, TableSet, read_csv
 from . import mapping as mapp
 from . import io_tools as io
 from . import util
@@ -107,7 +107,7 @@ class Database():
     def getTables(self, iterIDs):
         if conf.logTables:
             IDs = list()
-        res = util.TableSet()
+        res = TableSet()
         for ID in iterIDs:
             table = self.getTable(ID)
             if conf.logTables:

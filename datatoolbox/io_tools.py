@@ -18,8 +18,7 @@ from . import mapping as mapp
 
 from . import greenhouse_gas_database as gh
 GHG_data = gh.GreenhouseGasTable()
-from .data_structures import Datatable
-from .util import TableSet
+from .data_structures import Datatable,TableSet
 from openpyxl import load_workbook
 
 REQUIRED_SETUP_FIELDS = ['filePath',

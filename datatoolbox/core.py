@@ -106,7 +106,7 @@ def _createDatabaseID(dictData):
 
 
 def osIsWindows():
-    if (conf.OS == 'win32') | (conf.OS == "Windows"):
+    if (config.OS == 'win32') | (config.OS == "Windows"):
         return True
     else:
         return False
@@ -125,6 +125,7 @@ def getUnitWindows(string):
         string = string.replace('$', 'USD').replace('€','EUR').replace('%','percent').replace('Â','')
     return ur(string)
 
+# re-defintion of getUnit function for windows users
 if osIsWindows():
     getUnit = getUnitWindows
 

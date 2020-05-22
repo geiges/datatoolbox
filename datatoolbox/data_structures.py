@@ -12,9 +12,9 @@ import numpy as np
 from copy import copy
 
 from . import core
-from . import config as conf
+from . import config 
 from . import mapping as mapp
-
+from . import util
             
 class Datatable(pd.DataFrame):
     
@@ -22,7 +22,7 @@ class Datatable(pd.DataFrame):
 
     def __init__(self, *args, **kwargs):
         
-        metaData = kwargs.pop('meta', {x:None for x in conf.REQUIRED_META_FIELDS})
+        metaData = kwargs.pop('meta', {x:None for x in config.REQUIRED_META_FIELDS})
         super(Datatable, self).__init__(*args, **kwargs)
 #        print(metaData)
         if metaData['unit'] is None or pd.isna(metaData['unit']):
@@ -118,19 +118,19 @@ class Datatable(pd.DataFrame):
     def to_csv(self, fileName=None):
         
         if fileName is None:
-            fileName = '|'.join([ self.meta[key] for key in conf.ID_FIELDS]) + '.csv'
+            fileName = '|'.join([ self.meta[key] for key in config.ID_FIELDS]) + '.csv'
         else:
             assert fileName[-4:]  == '.csv'
         
         fid = open(fileName,'w')
-        fid.write(conf.META_DECLARATION)
+        fid.write(config.META_DECLARATION)
         
         for key, value in sorted(self.meta.items()):
 #            if key == 'unit':
 #                value = str(value.u)
             fid.write(key + ',' + str(value) + '\n')
         
-        fid.write(conf.DATA_DECLARATION)
+        fid.write(config.DATA_DECLARATION)
         super(Datatable, self).to_csv(fid)
         fid.close()
         
@@ -200,7 +200,7 @@ class Datatable(pd.DataFrame):
             t1_data  = self.iloc[:,1:].values
             t0_data  = self.iloc[:,:-1].values
             
-            deltaData = Datatable(index=index, columns=t0_years, meta={key:self.meta[key] for key in conf.REQUIRED_META_FIELDS})
+            deltaData = Datatable(index=index, columns=t0_years, meta={key:self.meta[key] for key in config.REQUIRED_META_FIELDS})
             deltaData.meta['entity'] = 'delta_' + deltaData.meta['entity']
             deltaData.loc[:,:] = t1_data - t0_data
         else:
@@ -210,7 +210,7 @@ class Datatable(pd.DataFrame):
             t1_data  = self.iloc[:,1:].values
             t0_data  = self.iloc[:,:-1].values
             
-            deltaData = Datatable(index=index, columns=t1_years, meta={key:self.meta[key] for key in conf.REQUIRED_META_FIELDS})
+            deltaData = Datatable(index=index, columns=t1_years, meta={key:self.meta[key] for key in config.REQUIRED_META_FIELDS})
             deltaData.meta['entity'] = 'delta_' + deltaData.meta['entity']
             deltaData.loc[:,:] = t1_data - t0_data
         
@@ -232,6 +232,8 @@ class Datatable(pd.DataFrame):
         if isinstance(other,Datatable):
             
             if other.meta['entity'] != self.meta['entity']:
+                print(other.meta['entity'] )
+                print(self.meta['entity'])
                 raise(BaseException('Physical entities do not match, please correct'))
             if other.meta['unit'] != self.meta['unit']:
                 other = other.convert(self.meta['unit'])
@@ -239,7 +241,7 @@ class Datatable(pd.DataFrame):
         out =  super(Datatable, self).append(other, **kwargs)
         
         # only copy required keys
-        out.meta = {key: value for key, value in self.meta.items() if key in conf.REQUIRED_META_FIELDS}
+        out.meta = {key: value for key, value in self.meta.items() if key in config.REQUIRED_META_FIELDS}
         
         # overwrite scenario
         out.meta['scenario'] = 'computed: ' + self.meta['scenario'] + '+' + other.meta['scenario']
@@ -258,13 +260,13 @@ class Datatable(pd.DataFrame):
     
         
     def __add__(self, other):
-        print('other in' + str(other))
+        #print('other in' + str(other))
         if isinstance(other,Datatable):
             
             factor = core.getUnit(other.meta['unit']).to(self.meta['unit']).m
-            print('factor: ' + str(factor))
-            print('other' + str(other))
-            print(other * factor)
+            #print('factor: ' + str(factor))
+            #print('other' + str(other))
+            #print(other * factor)
             out = Datatable(super(Datatable, self).__add__(other * factor))
             out.meta['unit'] = self.meta['unit']
             out.meta['source'] = 'calculation'
@@ -378,6 +380,220 @@ class Datatable(pd.DataFrame):
                 outStr += key + ': ' + str(self.meta[key]) + ' \n'
         outStr += super(Datatable, self)._repr_html_()
         return outStr
+
+class TableSet(dict):
+    def __init__(self, IDList=None):
+        super(dict, self).__init__()
+        self.inventory = pd.DataFrame(columns = config.ID_FIELDS)
+        
+        if IDList is not None:
+            for tableID in IDList:
+                self.add(core.DB.getTable(tableID))
+    
+    def __iter__(self):
+        return iter(self.values())
+    
+    def add(self, datatables=None, tableID=None):
+        if isinstance(datatables, (list, TableSet)):
+            for datatable in datatables:
+                self._add(datatable, tableID)
+        else:
+            datatable = datatables
+            self._add(datatable, tableID)
+            
+    def _add(self, datatable=None, tableID=None):
+        if datatable is None:
+            # adding only the ID, the full table is only loaded when necessary
+            self[tableID] = None
+            self.inventory.loc[tableID] = [None for x in config.ID_FIELDS]
+        else:
+            # loading the full table
+            if datatable.ID is None:
+                datatable.generateTableID()
+            self[datatable.ID] = datatable
+            self.inventory.loc[datatable.ID] = [datatable.meta[x] for x in config.ID_FIELDS]
+    
+    def remove(self, tableID):
+        del self[tableID]
+        self.inventory.drop(tableID, inplace=True)
+        
+    
+    def filter(self, ):
+        pass
+    
+    def __getitem__(self, key):
+        item = super(TableSet, self).__getitem__(key)
+        
+        #load datatable if necessary
+        if item is None:
+            item = core.DB.getTable(key)
+            self[key] = item
+        
+        return item
+    
+    def to_excel(self, fileName):
+        writer = pd.ExcelWriter(fileName, 
+            engine='openpyxl', 
+            mode='a',
+            datetime_format='mmm d yyyy hh:mm:ss',
+            date_format='mmmm dd yyyy') 
+        
+        for i,eKey in enumerate(self.keys()):
+            table = self[eKey].dropna(how='all', axis=1).dropna(how='all', axis=0)
+            sheetName = str(i) + table.meta['ID'][:25]
+            print(sheetName)
+            table.to_excel(writer=writer, sheetName = sheetName)
+            
+        writer.close()
+        
+    def create_country_dataframes(self, countryList=None, timeIdxList= None):
+        
+        # using first table to get country list
+        if countryList is None:
+            countryList = self[list(self.keys())[0]].index
+        
+        coTables = dict()
+        
+        for country in countryList:
+            coTables[country] = pd.DataFrame([], columns= ['entity', 'unit', 'source'] +list(range(1500,2100)))
+            
+            for eKey in self.keys():
+                table = self[eKey]
+                if country in table.index:
+                    coTables[country].loc[eKey,:] = table.loc[country]
+                else:
+                    coTables[country].loc[eKey,:] = np.nan
+                coTables[country].loc[eKey,'source'] = table.meta['source']
+                coTables[country].loc[eKey,'unit'] = table.meta['unit']
+                                    
+            coTables[country] = coTables[country].dropna(axis=1, how='all')
+            
+            if timeIdxList is not None:
+                
+                containedList = [x for x in timeIdxList if x in coTables[country].columns]
+                coTables[country] = coTables[country][['source', 'unit'] + containedList]
+
+            
+        return coTables
+
+    def entities(self):
+        return list(self.inventory.entity.unique())
+
+    def scenarios(self):
+        return list(self.inventory.scenario.unique())
+    
+    def sources(self):
+        return list(self.inventory.source.unique())
+
+    def to_LongTable(self):
+        import copy
+        #self = dt.getTables(res.index)
+        tableList= list()
+        minMax = (-np.inf, np.inf)
+        for key in self.keys():
+            table= copy.copy(self[key])
+            #print(table.columns)
+            
+            oldColumns = list(table.columns)
+            minMax = (max(minMax[0], min(oldColumns)), min(minMax[1],max(oldColumns)))
+#            for field in config.ID_FIELDS:
+#                table.loc[:,field] = table.meta[field]
+            
+            table.loc[:,'region'] = table.index
+            table.loc[:,'unit']   = table.meta['unit']
+            table.loc[:,'variable']   = table.meta['entity']
+            
+            scenModel = table.meta['scenario'].split('|')
+            if len(scenModel) == 2:
+                table.loc[:,'model'] = scenModel[1]
+                table.loc[:,'scenario']   =scenModel[0]
+            else:
+                table.loc[:,'model'] = table.meta['scenario']
+                table.loc[:,'scenario']   = ''
+            tableNew = table.loc[:, ['variable','region', 'scenario',  'model', 'unit'] +  oldColumns]
+            tableNew.index= range(len(tableNew.index))
+            tableList.append(tableNew)
+        #df = pd.DataFrame(columns = ['variable','region', 'model', 'unit'] + list(range(minMax[0], minMax[1])))
+        
+#        iaDf = pyam.IamDataFrame(tableList[0])
+#        for table in tableList[1:]:
+#            iaDf.append(table)
+#        return iaDf
+        fullDf = pd.DataFrame(tableList[0])
+        for table in tableList[1:]:
+            #print(table)
+            fullDf = fullDf.append(pd.DataFrame(table))
+        fullDf.index = range(len(fullDf))
+        return fullDf
+    
+    def to_IamDataFrame(self):
+        #%%
+        import pyam
+        import copy
+        #self = dt.getTables(res.index)
+        tableList= list()
+        minMax = (-np.inf, np.inf)
+        for key in self.keys():
+            table= copy.copy(self[key])
+            #print(table.columns)
+            
+            oldColumns = list(table.columns)
+            minMax = (max(minMax[0], min(oldColumns)), min(minMax[1],max(oldColumns)))
+#            for field in config.ID_FIELDS:
+#                table.loc[:,field] = table.meta[field]
+            
+            table.loc[:,'region'] = table.index
+            table.loc[:,'unit']   = table.meta['unit']
+            table.loc[:,'variable']   = table.meta['entity']
+            
+            scenModel = table.meta['scenario'].split('|')
+            if len(scenModel) == 2:
+                table.loc[:,'model'] = scenModel[1]
+                table.loc[:,'scenario']   =scenModel[0]
+            else:
+                table.loc[:,'model'] = table.meta['scenario']
+                table.loc[:,'scenario']   = ''
+            tableNew = table.loc[:, ['variable','region', 'scenario',  'model', 'unit'] +  oldColumns]
+            tableNew.index= range(len(tableNew.index))
+            tableList.append(tableNew)
+        #df = pd.DataFrame(columns = ['variable','region', 'model', 'unit'] + list(range(minMax[0], minMax[1])))
+        
+#        iaDf = pyam.IamDataFrame(tableList[0])
+#        for table in tableList[1:]:
+#            iaDf.append(table)
+#        return iaDf
+        iaDf = pyam.IamDataFrame(pd.DataFrame(tableList[0]))
+        for table in tableList[1:]:
+            print(table)
+            iaDf = iaDf.append(pd.DataFrame(table))
+        return iaDf         
+
+    def plotAvailibility(self, regionList= None, years = None):
+        #%%
+        avail= 0
+        for table in self:
+#            print(table.ID)
+            table.meta['unit'] = ''
+            temp = avail * table
+            temp.values[~pd.isnull(temp.values)] = 1
+            temp.values[pd.isnull(temp.values)] = 0
+            
+            avail = avail + temp
+        avail = avail / len(self)
+        avail = dt.util.cleanDataTable(avail)
+        if regionList is not None:
+            regionList = avail.index.intersection(regionList)
+            avail = avail.loc[regionList,:]
+        if years is not None:
+            years = avail.columns.intersection(years)
+            avail = avail.loc[:,years]
+        
+        plt.pcolor(avail)
+#        plt.clim([0,1])
+        plt.colorbar()
+        plt.yticks(range(len(avail.index)), avail.index)
+        plt.xticks(range(len(avail.columns)), avail.columns, rotation=45)
+        #%%
     
 class Visualization():
     """ 
@@ -530,20 +746,20 @@ def read_csv(fileName):
     
     fid = open(fileName,'r')
     
-    assert (fid.readline()) == conf.META_DECLARATION
+    assert (fid.readline()) == config.META_DECLARATION
     #print(nMetaData)
     
     meta = dict()
     while True:
         
         line = fid.readline()
-        if line == conf.DATA_DECLARATION:
+        if line == config.DATA_DECLARATION:
             break
         dataTuple = line.replace('\n','').split(',')
         meta[dataTuple[0]] = dataTuple[1].strip()
 
     #print(meta.keys())
-    assert conf.REQUIRED_META_FIELDS.issubset(set(meta.keys()))
+    assert config.REQUIRED_META_FIELDS.issubset(set(meta.keys()))
 
     df = Datatable(pd.read_csv(fid, index_col=0), meta=meta)
     df.columns = df.columns.map(int)
