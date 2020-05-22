@@ -17,13 +17,9 @@ Authors: Andreas Geiges
 __version__ = "0.2.12"
 
 import os
-import time
 from . import config
 from . import core
-
-
-from .data_structures import Datatable, read_csv
-
+from .data_structures import Datatable, TableSet, read_csv
 from . import database
 core.DB = database.Database()
 from . import mapping as mapp
@@ -55,7 +51,6 @@ isAvailable  = core.DB._tableExists
 
 updateExcelInput = core.DB.updateExcelInput
 
-TableSet = util.TableSet
 insertDataIntoExcelFile = io.insertDataIntoExcelFile
 sources = _raw_sources.sources
 

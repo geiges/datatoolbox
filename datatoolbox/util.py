@@ -12,10 +12,11 @@ import datatoolbox as dt
 from datatoolbox import mapping as mapp
 from datatoolbox import core
 from datatoolbox import config
-from datatoolbox.data_structures import Datatable, read_csv
+#from datatoolbox.data_structures import Datatable, read_csv
 from datatoolbox.greenhouse_gas_database import GreenhouseGasTable 
 import matplotlib.pylab as plt
 import os
+import tqdm
 
 #from .tools import kaya_idendentiy_decomposition
 
@@ -55,191 +56,6 @@ except:
         print("the package hdx is not installed, thus this function is not available")
         print('use: "pip install hdx-python-country" to install')
         return None
-
-class TableSet(dict):
-    def __init__(self):
-        super(dict, self).__init__()
-        self.inventory = pd.DataFrame(columns = config.ID_FIELDS)
-    
-    def __iter__(self):
-        return iter(self.values())
-    
-    def add(self, datatables=None, tableID=None):
-        if isinstance(datatables, (list, TableSet)):
-            for datatable in datatables:
-                self._add(datatable, tableID)
-        else:
-            datatable = datatables
-            self._add(datatable, tableID)
-            
-    def _add(self, datatable=None, tableID=None):
-        if datatable is None:
-            # adding only the ID, the full table is only loaded when necessary
-            self[tableID] = None
-            self.inventory.loc[tableID] = [None for x in config.ID_FIELDS]
-        else:
-            # loading the full table
-            if datatable.ID is None:
-                datatable.generateTableID()
-            self[datatable.ID] = datatable
-            self.inventory.loc[datatable.ID] = [datatable.meta[x] for x in config.ID_FIELDS]
-    
-    def remove(self, tableID):
-        del self[tableID]
-        self.inventory.drop(tableID, inplace=True)
-        
-    
-    def filter(self, ):
-        pass
-    
-    def __getitem__(self, key):
-        item = super(TableSet, self).__getitem__(key)
-        
-        #load datatable if necessary
-        if item is None:
-            item = core.DB.getTable(key)
-            self[key] = item
-        
-        return item
-    
-    def to_excel(self, fileName):
-        writer = pd.ExcelWriter(fileName, 
-            engine='openpyxl', 
-            mode='a',
-            datetime_format='mmm d yyyy hh:mm:ss',
-            date_format='mmmm dd yyyy') 
-        
-        for i,eKey in enumerate(self.keys()):
-            table = self[eKey].dropna(how='all', axis=1).dropna(how='all', axis=0)
-            sheetName = str(i) + table.meta['ID'][:25]
-            print(sheetName)
-            table.to_excel(writer=writer, sheetName = sheetName)
-            
-        writer.close()
-        
-    def create_country_dataframes(self, countryList=None, timeIdxList= None):
-        
-        # using first table to get country list
-        if countryList is None:
-            countryList = self[list(self.keys())[0]].index
-        
-        coTables = dict()
-        
-        for country in countryList:
-            coTables[country] = pd.DataFrame([], columns= ['entity', 'unit', 'source'] +list(range(1500,2100)))
-            
-            for eKey in self.keys():
-                table = self[eKey]
-                if country in table.index:
-                    coTables[country].loc[eKey,:] = table.loc[country]
-                else:
-                    coTables[country].loc[eKey,:] = np.nan
-                coTables[country].loc[eKey,'source'] = table.meta['source']
-                coTables[country].loc[eKey,'unit'] = table.meta['unit']
-                                    
-            coTables[country] = coTables[country].dropna(axis=1, how='all')
-            
-            if timeIdxList is not None:
-                
-                containedList = [x for x in timeIdxList if x in coTables[country].columns]
-                coTables[country] = coTables[country][['source', 'unit'] + containedList]
-
-            
-        return coTables
-
-    def entities(self):
-        return list(self.inventory.entity.unique())
-
-    def scenarios(self):
-        return list(self.inventory.scenario.unique())
-    
-    def sources(self):
-        return list(self.inventory.source.unique())
-
-    def to_LongTable(self):
-        #%%
-        import pyam
-        import copy
-        #self = dt.getTables(res.index)
-        tableList= list()
-        minMax = (-np.inf, np.inf)
-        for key in self.keys():
-            table= copy.copy(self[key])
-            #print(table.columns)
-            
-            oldColumns = list(table.columns)
-            minMax = (max(minMax[0], min(oldColumns)), min(minMax[1],max(oldColumns)))
-#            for field in config.ID_FIELDS:
-#                table.loc[:,field] = table.meta[field]
-            
-            table.loc[:,'region'] = table.index
-            table.loc[:,'unit']   = table.meta['unit']
-            table.loc[:,'variable']   = table.meta['entity']
-            
-            scenModel = table.meta['scenario'].split('|')
-            if len(scenModel) == 2:
-                table.loc[:,'model'] = scenModel[1]
-                table.loc[:,'scenario']   =scenModel[0]
-            else:
-                table.loc[:,'model'] = table.meta['scenario']
-                table.loc[:,'scenario']   = ''
-            tableNew = table.loc[:, ['variable','region', 'scenario',  'model', 'unit'] +  oldColumns]
-            tableNew.index= range(len(tableNew.index))
-            tableList.append(tableNew)
-        #df = pd.DataFrame(columns = ['variable','region', 'model', 'unit'] + list(range(minMax[0], minMax[1])))
-        
-#        iaDf = pyam.IamDataFrame(tableList[0])
-#        for table in tableList[1:]:
-#            iaDf.append(table)
-#        return iaDf
-        fullDf = pd.DataFrame(tableList[0])
-        for table in tableList[1:]:
-            #print(table)
-            fullDf = fullDf.append(pd.DataFrame(table))
-        fullDf.index = range(len(fullDf))
-        return fullDf
-    
-    def to_IamDataFrame(self):
-        #%%
-        import pyam
-        import copy
-        #self = dt.getTables(res.index)
-        tableList= list()
-        minMax = (-np.inf, np.inf)
-        for key in self.keys():
-            table= copy.copy(self[key])
-            #print(table.columns)
-            
-            oldColumns = list(table.columns)
-            minMax = (max(minMax[0], min(oldColumns)), min(minMax[1],max(oldColumns)))
-#            for field in config.ID_FIELDS:
-#                table.loc[:,field] = table.meta[field]
-            
-            table.loc[:,'region'] = table.index
-            table.loc[:,'unit']   = table.meta['unit']
-            table.loc[:,'variable']   = table.meta['entity']
-            
-            scenModel = table.meta['scenario'].split('|')
-            if len(scenModel) == 2:
-                table.loc[:,'model'] = scenModel[1]
-                table.loc[:,'scenario']   =scenModel[0]
-            else:
-                table.loc[:,'model'] = table.meta['scenario']
-                table.loc[:,'scenario']   = ''
-            tableNew = table.loc[:, ['variable','region', 'scenario',  'model', 'unit'] +  oldColumns]
-            tableNew.index= range(len(tableNew.index))
-            tableList.append(tableNew)
-        #df = pd.DataFrame(columns = ['variable','region', 'model', 'unit'] + list(range(minMax[0], minMax[1])))
-        
-#        iaDf = pyam.IamDataFrame(tableList[0])
-#        for table in tableList[1:]:
-#            iaDf.append(table)
-#        return iaDf
-        iaDf = pyam.IamDataFrame(pd.DataFrame(tableList[0]))
-        for table in tableList[1:]:
-            print(table)
-            iaDf = iaDf.append(pd.DataFrame(table))
-        return iaDf         
 
 
  
@@ -406,6 +222,7 @@ def cleanDataTable(dataTable):
     dataTable = dataTable.filter(spaceIDs = mapp.getValidSpatialIDs())    
     
     dataTable = dataTable.loc[:,~dataTable.isnull().all(axis=0)]
+    dataTable = dataTable.loc[~dataTable.isnull().all(axis=1),:]
     #dataTable = dataTable.loc[~dataTable.isnull().all(axis=0),:]
     
     # clean meta data
@@ -547,7 +364,7 @@ def getCountryExtract(countryList, sourceList='all'):
     _res2Excel(resFull, countryList)
 
 def _res2Excel(resFull, countryList):
-    tableSet = TableSet()
+    tableSet = dt.TableSet()
     
     yearRange = (pd.np.inf, -pd.np.inf)
     
@@ -685,7 +502,7 @@ def zipExport(IDList, fileName):
     sourceMeta.to_csv(os.path.join(folder, 'sources.csv'))
     
     zipObj.write(os.path.join(folder, 'sources.csv'),'./sources.csv')
-    for ID in IDList:
+    for ID in tqdm.tqdm(IDList):
         # Add multiple files to the zip
         tablePath = dt.core.DB._getPathOfTable(ID)
         csvFileName = os.path.basename(tablePath) 

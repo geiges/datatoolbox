@@ -22,3 +22,13 @@ def test_GWP_conversion():
     obs = dt.conversionFactor("Mt CH4", "Mt CO2eq", context="GWPAR4")
     exp = 25
     assert obs == exp
+    
+def test_HFC_units():
+    
+    dt.core.ur('HFC134aeq') 
+    
+def test_function_getUnit():
+    
+    dt.core.getUnit('°C')
+    dt.core.getUnit('$')
+    dt.core.getUnit('€')

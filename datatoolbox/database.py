@@ -7,7 +7,8 @@ Created on Fri Mar 22 14:55:32 2019
 """
 
 from . import config
-from .data_structures import Datatable, read_csv
+from .data_structures import Datatable, TableSet, read_csv
+
 from . import mapping as mapp
 from . import io_tools as io
 from . import util
@@ -41,7 +42,7 @@ class Database():
 
 
         if config.DEBUG:
-            print('core loaded in {:2.4f} seconds'.format(time.time()-tt))
+            print('Database loaded in {:2.4f} seconds'.format(time.time()-tt))
 
     
 
@@ -108,7 +109,7 @@ class Database():
     def getTables(self, iterIDs):
         if config.logTables:
             IDs = list()
-        res = util.TableSet()
+        res = TableSet()
         for ID in iterIDs:
             table = self.getTable(ID)
             if config.logTables:

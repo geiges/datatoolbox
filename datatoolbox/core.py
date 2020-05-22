@@ -106,12 +106,29 @@ def _createDatabaseID(dictData):
     return '|'.join([dictData[key] for key in config.ID_FIELDS])
 
 
+def osIsWindows():
+    if (config.OS == 'win32') | (config.OS == "Windows"):
+        return True
+    else:
+        return False
+
 def getUnit(string):
     if string is None:
         string = ''
     else:
         string = string.replace('$', 'USD').replace('€','EUR').replace('%','percent')
     return ur(string)
+
+def getUnitWindows(string):
+    if string is None:
+        string = ''
+    else:
+        string = string.replace('$', 'USD').replace('€','EUR').replace('%','percent').replace('Â','')
+    return ur(string)
+
+# re-defintion of getUnit function for windows users
+if osIsWindows():
+    getUnit = getUnitWindows
 
 
 def getTimeString():
