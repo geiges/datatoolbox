@@ -181,6 +181,9 @@ class Datatable(pd.DataFrame):
 #
 #        return self.iloc[mask,:]
     
+    def clean(self):
+
+        return util.cleanDataTable(self)
     
     def filter(self, spaceIDs=None):
         mask = self.index.isin(spaceIDs)
@@ -192,6 +195,7 @@ class Datatable(pd.DataFrame):
         This methods returns the yearly change for all years (t1) that reported
         and and where the previous year (t0) is also reported
         """
+
         #%%
         if forward:
             t0_years = self.columns[:-1]
@@ -441,7 +445,7 @@ class TableSet(dict):
         for i,eKey in enumerate(self.keys()):
             table = self[eKey].dropna(how='all', axis=1).dropna(how='all', axis=0)
             sheetName = str(i) + table.meta['ID'][:25]
-            print(sheetName)
+#            print(sheetName)
             table.to_excel(writer=writer, sheetName = sheetName)
             
         writer.close()
@@ -564,7 +568,7 @@ class TableSet(dict):
 #        return iaDf
         iaDf = pyam.IamDataFrame(pd.DataFrame(tableList[0]))
         for table in tableList[1:]:
-            print(table)
+#            print(table)
             iaDf = iaDf.append(pd.DataFrame(table))
         return iaDf         
 
@@ -580,7 +584,7 @@ class TableSet(dict):
             
             avail = avail + temp
         avail = avail / len(self)
-        avail = dt.util.cleanDataTable(avail)
+        avail = util.cleanDataTable(avail)
         if regionList is not None:
             regionList = avail.index.intersection(regionList)
             avail = avail.loc[regionList,:]
@@ -591,8 +595,8 @@ class TableSet(dict):
         plt.pcolor(avail)
 #        plt.clim([0,1])
         plt.colorbar()
-        plt.yticks(range(len(avail.index)), avail.index)
-        plt.xticks(range(len(avail.columns)), avail.columns, rotation=45)
+        plt.yticks([x +.5 for x in range(len(avail.index))], avail.index)
+        plt.xticks([x +.5 for x in range(len(avail.columns))], avail.columns, rotation=45)
         #%%
     
 class Visualization():
@@ -692,6 +696,59 @@ class Visualization():
             with open(fileName, 'w') as f:
                 f.write(html)
 
+
+    def to_map(self, coList=None, year=None):
+        #%%
+        import matplotlib.pyplot as plt
+        import cartopy.io.shapereader as shpreader
+        import cartopy.crs as ccrs
+        import matplotlib
+        
+        df = self.df
+        if year is None:
+            year = self.df.columns[-1]
+        if coList is not None:
+            
+            df = df.loc[coList,year]
+        cmap = matplotlib.cm.get_cmap('RdYlGn')
+
+#        rgba = cmap(0.5)
+        norm = matplotlib.colors.Normalize(vmin=df.loc[:,year].min(), vmax=df.loc[:,year].max())
+        if 'ID' in list(df.meta.keys()):
+            fig = plt.figure(figsize=[8,5], num = self.df.ID)
+        else:
+            fig = plt.figure(figsize=[8,5])
+        ax = plt.axes(projection=ccrs.PlateCarree())
+#        ax.add_feature(cartopy.feature.OCEAN)
+        
+        shpfilename = shpreader.natural_earth(resolution='110m',
+                                              category='cultural',
+                                              name='admin_0_countries')
+        reader = shpreader.Reader(shpfilename)
+        countries = reader.records()
+        
+        for country in countries:
+            if country.attributes['ISO_A3_EH'] in df.index:
+                ax.add_geometries(country.geometry, ccrs.PlateCarree(),
+                                  color = cmap(norm(df.loc[country.attributes['ISO_A3_EH'],year])),
+                                  label=country.attributes['ISO_A3_EH'],
+                                  edgecolor='white'
+                                  )
+#            else:
+#                ax.add_geometries(country.geometry, ccrs.PlateCarree(),
+#                                  color = '#405484',
+#                                  label=country.attributes['ISO_A3_EH'])
+#        plt.title('Countries that accounted for 95% of coal emissions in 2016')
+        
+        ax2  = fig.add_axes([0.10,0.05,0.85,0.05])
+#        norm = matplotlib.colors.Normalize(vmin=0,vmax=2)
+        cb1  = matplotlib.colorbar.ColorbarBase(ax2,cmap=cmap,norm=norm,orientation='horizontal')
+        cb1.set_label(self.df.meta['unit'])
+        plt.title(self.df.meta['entity'])
+        plt.show()
+#        plt.colorbar()
+#%%
+    
     def html_scatter(self, fileName=None, paletteName= "Category20", returnHandle = False):
         from bokeh.io import show
         from bokeh.plotting import figure

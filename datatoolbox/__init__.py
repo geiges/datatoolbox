@@ -10,44 +10,45 @@ This is a python tool box project for handling global datasets. It contains the 
 
 Authors: Andreas Geiges
          Gaurav Ganti
-         
+
 @Climate Analytics gGmbH
 """
 
-__version__ = "0.2.12"
+__version__ = "0.2.17"
 
 import os
 import time
+import copy
 from . import config
 tt = time.time()
 from . import core
-print('{} in {:2.4f} seconds'.format('core',time.time()-tt))
-tt = time.time()
-
-tt = time.time()
+#print('{} in {:2.4f} seconds'.format('core',time.time()-tt))
+#tt = time.time()
+#
+#tt = time.time()
 from .data_structures import Datatable, TableSet, read_csv
-print('{} in {:2.4f} seconds'.format('data structure',time.time()-tt))
-tt = time.time()
+#print('{} in {:2.4f} seconds'.format('data structure',time.time()-tt))
+#tt = time.time()
 from . import database
 core.DB = database.Database()
-print('{} in {:2.4f} seconds'.format('core database',time.time()-tt))
-tt = time.time()
+#print('{} in {:2.4f} seconds'.format('core database',time.time()-tt))
+#tt = time.time()
 from . import mapping as mapp
-print('{} in {:2.4f} seconds'.format('mapping',time.time()-tt))
-tt = time.time()
+#print('{} in {:2.4f} seconds'.format('mapping',time.time()-tt))
+#tt = time.time()
 from . import io_tools as io
-print('{} in {:2.4f} seconds'.format('IO',time.time()-tt))
-tt = time.time()
+#print('{} in {:2.4f} seconds'.format('IO',time.time()-tt))
+#tt = time.time()
 from . import interfaces
-print('{} in {:2.4f} seconds'.format('Interfaces',time.time()-tt))
-tt = time.time()
+#print('{} in {:2.4f} seconds'.format('Interfaces',time.time()-tt))
+#tt = time.time()
 from . import util as util
-print('{} in {:2.4f} seconds'.format('utils',time.time()-tt))
-tt = time.time()
+#print('{} in {:2.4f} seconds'.format('utils',time.time()-tt))
+#tt = time.time()
 from . import admin as admin
 from . import rawSources as _raw_sources
-print('{} in {:2.4f} seconds'.format('raw sources',time.time()-tt))
-tt = time.time()
+#print('{} in {:2.4f} seconds'.format('raw sources',time.time()-tt))
+#tt = time.time()
 
 # Predefined sets for regions and scenrarios
 from datatoolbox.sets import REGIONS, SCENARIOS
@@ -85,6 +86,9 @@ countryDataExtract = util.getCountryExtract
 
 executeForAll = util.forAll
 
+DBinfo = core.DB.info
+sourceInfo = core.DB.sourceInfo
+inventory = core.DB.returnInventory
 #writeMAGICC6ScenFile = tools.wr
 
 from .tools.kaya_idendentiy_decomposition import kaya_decomposion

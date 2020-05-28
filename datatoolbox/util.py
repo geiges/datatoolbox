@@ -547,6 +547,18 @@ def forAll(funcHandle, subset='scenario', source='IAMC15_2019_R2'):
                 success[scenario] = False
                 pass
     return outTables, success
+
+
+def yearsColumnsOnly(dataframe):
+    import re
+    REG_YEAR   = re.compile('^[0-9]{4}$')
+    
+    newColumns = []
+    for col in dataframe.columns:
+        if REG_YEAR.search(str(col)) is not None:
+            newColumns.append(col)
+    return newColumns
+
 #%%    
 if __name__ == '__main__':
     #%%

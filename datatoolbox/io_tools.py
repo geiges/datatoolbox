@@ -605,21 +605,25 @@ class ExcelWriter():
         
     def getSetups(self):
         self.wb_read = load_workbook(self.setup['fileName'], data_only=True)
-        self.wb = load_workbook(self.setup['fileName'], data_only=True)
+        self.wb = load_workbook(self.setup['fileName'])
         setup = dict()
         setup['fileName'] = self.setup['fileName']
         
         # new using pandas
-        mapping = pd.read_excel(self.setup['fileName'])
+        mapping = pd.read_excel(self.setup['fileName'], sheet_name=self.setupSheet)
+        mapping.columns = [x.lower() for x in mapping.columns]
         
-        setupDict = {'sheetName'     : 'sheetName',
-                     'timeIdxList'   : 'timeCells',
-                     'spaceIdxList'  : 'spaceCells',
-                     'dataID'        : 'dataCells',
+        
+        setupDict = {'sheetName'     : 'sheetname',
+                     'timeIdxList'   : 'time',
+                     'spaceIdxList'  : 'region',
+                     'dataID'        : 'variable',
                      'unit'          : 'unit',
-                     'unitTo'        : 'unitTo'}
+#                     'unitTo'        : 'unitto'
+                     }
         
         for i,setupMapp in mapping.iterrows():
+            print(setupMapp)
             for key in setupDict.keys():
                 setup[key] = str(setupMapp[setupDict[key]])
                 if setup[key] == 'nan':
@@ -656,7 +660,7 @@ class ExcelWriter():
             print('file extention not recognized')
         copyfile(self.setup['fileName'], saveFileName)
         self.setup['fileName'] = saveFileName
-        wb = load_workbook(self.setup['fileName'])
+#        wb = load_workbook(self.setup['fileName'])
         
         
         # pre-load all valid spatial IDS
@@ -681,11 +685,11 @@ class ExcelWriter():
             self.setupList.append(copy(setup))
             
             args =  None, None, None, None, None
-            wksSheet = wb[setup['sheetName']]
-            
+            wksSheet_read  = self.wb_read[setup['sheetName']]
+            wksSheet_write = self.wb[setup['sheetName']]
             # loop overall setups and collect dataIDs for pre-loading
             tableIDs = list()
-            for args in iterData(setup['dataID'], wksSheet, *args):
+            for args in iterData(setup['dataID'], wksSheet_read, *args):
                 
                 if config.DEBUG:
                     print(args)
@@ -709,13 +713,13 @@ class ExcelWriter():
             iCount = 0
             
             #iterate over time index list
-            for argsTime in iterTime(setup['timeIdxList'], wksSheet, *args):
+            for argsTime in iterTime(setup['timeIdxList'], wksSheet_read, *args):
                 if argsTime[TI_ARG] is None:
                     print('No time defintion found')
                     continue
                 
                 #iterate over space index list
-                for argsSpace in iterSpace(setup['spaceIdxList'], wksSheet, *argsTime):
+                for argsSpace in iterSpace(setup['spaceIdxList'], wksSheet_read, *argsTime):
                     if argsSpace[SP_ARG] is None:
                         print('not spacial defintion found')
                         continue
@@ -739,14 +743,14 @@ class ExcelWriter():
                         
                     #print(argsSpace[SP_ARG])
                     #iterate over all data indices
-                    for argData in iterData(setup['dataID'], wksSheet, *argsSpace):
+                    for argData in iterData(setup['dataID'], wksSheet_read, *argsSpace):
                         if argData[DT_ARG] is None:
                             print('not data defintion found')
                             continue
 
                         try:
                             value = tables[argData[DT_ARG]].loc[argData[SP_ARG],int(argData[TI_ARG])]
-                            self._writeValueNew(wksSheet, xlsRow=argData[0], xlsCol=argData[1], value=value)
+                            self._writeValueNew(wksSheet_write, xlsRow=argData[0], xlsCol=argData[1], value=value)
                             
 #                            print('success')
                             iCount +=1
@@ -759,14 +763,15 @@ class ExcelWriter():
                                 #pdb.set_trace()
                             pass
 
-            wb.save(self.setup['fileName'])
+            self.wb.save(self.setup['fileName'])
             print(setup)
             print('{} items inserted'.format(iCount))
             
-            wb.close()
+            self.wb.close()
 
     def _writeValueNew(self, wrkSheet, xlsRow, xlsCol, value):
         if self.overwrite or pd.isna(wrkSheet.cell(row=xlsRow, column=xlsCol).value):
+            print(value)
             wrkSheet.cell(row=xlsRow, column=xlsCol, value = value)
         
 #    def _writeMultipleIndicators(self, setup):
@@ -819,6 +824,8 @@ class ExcelReader_New():
         
         
         mapping = pd.read_excel(self.setup['fileName'], sheet_name =self.setupSheet)
+        
+        
         
         setupDict = {'sheetName'     : 'sheetName',
                      'timeIdxList'   : 'timeCells',
