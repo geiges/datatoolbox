@@ -11,8 +11,8 @@ import numpy as np
 
 def test_creation():
     metaDict = {'source' : 'TEST',
-                    'entity' : 'values',
-                    'unit' : 'm'}
+                'entity' : 'values',
+                'unit' : 'm'}
     metaDict2 = {'source' : 'TEST2',
                 'entity' : 'area',
                 'unit' : 'km'}    

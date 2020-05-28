@@ -18,6 +18,8 @@ import os
 import git
 import tqdm
 import time
+import copy
+
 
 class Database():
     
@@ -29,22 +31,47 @@ class Database():
         self.inventory = pd.read_csv(self.INTVENTORY_PATH, index_col=0)
         self.sources   = pd.read_csv(config.SOURCE_FILE, index_col='SOURCE_ID')
         
-#        if config.DB_READ_ONLY:
-#            print('databdase in read only mode')
-#
-#        else:
-        self.repo._validateRepository('main')
+        if config.DB_READ_ONLY:
+            print('databdase in read only mode')
+
+        else:
+            self.repo._validateRepository('main')
             
         if (config.OS == 'win32') | (config.OS == "Windows"):
             self.getTable = self._getTableWindows
         else:
             self.getTable = self._getTableLinux
 
-
         if config.DEBUG:
             print('Database loaded in {:2.4f} seconds'.format(time.time()-tt))
-
+    def _validateRepository(self):
+        if self.repo.diff() is not '':
+            raise(Exception('database is inconsistent! - please check uncommitted modifications'))
+        else:
+            config.DB_READ_ONLY = False
+            print('databdase in write mode')
+            return True
     
+    def info(self):
+        #%%
+        from pathlib import Path
+        print('######## Database informations: #############')
+        print('Number of tables: {}'.format(len(self.inventory)))  
+        print('Number of data sources: {}'.format(len(self.sources))) 
+        print('Number of commits: {}'.format(self.repo['main'].execute(["git", "rev-list", "--all", "--count"])))
+#        root_directory = Path(config.PATH_TO_DATASHELF)
+#        print('Size of datashelf: {:2.2f} MB'.format(sum(f.stat().st_size for f in root_directory.glob('**/*') if f.is_file() )/1e6))
+#        root_directory = Path(os.path.join(config.PATH_TO_DATASHELF, 'rawdata'))
+#        print('Size of raw_data: {:2.2f} MB'.format(sum(f.stat().st_size for f in root_directory.glob('**/*') if f.is_file() )/1e6))
+        print('#############################################')
+        #%%
+    def sourceInfo(self):
+        sources = copy.copy(self.sources)
+        return sources.sort_index()
+
+    def returnInventory(self):
+        return copy.copy(self.inventory)
+
 
     def _reloadInventory(self):
         self.inventory = pd.read_csv(self.INTVENTORY_PATH, index_col=0)
@@ -134,11 +161,17 @@ class Database():
         core.LOG['tableIDs'] = list()
 
         
-    def commitTable(self, dataTable, message, sourceMetaDict):
+
+    def commitTable(self, dataTable, message, sourceMetaDict=None):
         if config.DB_READ_ONLY:
             assert self._validateRepository()
-        if not( sourceMetaDict['SOURCE_ID'] in self.sources.index):
-            self._addNewSource(sourceMetaDict)
+            
+        if dataTable.meta['source'] not in self.sources.index:
+            if sourceMetaDict is None:
+                raise(BaseException('Source does not extist and now sourecMeta provided'))
+            else:
+                if not( sourceMetaDict['SOURCE_ID'] in self.sources.index):
+                    self._addNewSource(sourceMetaDict)
         
         dataTable = util.cleanDataTable(dataTable)
         self._addTable(dataTable)

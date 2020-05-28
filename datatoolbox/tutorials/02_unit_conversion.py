@@ -43,3 +43,26 @@ print("Final energy: Buildings total")
 print("Germany: {:2.2f} {}".format(totalFinalEnergy.loc['DEU',2015],totalFinalEnergy.meta['unit']))
 
 #%% example of impossible conversions
+
+
+#%% Green house warming potentail conversion
+table_N2O_Agri = dt.getTable('Emissions|N2O|Agriculture||Historic|FAO_2019')
+
+table_N2O_Agri = table_N2O_Agri.loc[countryList,years]
+print(table_N2O_Agri)
+
+
+table_CH4_Agri = dt.getTable('Emissions|CH4|Agriculture||Historic|FAO_2019').loc[countryList,years]
+print(table_CH4_Agri)
+
+# not working
+table_CH4_Agri + table_N2O_Agri
+
+# conversion with GWP context to CO2eq
+table_CH4_Agri = table_CH4_Agri.convert('Mt CO2eq', context='GWPAR4')
+table_N2O_Agri = table_N2O_Agri.convert('Mt CO2eq', context='GWPAR4')
+table_N2O_CH4_Agri = table_CH4_Agri + table_N2O_Agri
+table_N2O_CH4_Agri
+
+
+

@@ -25,7 +25,7 @@ data['APAC']   = dt.getTable('Emissions|CO2|Energy|Total||Historic|APAC_2019')
 data['UNFCCC'] = dt.getTable('Emissions|CO2|IPC0||Historic|CR|UNFCCC_CRF_2019')
 data['WDI']    = dt.getTable('Emissions|CO2||historic|WDI_2019')
 data['PRIMAP'] = dt.getTable('Emissions_CO2|IPCM0EL|HISTCR|PRIMAP_2018').convert('Mt CO2')
-data['IEA']    =dt.getTable('Emissions|Fuel|CO2|Total||historic|IEA_CO2_FUEL_2019')
+data['IEA']    = dt.getTable('Emissions|Fuel|CO2|Total||historic|IEA_CO2_FUEL_2019')
 
 
 #%% plot data

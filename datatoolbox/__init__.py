@@ -10,13 +10,15 @@ This is a python tool box project for handling global datasets. It contains the 
 
 Authors: Andreas Geiges
          Gaurav Ganti
-         
+
 @Climate Analytics gGmbH
 """
 
-__version__ = "0.2.12"
+__version__ = "0.2.17"
 
 import os
+import time
+import copy
 from . import config
 from . import core
 from .data_structures import Datatable, TableSet, read_csv
@@ -63,6 +65,9 @@ countryDataExtract = util.getCountryExtract
 
 executeForAll = util.forAll
 
+DBinfo = core.DB.info
+sourceInfo = core.DB.sourceInfo
+inventory = core.DB.returnInventory
 #writeMAGICC6ScenFile = tools.wr
 
 from .tools.kaya_idendentiy_decomposition import kaya_decomposion

@@ -23,17 +23,19 @@ else:
 
 
 REQUIRED_META_FIELDS = {'entity',
-                        'category',
                         'scenario',
-                        'model',
-                        'source',
+                        'institution',
+                        'year',
                         'unit'}
 
-ID_FIELDS = ['entity',
-             'category',
-             'scenario',
-             'model',
+OPTIONAL_META_FILDS = ['category',
+                       'model']
+
+ID_FIELDS = ['variable',
+             'pathway',
              'source']
+
+INVENTORY_FIELDS = REQUIRED_META_FIELDS.union(OPTIONAL_META_FILDS).union(ID_FIELDS)
 
 META_DECLARATION = '### META ###\n'
 DATA_DECLARATION = '### DATA ###\n'

@@ -28,8 +28,11 @@ def main():
 #        'tools':'datatoolbox/tools',
 #	'data': 'datatoolbox/data'
 	}
-    package_data = {'datatoolbox': ['data/*', 
-                                    'tools/*', 
+    package_data = {'datatoolbox': ['data/*',
+				    'data/SANDBOX_datashelf/*',
+				    'data/SANDBOX_datashelf/mappings/*',
+                                    'tools/*',
+				    'tutorials/*',
                                     'pint_definitions.txt']}
     with open('README.md', encoding='utf-8') as f:
         long_description = f.read()
