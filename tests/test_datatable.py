@@ -78,8 +78,30 @@ def test_append():
 
     assert (dt_merge.values == obs_vlues)[~np.isnan(dt_merge.values)] .all()
     assert dt_merge.meta['scenario'] == "computed: scen1+scen3"
+
+def test_clean():
+    from pandas.testing import assert_frame_equal
+    metaDict2 = {'source' : 'TEST2',
+                'entity' : 'area',
+                'unit' : 'km'}    
+        
     
+    
+    data2 = np.asarray([[1,2.2,3,np.nan ],
+                   [2.3, np.nan, 3.4, np.nan],
+                   [1.1, np.nan, np.nan, np.nan],
+                   [np.nan, 3.3, 2.4, np.nan]])
+    
+    
+    df2 = dt.Datatable(data2, meta=metaDict2, columns = [2009, 2012, 2013, 2015], index = ['ARG', 'DEU', 'FRA', 'USSDR'])
+    exp = dt.Datatable(data2, meta=metaDict2, columns = [2009, 2012, 2013, 2015], index = ['ARG', 'DEU', 'FRA', 'UDSSR'])
+    exp = exp.drop('UDSSR')
+    exp = exp.drop(2015, axis=1)
+    df2_clean = df2.clean()
+    df2_clean == df2.clean()
+    assert assert_frame_equal(df2_clean, exp) is None
     
 if __name__ == '__main__':    
     test_creation()
     test_append()
+    test_clean()
