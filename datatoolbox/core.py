@@ -106,7 +106,7 @@ def _createDatabaseID(dictData):
 
 
 def osIsWindows():
-    if (conf.OS == 'win32') | (conf.OS == "Windows"):
+    if (config.OS == 'win32') | (config.OS == "Windows"):
         return True
     else:
         return False
