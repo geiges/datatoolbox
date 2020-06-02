@@ -407,7 +407,7 @@ class Database():
     
             sourcePath = os.path.join(config.PATH_TO_DATASHELF, 'database', sourceMetaDict['SOURCE_ID'])
             
-            self.repo.init_new_repo(sourcePath, source_ID)
+            self.repo.init_new_repo(sourcePath, source_ID, sourceMetaDict)
             
 
         else:
@@ -466,8 +466,29 @@ class Database():
             print()
             copyfile(pathToFile, folder + '/' + os.path.basename(pathToFile))
             
-            
-            
+    def importSourceFromRemote(self, remoteName):
+        repoPath = os.path.join(config.PATH_TO_DATASHELF, 'database', remoteName)
+        
+        self.repo.pull_source_from_remote(remoteName, repoPath)
+        sourceMetaDict = util.csv_to_dict(os.path.join(repoPath, 'meta.csv'))
+        self.sources.loc[remoteName] = pd.Series(sourceMetaDict)        
+        self.sources.to_csv(config.SOURCE_FILE)
+        self.repo.gitAddFile('main', config.SOURCE_FILE) 
+        sourceInventory = pd.read_csv(os.path.join(repoPath, 'inventory_export.csv'), index_col=0)
+        for idx in sourceInventory.index:
+            self.inventory.loc[idx,:] = sourceInventory.loc[idx,:]
+        self._gitCommit('imported ' + remoteName)
+
+    def exportSourceToRemote(self, sourceID):
+        repoPath = os.path.join(config.PATH_TO_DATASHELF, 'database', sourceID)
+        
+        self.repo.create_remote_repo(sourceID, repoPath)
+        sourceInventory = self.inventory.loc[self.inventory.source==sourceID,:]
+        sourceInventory.to_csv(os.path.join(repoPath, 'inventory_export.csv'))
+        self.repo.gitAddFile(sourceID, os.path.join(repoPath, 'inventory_export.csv')) 
+        
+        self.repo.commit('added export inventory')
+        self.repo.push_to_remote_datashelf(sourceID)
 #%%
 class Repository_Manager(dict):
     """
@@ -505,7 +526,7 @@ class Repository_Manager(dict):
                 print('Repo {} is clean'.format(repoName))
             return True
         
-    def init_new_repo(self, repoPath, repoID):
+    def init_new_repo(self, repoPath, repoID, sourceMetaDict):
         import pathlib as plib
 
         print('creating folder ' + repoPath)
@@ -517,6 +538,9 @@ class Repository_Manager(dict):
             filePath = os.path.join(repoPath, subFolder, '.gitkeep')
             plib.Path(filePath).touch()
             self.gitAddFile(repoID, filePath)
+        metaFilePath = os.path.join(repoPath, 'meta.csv')
+        util.dict_to_csv(sourceMetaDict, metaFilePath)
+        self.gitAddFile(repoID, metaFilePath)
         self.commit('added empty folders')
     
     
@@ -551,3 +575,7 @@ class Repository_Manager(dict):
     
     def push_to_remote_datashelf(self, repoName):
         self[repoName].execute(["git","push"])
+        
+    def pull_source_from_remote(self, repoName, repoPath):
+        url = config.DATASHELF_REMOTE +  repoName + '.git'
+        git.repo.base.Repo.clone_from(url=url, to_path=repoPath)   

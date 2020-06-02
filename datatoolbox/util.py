@@ -560,6 +560,25 @@ def yearsColumnsOnly(dataframe):
             newColumns.append(col)
     return newColumns
 
+import csv
+
+def dict_to_csv(dictionary, filePath):
+
+    with open(filePath, 'w', newline='') as file:
+        writer = csv.writer(file)
+        for key, val in dictionary.items():
+            writer.writerow([key, val])
+#%%
+def csv_to_dict(filePath):
+
+    with open(filePath, 'r', newline='') as file:
+        reader = csv.reader(file)
+        mydict = dict()
+        for row in reader:
+            print(row)
+#            v = rows[1]
+            mydict[row[0]] =  row[1]
+    return mydict
 #%%    
 if __name__ == '__main__':
     #%%
