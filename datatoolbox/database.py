@@ -44,8 +44,9 @@ class Database():
 
         if config.DEBUG:
             print('Database loaded in {:2.4f} seconds'.format(time.time()-tt))
-    def _validateRepository(self):
-        if self.repo.diff() is not '':
+    
+    def _validateRepository(self, repoID='main'):
+        if self.repo[repoID].diff() != '':
             raise(Exception('database is inconsistent! - please check uncommitted modifications'))
         else:
             config.DB_READ_ONLY = False
@@ -82,10 +83,12 @@ class Database():
     def add2Inventory(self, datatable):
         if config.DB_READ_ONLY:
             assert self._validateRepository()
-        entry = [datatable.meta[key] for key in config.ID_FIELDS]
-        print(entry)
-        self.inventory.loc[datatable.ID] = entry
+#        entry = [datatable.meta[key] for key in config.ID_FIELDS]
+#        print(entry)
+#        self.inventory.loc[datatable.ID] = entry
        
+        self.inventory.loc[datatable.ID] = [datatable.meta.get(x,None) for x in config.INVENTORY_FIELDS]
+    
     def getInventory(self, **kwargs):
         
         table = self.inventory.copy()
@@ -339,9 +342,9 @@ class Database():
         ID = datatable.generateTableID()
         source = datatable.source()
         datatable.meta['creator'] = config.CRUNCHER
-        sourcePath = os.path.join(config.PATH_TO_DATASHELF, 'database', source)
+        sourcePath = os.path.join('database', source)
         filePath = os.path.join(sourcePath, 'tables',  ID + '.csv')
-        
+#        relFilePath = os.path.join('tables',  ID + '.csv')
         if (config.OS == 'win32') | (config.OS == "Windows"):
             filePath = filePath.replace('|','___')
         
@@ -360,20 +363,23 @@ class Database():
         #self.add2Inventory(datatable)
         
     def _gitAddTable(self, datatable, source, filePath):
-        datatable.to_csv(filePath)
-        self.repo._gitAddFile(source, filePath)
+        datatable.to_csv(os.path.join(config.PATH_TO_DATASHELF, filePath))
+        
+        self.repo.gitAddFile(source, os.path.join('tables', datatable.ID + '.csv'))
 
 #    def _gitAddFile(self, filePath):
         
         
     def _gitCommit(self, message):
         self.inventory.to_csv(self.INTVENTORY_PATH)
-        self.repo.execute(["git", "add", self.INTVENTORY_PATH])
-        try:
-            self.repo.execute(["git", "commit", '-m' "" +  message + " by " + config.CRUNCHER])
-        except:
-            print('commit failed')   
-            
+#        self['main'].execute(["git", "add", self.INTVENTORY_PATH])
+        self.repo.gitAddFile('main',self.INTVENTORY_PATH)
+#        self.repo['main'].execute(["git", "add", self.INTVENTORY_PATH])
+#        try:
+#            self.repo['main'].execute(["git", "commit", '-m' "" +  message + " by " + config.CRUNCHER])
+#        except:
+#            print('commit failed')   
+        self.repo.commit(message)
 
     def _addNewSource(self, sourceMetaDict):
         source_ID = sourceMetaDict['SOURCE_ID']
@@ -381,11 +387,11 @@ class Database():
         if not self.sourceExists(source_ID):
             self.sources.loc[source_ID] = pd.Series(sourceMetaDict)
             self.sources.to_csv(config.SOURCE_FILE)
-            self.repo._gitAddFile('main', config.SOURCE_FILE)
-            self.repo._commit('main', 'added source: ' + source_ID)
+            self.repo.gitAddFile('main', config.SOURCE_FILE)
+            self.repo.commit('added source: ' + source_ID)
 #            self._gitCommit()
     
-            sourcePath = config.PATH_TO_DATASHELF + 'database/' + sourceMetaDict['SOURCE_ID'] + '/'
+            sourcePath = os.path.join(config.PATH_TO_DATASHELF, 'database', sourceMetaDict['SOURCE_ID'])
             
             self.repo.init_new_repo(sourcePath, source_ID)
             
@@ -456,7 +462,8 @@ class Repository_Manager(dict):
     """
     def __init__(self, config):
         self.PATH_TO_DATASHELF = config.PATH_TO_DATASHELF
-    
+        self.updatedRepos      = set()
+        
     def __getitem__(self, *args, **kwargs):
         """ 
         Overwrites __getitem__ to automatically load git class of a 
@@ -470,7 +477,7 @@ class Repository_Manager(dict):
             if source == 'main':
                 object.__setattr__(self,source, git.Git(self.PATH_TO_DATASHELF))
             else:
-                object.__setattr__(self,source, git.Git(self.PATH_TO_DATASHELF  + 'database/' + source))
+                object.__setattr__(self,source, git.Git(os.path.join(self.PATH_TO_DATASHELF,  'database', source)))
             if super().__getattribute__(source).diff() != '':
                 raise(Exception('Git repository: "' + source + '" is inconsistent! - please check uncommitted modifications'))
             return super().__getattribute__(source)
@@ -488,15 +495,31 @@ class Repository_Manager(dict):
         
         print('creating folder ' + repoPath)
         os.makedirs(repoPath, exist_ok=True)
-        git.Repo.init(repoPath, REPO_ID)
+        git.Repo.init(repoPath)
         self[REPO_ID] = git.Git(repoPath)  
         
-    def _gitAddFile(self, repoName, filePath):
+    def gitAddFile(self, repoName, filePath):
+        if config.DEBUG:
+            print('Added file {} to repo: {}'.format(filePath,repoName))
         self[repoName].execute(["git", "add", filePath])
+        self.updatedRepos.add(repoName)
         
-    def _commit(self, repoName, message):
+    def _gitRemoveFile(self, repoName, filePath):
+        pass
+    
+    def _gitUpdateFile(self, repoName, filePath):
+        pass
+        
+    def commit(self, message):
+        
         try:
-            self.repo[repoName].execute(["git", "commit", '-m' "" +  message + " by " + config.CRUNCHER])
+            self['main'].execute(["git", "commit", '-m' "" +  message + " by " + config.CRUNCHER])
         except:
-            print('commit failed') 
+            print('Commit of main repository failed')  
+        
+        for repoID in self.updatedRepos:
+            try:
+                self[repoID].execute(["git", "commit", '-m' "" +  message + " by " + config.CRUNCHER])
+            except:
+                print('Commit of {} repository failed'.format(repoID))  
             

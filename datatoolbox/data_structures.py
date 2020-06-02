@@ -822,22 +822,22 @@ def read_csv(fileName):
     fid.close()
     return df
 #%%
-class Meta(dict):
+class MetaData(dict):
     
     def __init__(self):
-        super(Meta, self).__init__()
+        super(MetaData, self).__init__()
         self.update({x : '' for x in config.REQUIRED_META_FIELDS})
     
     
     def __setitem__(self, key, value):
-        super(Meta, self).__setitem__(key, value)
-        super(Meta, self).__setitem__('variable', '|'.join([self[key] for key in ['entity', 'category'] if key in self.keys()]))
-        super(Meta, self).__setitem__('pathway', '|'.join([self[key] for key in ['scenario', 'model'] if key in self.keys()]))
-        super(Meta, self).__setitem__('source', '_'.join([self[key] for key in ['institution', 'year'] if key in self.keys()]))
+        super(MetaData, self).__setitem__(key, value)
+        super(MetaData, self).__setitem__('variable', '|'.join([self[key] for key in ['entity', 'category'] if key in self.keys()]))
+        super(MetaData, self).__setitem__('pathway', '|'.join([self[key] for key in ['scenario', 'model'] if key in self.keys()]))
+        super(MetaData, self).__setitem__('source', '_'.join([self[key] for key in ['institution', 'year'] if key in self.keys()]))
         
         
 
-meta = Meta()
+meta = MetaData()
 meta['entity'] = 'Emissions|CO2'
 meta['institution'] = 'WDI'
 meta['year']  = '2020'

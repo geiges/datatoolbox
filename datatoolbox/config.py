@@ -35,7 +35,18 @@ ID_FIELDS = ['variable',
              'pathway',
              'source']
 
-INVENTORY_FIELDS = REQUIRED_META_FIELDS.union(OPTIONAL_META_FILDS).union(ID_FIELDS)
+INVENTORY_FIELDS = ['variable',
+                    'entity',
+                    'category', 
+                    'pathway',
+                    'scenario',
+                    'model',
+                    'source',
+                    'institution',
+                    'year',
+                    'unit'
+                    ]
+
 
 META_DECLARATION = '### META ###\n'
 DATA_DECLARATION = '### DATA ###\n'
