@@ -175,7 +175,7 @@ class Database():
             
         if dataTable.meta['source'] not in self.sources.index:
             if sourceMetaDict is None:
-                raise(BaseException('Source does not extist and now sourecMeta provided'))
+                raise(BaseException('Source does not extist and now sourceMeta provided'))
             else:
                 if not( sourceMetaDict['SOURCE_ID'] in self.sources.index):
                     self._addNewSource(sourceMetaDict)
@@ -264,8 +264,8 @@ class Database():
             self._addTable( newDataTable)
         else:
             # delete old table
-            tablePath = self._getPathOfTable(oldID)
-            self.repo.execute(["git", "rm", tablePath])
+#            tablePath = self._getPathOfTable(oldID)
+            self.removeTable(oldID)
             
             # add new table
             self._addTable( newDataTable)
@@ -285,30 +285,37 @@ class Database():
             print("csv file exists")
 
     def removeTables(self, IDList):
-        if config.DB_READ_ONLY:
-            assert self._validateRepository()
         for ID in IDList:
+            source = self.inventory.loc[ID, 'source']
             tablePath = self._getPathOfTable(ID)
-            try:
-                self.remove_from_inventory(ID)
-            except:
-                print('ID:' + ID +' not in inventory')
-            try:
-                self.repo.execute(["git", "rm", tablePath])
-            except:
-                print('could not delete file:' + str(tablePath))
-        #self._reloadInventory()
+#            try:
+            self.remove_from_inventory(ID)
+#            except:
+#                print('ID:' + ID +' not in inventory')
+#            try:
+#            self.repo[source].execute(["git", "rm", tablePath])
+            self.repo.gitRemoveFile(source, tablePath)
+#            except:
+#                print('could not delete file:' + str(tablePath))
         self._gitCommit('Tables removed')
         
     def removeTable(self, ID):
+
+        self._removeTable( ID)
+        self._gitCommit('Table removed')
+        self._reloadInventory()
+
+    def _removeTable(self, ID):
 
         source = self.inventory.loc[ID, 'source']
         tablePath = self._getPathOfTable(ID)
         self.remove_from_inventory(ID)
         
-        self.repo[source].execute(["git", "rm", tablePath])
-        self._gitCommit('Table removed')
-        self._reloadInventory()
+#        self.repo[source].execute(["git", "rm", tablePath])
+        self.repo.gitRemoveFile(source, tablePath)
+#        self._gitCommit('Table removed')
+#        self._reloadInventory()
+        
         
     def _tableExists(self, ID):
         return ID in self.inventory.index
@@ -519,8 +526,11 @@ class Repository_Manager(dict):
         self[repoName].execute(["git", "add", filePath])
         self.updatedRepos.add(repoName)
         
-    def _gitRemoveFile(self, repoName, filePath):
-        pass
+    def gitRemoveFile(self, repoName, filePath):
+        if config.DEBUG:
+            print('Removed file {} to repo: {}'.format(filePath,repoName))
+        self[repoName].execute(["git", "rm", filePath])
+        self.updatedRepos.add(repoName)
     
     def _gitUpdateFile(self, repoName, filePath):
         pass
@@ -532,4 +542,12 @@ class Repository_Manager(dict):
                 self[repoID].execute(["git", "commit", '-m' "" +  message + " by " + config.CRUNCHER])
             except:
                 print('Commit of {} repository failed'.format(repoID))  
-            
+                
+                
+    def create_remote_repo(self, repoName):
+        self[repoName].execute(["git", "remote", "add",  "origin",  config.DATASHELF_REMOTE + repoName + ".git"])
+        self[repoName].execute(["git","push", "--set-upstream","origin","master"])
+        self[repoName].execute(["git","push"])
+    
+    def push_to_remote_datashelf(self, repoName):
+        self[repoName].execute(["git","push"])

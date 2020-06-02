@@ -101,7 +101,7 @@ COUNTRY_LIST = ['AFG', 'ALA', 'ALB', 'DZA', 'ASM', 'AND', 'AGO', 'AIA', 'ATA', '
 
 logTables = False
 
-
+DATASHELF_REMOTE  = 'git@gitlab.com:climateanalytics/datashelf/'
 
 #### FUNCTION TESTS ########
 if __name__ == '__main__':

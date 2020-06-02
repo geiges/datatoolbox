@@ -29,9 +29,6 @@ class Datatable(pd.DataFrame):
         if metaData['unit'] is None or pd.isna(metaData['unit']):
             metaData['unit'] = ''
 #        metaData['variable'] = metaData['entity'] + metaData['category']
-        metaData['variable'] = '|'.join([metaData[key] for key in ['entity', 'category'] if key in metaData.keys()])
-        metaData['pathway'] = '|'.join([metaData[key] for key in ['scenario', 'model'] if key in metaData.keys()])
-        
         self.__appendMetaData__(metaData)
         self.vis = Visualization(self)
         try:
@@ -225,6 +222,11 @@ class Datatable(pd.DataFrame):
     
     #%%
     def generateTableID(self):
+        # update meta data required for the ID
+        self.meta['variable'] = '|'.join([ self.meta[key] for key in ['entity', 'category'] if key in  self.meta.keys()])
+        self.meta['pathway'] = '|'.join([ self.meta[key] for key in ['scenario', 'model'] if key in  self.meta.keys()])
+        if 'source' not in  self.meta.keys():
+            self.meta['pathway'] = '|'.join([ self.meta[key] for key in ['institution', 'year'] if key in  self.meta.keys()])    
         self.ID =  core._createDatabaseID(self.meta)
         self.meta['ID'] = self.ID
         return self.ID
