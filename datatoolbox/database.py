@@ -80,14 +80,19 @@ class Database():
     def sourceExists(self, source):
         return source in self.sources.index
     
-    def add2Inventory(self, datatable):
-        if config.DB_READ_ONLY:
-            assert self._validateRepository()
+    def add_to_inventory(self, datatable):
+#        if config.DB_READ_ONLY:
+#            assert self._validateRepository()
 #        entry = [datatable.meta[key] for key in config.ID_FIELDS]
 #        print(entry)
 #        self.inventory.loc[datatable.ID] = entry
        
         self.inventory.loc[datatable.ID] = [datatable.meta.get(x,None) for x in config.INVENTORY_FIELDS]
+        self.repo.updatedRepos.add('main')
+
+    def remove_from_inventory(self, tableID):
+        self.inventory.drop(tableID, inplace=True)
+        self.repo.updatedRepos.add('main')
     
     def getInventory(self, **kwargs):
         
@@ -117,8 +122,7 @@ class Database():
     
     def _getTableFilePath(self,ID):
         source = self.inventory.loc[ID].source
-        sourcePath = config.PATH_TO_DATASHELF + 'database/' + source + '/'
-        return sourcePath + ID + '.csv'
+        return os.path.join(config.PATH_TO_DATASHELF, 'database/', source, 'tables', ID + '.csv')
     
     def _getTableLinux(self, ID):
         
@@ -166,8 +170,8 @@ class Database():
         
 
     def commitTable(self, dataTable, message, sourceMetaDict=None):
-        if config.DB_READ_ONLY:
-            assert self._validateRepository()
+#        if config.DB_READ_ONLY:
+#            assert self._validateRepository()
             
         if dataTable.meta['source'] not in self.sources.index:
             if sourceMetaDict is None:
@@ -178,13 +182,13 @@ class Database():
         
         dataTable = util.cleanDataTable(dataTable)
         self._addTable(dataTable)
-        self.add2Inventory(dataTable)
+        self.add_to_inventory(dataTable)
            
         self._gitCommit(message)
 
     def commitTables(self, dataTables, message, sourceMetaDict, append_data=False, update=False, overwrite=False):
-        if config.DB_READ_ONLY:
-            assert self._validateRepository()
+#        if config.DB_READ_ONLY:
+#            assert self._validateRepository()
 
         # create a new source if not extisting
         if not(sourceMetaDict['SOURCE_ID'] in self.sources.index):
@@ -208,7 +212,7 @@ class Database():
                     # add entire new table
                     
                     self._addTable(dataTable)
-                    self.add2Inventory(dataTable)
+                    self.add_to_inventory(dataTable)
                 elif overwrite:
                     oldTable = self.getTable(dataTable.ID)
                     mergedTable = dataTable.combine_first(oldTable)
@@ -243,7 +247,7 @@ class Database():
             else:
                 dataTable = util.cleanDataTable(newDataTable)
                 self._addTable(dataTable)
-                self.add2Inventory(dataTable)
+                self.add_to_inventory(dataTable)
         self._gitCommit(message)
 
     def _updateTable(self, oldTableID, newDataTable):
@@ -252,6 +256,7 @@ class Database():
         
         oldDataTable = self.getTable(oldTableID)
         oldID = oldDataTable.meta['ID']
+        print(oldDataTable.meta)
         newID = newDataTable.generateTableID()
         
         if oldID == newID:
@@ -267,7 +272,7 @@ class Database():
 
             #change inventory
             self.inventory.rename(index = {oldID: newID}, inplace = True)
-            self.add2Inventory(newDataTable)
+            self.add_to_inventory(newDataTable)
 
     def validateEntry(self, ID):
         source = ID.split('|')[-1]
@@ -285,7 +290,7 @@ class Database():
         for ID in IDList:
             tablePath = self._getPathOfTable(ID)
             try:
-                self.inventory.drop(ID, inplace=True)
+                self.remove_from_inventory(ID)
             except:
                 print('ID:' + ID +' not in inventory')
             try:
@@ -296,20 +301,22 @@ class Database():
         self._gitCommit('Tables removed')
         
     def removeTable(self, ID):
-        if config.DB_READ_ONLY:
-            assert self._validateRepository()
+
+        source = self.inventory.loc[ID, 'source']
         tablePath = self._getPathOfTable(ID)
-        self.inventory.drop(ID, inplace=True)
+        self.remove_from_inventory(ID)
         
-        self.repo.execute(["git", "rm", tablePath])
-        self._reloadInventory()
+        self.repo[source].execute(["git", "rm", tablePath])
         self._gitCommit('Table removed')
+        self._reloadInventory()
         
     def _tableExists(self, ID):
         return ID in self.inventory.index
     
     def _getPathOfTable(self, ID):
-        return config.PATH_TO_DATASHELF + 'database/' + self.inventory.loc[ID].source + '/' + ID + '.csv'
+        return os.path.join(config.PATH_TO_DATASHELF, 'database', self.inventory.loc[ID].source, 'tables', ID + '.csv')
+
+    
 
     def tableExist(self, tableID):
         return self._tableExists(tableID)
@@ -360,7 +367,7 @@ class Database():
         
         
         self._gitAddTable(datatable, source, filePath)
-        #self.add2Inventory(datatable)
+        #self.add_to_inventory(datatable)
         
     def _gitAddTable(self, datatable, source, filePath):
         datatable.to_csv(os.path.join(config.PATH_TO_DATASHELF, filePath))
@@ -395,8 +402,7 @@ class Database():
             
             self.repo.init_new_repo(sourcePath, source_ID)
             
-            for subFolder in config.SOURCE_SUB_FOLDERS:
-                os.makedirs(os.path.join(sourcePath, subFolder), exist_ok=True)
+
         else:
             print('source already exists')
 
@@ -470,16 +476,17 @@ class Repository_Manager(dict):
         repository and checks for uncommited changes
         """
         source = args[0]
-
-        try:
+        
+        
+        if hasattr(core.DB.repo,source):
             return super().__getattribute__(source)
-        except:
+        else:
             if source == 'main':
                 object.__setattr__(self,source, git.Git(self.PATH_TO_DATASHELF))
             else:
                 object.__setattr__(self,source, git.Git(os.path.join(self.PATH_TO_DATASHELF,  'database', source)))
-            if super().__getattribute__(source).diff() != '':
-                raise(Exception('Git repository: "' + source + '" is inconsistent! - please check uncommitted modifications'))
+                if super().__getattribute__(source).diff() != '':
+                    raise(Exception('Git repository: "' + source + '" is inconsistent! - please check uncommitted modifications'))
             return super().__getattribute__(source)
         
     def _validateRepository(self, repoName):
@@ -491,13 +498,21 @@ class Repository_Manager(dict):
                 print('Repo {} is clean'.format(repoName))
             return True
         
-    def init_new_repo(self, repoPath, REPO_ID):
-        
+    def init_new_repo(self, repoPath, repoID):
+        import pathlib as plib
+
         print('creating folder ' + repoPath)
         os.makedirs(repoPath, exist_ok=True)
         git.Repo.init(repoPath)
-        self[REPO_ID] = git.Git(repoPath)  
-        
+        self[repoID] = git.Git(repoPath)  
+        for subFolder in config.SOURCE_SUB_FOLDERS:
+            os.makedirs(os.path.join(repoPath, subFolder), exist_ok=True)
+            filePath = os.path.join(repoPath, subFolder, '.gitkeep')
+            plib.Path(filePath).touch()
+            self.gitAddFile(repoID, filePath)
+        self.commit('added empty folders')
+    
+    
     def gitAddFile(self, repoName, filePath):
         if config.DEBUG:
             print('Added file {} to repo: {}'.format(filePath,repoName))
@@ -511,12 +526,7 @@ class Repository_Manager(dict):
         pass
         
     def commit(self, message):
-        
-        try:
-            self['main'].execute(["git", "commit", '-m' "" +  message + " by " + config.CRUNCHER])
-        except:
-            print('Commit of main repository failed')  
-        
+                
         for repoID in self.updatedRepos:
             try:
                 self[repoID].execute(["git", "commit", '-m' "" +  message + " by " + config.CRUNCHER])

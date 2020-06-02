@@ -42,7 +42,10 @@ commitTable  = core.DB.commitTable
 commitTables = core.DB.commitTables
 
 updateTable  = core.DB.updateTable
-updateTables  = core.DB.updateTables
+updateTables = core.DB.updateTables
+
+removeTable  = core.DB.removeTable
+removeTables  = core.DB.removeTables
 
 find         = core.DB.getInventory
 findExact    = core.DB.findExact

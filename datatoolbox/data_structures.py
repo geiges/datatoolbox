@@ -40,8 +40,8 @@ class Datatable(pd.DataFrame):
             self.ID = None
 
         #compatibililty with v1
-        if not 'model' in self.meta.keys():
-            self.meta['model'] = ''
+#        if not 'model' in self.meta.keys():
+#            self.meta['model'] = ''
     
     @property
     def _constructor(self):
