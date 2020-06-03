@@ -7,12 +7,11 @@ Created on Wed May  8 11:25:15 2019
 """
 import pandas as pd
 import numpy  as np
-import pandas as pd
 import datatoolbox as dt
 from datatoolbox import mapping as mapp
 from datatoolbox import core
 from datatoolbox import config
-#from datatoolbox.data_structures import Datatable, read_csv
+from datatoolbox.data_structures import read_csv
 from datatoolbox.greenhouse_gas_database import GreenhouseGasTable 
 import matplotlib.pylab as plt
 import os
