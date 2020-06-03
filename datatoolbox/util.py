@@ -11,7 +11,7 @@ import datatoolbox as dt
 from datatoolbox import mapping as mapp
 from datatoolbox import core
 from datatoolbox import config
-from datatoolbox.data_structures import read_csv
+#from .data_structures import read_csv
 from datatoolbox.greenhouse_gas_database import GreenhouseGasTable 
 import matplotlib.pylab as plt
 import os
@@ -466,7 +466,7 @@ def update_DB_from_folder(folderToRead, message=None):
     tablesToUpdate = dict()
 
     for file in fileList:
-        table = read_csv(os.path.join(folderToRead, file))
+        table = dt.read_csv(os.path.join(folderToRead, file))
         source = table.meta['source']
         if source in tablesToUpdate.keys():
 
