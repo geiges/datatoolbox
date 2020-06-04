@@ -467,7 +467,7 @@ def update_DB_from_folder(folderToRead, message=None):
     tablesToUpdate = dict()
 
     for file in fileList:
-        table = read_csv(os.path.join(folderToRead, file))
+        table = dt.read_csv(os.path.join(folderToRead, file))
         source = table.meta['source']
         if source in tablesToUpdate.keys():
 

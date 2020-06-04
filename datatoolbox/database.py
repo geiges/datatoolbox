@@ -26,12 +26,12 @@ class Database():
     def __init__(self):
         tt = time.time()
         self.path = config.PATH_TO_DATASHELF
-        self.repo = Repository_Manager(config)
+        self.gitManager = GitRepository_Manager(config)
         self.INTVENTORY_PATH = os.path.join(self.path, 'inventory.csv')
         self.inventory = pd.read_csv(self.INTVENTORY_PATH, index_col=0)
         self.sources   = pd.read_csv(config.SOURCE_FILE, index_col='SOURCE_ID')
         
-#        self.repo._validateRepository('main')
+        self.gitManager._validateRepository('main')
             
         if (config.OS == 'win32') | (config.OS == "Windows"):
             self.getTable = self._getTableWindows
@@ -42,7 +42,7 @@ class Database():
             print('Database loaded in {:2.4f} seconds'.format(time.time()-tt))
     
     def _validateRepository(self, repoID='main'):
-        if self.repo[repoID].diff() != '':
+        if self.gitManager[repoID].diff() != '':
             raise(Exception('database is inconsistent! - please check uncommitted modifications'))
         else:
             config.DB_READ_ONLY = False
@@ -55,7 +55,7 @@ class Database():
         print('######## Database informations: #############')
         print('Number of tables: {}'.format(len(self.inventory)))  
         print('Number of data sources: {}'.format(len(self.sources))) 
-        print('Number of commits: {}'.format(self.repo['main'].execute(["git", "rev-list", "--all", "--count"])))
+        print('Number of commits: {}'.format(self.gitManager['main'].execute(["git", "rev-list", "--all", "--count"])))
 #        root_directory = Path(config.PATH_TO_DATASHELF)
 #        print('Size of datashelf: {:2.2f} MB'.format(sum(f.stat().st_size for f in root_directory.glob('**/*') if f.is_file() )/1e6))
 #        root_directory = Path(os.path.join(config.PATH_TO_DATASHELF, 'rawdata'))
@@ -84,11 +84,11 @@ class Database():
 #        self.inventory.loc[datatable.ID] = entry
        
         self.inventory.loc[datatable.ID] = [datatable.meta.get(x,None) for x in config.INVENTORY_FIELDS]
-        self.repo.updatedRepos.add('main')
+        self.gitManager.updatedRepos.add('main')
 
     def remove_from_inventory(self, tableID):
         self.inventory.drop(tableID, inplace=True)
-        self.repo.updatedRepos.add('main')
+        self.gitManager.updatedRepos.add('main')
     
     def getInventory(self, **kwargs):
         
@@ -289,8 +289,8 @@ class Database():
 #            except:
 #                print('ID:' + ID +' not in inventory')
 #            try:
-#            self.repo[source].execute(["git", "rm", tablePath])
-            self.repo.gitRemoveFile(source, tablePath)
+#            self.gitManager[source].execute(["git", "rm", tablePath])
+            self.gitManager.gitRemoveFile(source, tablePath)
 #            except:
 #                print('could not delete file:' + str(tablePath))
         self._gitCommit('Tables removed')
@@ -307,8 +307,8 @@ class Database():
         tablePath = self._getPathOfTable(ID)
         self.remove_from_inventory(ID)
         
-#        self.repo[source].execute(["git", "rm", tablePath])
-        self.repo.gitRemoveFile(source, tablePath)
+#        self.gitManager[source].execute(["git", "rm", tablePath])
+        self.gitManager.gitRemoveFile(source, tablePath)
 #        self._gitCommit('Table removed')
 #        self._reloadInventory()
         
@@ -375,7 +375,7 @@ class Database():
     def _gitAddTable(self, datatable, source, filePath):
         datatable.to_csv(os.path.join(config.PATH_TO_DATASHELF, filePath))
         
-        self.repo.gitAddFile(source, os.path.join('tables', datatable.ID + '.csv'))
+        self.gitManager.gitAddFile(source, os.path.join('tables', datatable.ID + '.csv'))
 
 #    def _gitAddFile(self, filePath):
         
@@ -383,13 +383,13 @@ class Database():
     def _gitCommit(self, message):
         self.inventory.to_csv(self.INTVENTORY_PATH)
 #        self['main'].execute(["git", "add", self.INTVENTORY_PATH])
-        self.repo.gitAddFile('main',self.INTVENTORY_PATH)
-#        self.repo['main'].execute(["git", "add", self.INTVENTORY_PATH])
+        self.gitManager.gitAddFile('main',self.INTVENTORY_PATH)
+#        self.gitManager['main'].execute(["git", "add", self.INTVENTORY_PATH])
 #        try:
-#            self.repo['main'].execute(["git", "commit", '-m' "" +  message + " by " + config.CRUNCHER])
+#            self.gitManager['main'].execute(["git", "commit", '-m' "" +  message + " by " + config.CRUNCHER])
 #        except:
 #            print('commit failed')   
-        self.repo.commit(message)
+        self.gitManager.commit(message)
 
     def _addNewSource(self, sourceMetaDict):
         source_ID = sourceMetaDict['SOURCE_ID']
@@ -397,13 +397,13 @@ class Database():
         if not self.sourceExists(source_ID):
             self.sources.loc[source_ID] = pd.Series(sourceMetaDict)
             self.sources.to_csv(config.SOURCE_FILE)
-            self.repo.gitAddFile('main', config.SOURCE_FILE)
-            self.repo.commit('added source: ' + source_ID)
+            self.gitManager.gitAddFile('main', config.SOURCE_FILE)
+            self.gitManager.commit('added source: ' + source_ID)
 #            self._gitCommit()
     
             sourcePath = os.path.join(config.PATH_TO_DATASHELF, 'database', sourceMetaDict['SOURCE_ID'])
             
-            self.repo.init_new_repo(sourcePath, source_ID, sourceMetaDict)
+            self.gitManager.init_new_repo(sourcePath, source_ID, sourceMetaDict)
             
 
         else:
@@ -465,11 +465,11 @@ class Database():
     def importSourceFromRemote(self, remoteName):
         repoPath = os.path.join(config.PATH_TO_DATASHELF, 'database', remoteName)
         
-        self.repo.pull_source_from_remote(remoteName, repoPath)
+        self.gitManager.pull_source_from_remote(remoteName, repoPath)
         sourceMetaDict = util.csv_to_dict(os.path.join(repoPath, 'meta.csv'))
         self.sources.loc[remoteName] = pd.Series(sourceMetaDict)        
         self.sources.to_csv(config.SOURCE_FILE)
-        self.repo.gitAddFile('main', config.SOURCE_FILE) 
+        self.gitManager.gitAddFile('main', config.SOURCE_FILE) 
         sourceInventory = pd.read_csv(os.path.join(repoPath, 'inventory_export.csv'), index_col=0)
         for idx in sourceInventory.index:
             self.inventory.loc[idx,:] = sourceInventory.loc[idx,:]
@@ -478,15 +478,16 @@ class Database():
     def exportSourceToRemote(self, sourceID):
         repoPath = os.path.join(config.PATH_TO_DATASHELF, 'database', sourceID)
         
-        self.repo.create_remote_repo(sourceID, repoPath)
+        
+        self.gitManager.create_remote_repo(sourceID)
         sourceInventory = self.inventory.loc[self.inventory.source==sourceID,:]
         sourceInventory.to_csv(os.path.join(repoPath, 'inventory_export.csv'))
-        self.repo.gitAddFile(sourceID, os.path.join(repoPath, 'inventory_export.csv')) 
+        self.gitManager.gitAddFile(sourceID, os.path.join(repoPath, 'inventory_export.csv')) 
         
-        self.repo.commit('added export inventory')
-        self.repo.push_to_remote_datashelf(sourceID)
+        self.gitManager.commit('added export inventory')
+        self.gitManager.push_to_remote_datashelf(sourceID)
 #%%
-class Repository_Manager(dict):
+class GitRepository_Manager(dict):
     """
     # Management of git repositories for fast access
     """
@@ -502,7 +503,7 @@ class Repository_Manager(dict):
         source = args[0]
         
         
-        if hasattr(core.DB.repo,source):
+        if hasattr(self,source):
             return super().__getattribute__(source)
         else:
             if source == 'main':
@@ -530,7 +531,7 @@ class Repository_Manager(dict):
 
         print('creating folder ' + repoPath)
         os.makedirs(repoPath, exist_ok=True)
-        git.Repo.init(repoPath)
+        git.gitManager.init(repoPath)
         self[repoID] = git.Git(repoPath)  
         for subFolder in config.SOURCE_SUB_FOLDERS:
             os.makedirs(os.path.join(repoPath, subFolder), exist_ok=True)
@@ -568,6 +569,9 @@ class Repository_Manager(dict):
                 
                 
     def create_remote_repo(self, repoName):
+        if self[repoName].execute(["git", "remote"]) == 'origin':
+            print('remote origin already exists, skip')
+            return
         self[repoName].execute(["git", "remote", "add",  "origin",  config.DATASHELF_REMOTE + repoName + ".git"])
         self[repoName].execute(["git","push", "--set-upstream","origin","master"])
         self[repoName].execute(["git","push"])
@@ -577,4 +581,4 @@ class Repository_Manager(dict):
         
     def pull_source_from_remote(self, repoName, repoPath):
         url = config.DATASHELF_REMOTE +  repoName + '.git'
-        git.repo.base.Repo.clone_from(url=url, to_path=repoPath)   
+        git.gitManager.base.Repo.clone_from(url=url, to_path=repoPath)   

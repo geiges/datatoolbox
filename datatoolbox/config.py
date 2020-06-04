@@ -28,7 +28,7 @@ REQUIRED_META_FIELDS = {'entity',
                         'year',
                         'unit'}
 
-OPTIONAL_META_FILDS = ['category',
+OPTIONAL_META_FIELDS = ['category',
                        'model']
 
 ID_FIELDS = ['variable',
