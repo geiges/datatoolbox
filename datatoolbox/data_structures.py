@@ -239,8 +239,8 @@ class Datatable(pd.DataFrame):
         if isinstance(other,Datatable):
             
             if other.meta['entity'] != self.meta['entity']:
-                print(other.meta['entity'] )
-                print(self.meta['entity'])
+#                print(other.meta['entity'] )
+#                print(self.meta['entity'])
                 raise(BaseException('Physical entities do not match, please correct'))
             if other.meta['unit'] != self.meta['unit']:
                 other = other.convert(self.meta['unit'])
@@ -838,9 +838,9 @@ class MetaData(dict):
         super(MetaData, self).__setitem__('source', '_'.join([self[key] for key in ['institution', 'year'] if key in self.keys()]))
         
         
-
-meta = MetaData()
-meta['entity'] = 'Emissions|CO2'
-meta['institution'] = 'WDI'
-meta['year']  = '2020'
-print(meta)
+if __name__ == '__main__':
+    meta = MetaData()
+    meta['entity'] = 'Emissions|CO2'
+    meta['institution'] = 'WDI'
+    meta['year']  = '2020'
+    #print(meta)

@@ -22,6 +22,7 @@ import copy
 from . import config
 from . import core
 from .data_structures import Datatable, TableSet, read_csv
+
 from . import database
 core.DB = database.Database()
 from . import mapping as mapp
@@ -29,10 +30,12 @@ from . import io_tools as io
 from . import interfaces
 from . import util as util
 from . import admin as admin
+
 from . import rawSources as _raw_sources
 
 # Predefined sets for regions and scenrarios
 from datatoolbox.sets import REGIONS, SCENARIOS
+
 # unit conversion package
 unitReg = core.ur
 

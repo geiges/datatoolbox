@@ -31,11 +31,7 @@ class Database():
         self.inventory = pd.read_csv(self.INTVENTORY_PATH, index_col=0)
         self.sources   = pd.read_csv(config.SOURCE_FILE, index_col='SOURCE_ID')
         
-        if config.DB_READ_ONLY:
-            print('databdase in read only mode')
-
-        else:
-            self.repo._validateRepository('main')
+#        self.repo._validateRepository('main')
             
         if (config.OS == 'win32') | (config.OS == "Windows"):
             self.getTable = self._getTableWindows
@@ -511,6 +507,9 @@ class Repository_Manager(dict):
         else:
             if source == 'main':
                 object.__setattr__(self,source, git.Git(self.PATH_TO_DATASHELF))
+                if super().__getattribute__(source).diff() != '':
+                    raise(Exception('Git repository: "' + source + '" is inconsistent! - please check uncommitted modifications'))
+                
             else:
                 object.__setattr__(self,source, git.Git(os.path.join(self.PATH_TO_DATASHELF,  'database', source)))
                 if super().__getattribute__(source).diff() != '':

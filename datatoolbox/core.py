@@ -99,7 +99,7 @@ LOG['tableIDs'] = list()
 #        "[NH3]" ,
 #        "[GWP]",
 #        lambda ur, x: x * 1 / ur.NH3 * ur.CO2eq)
-print(c.funcs)
+#print(c.funcs)
 ur.add_context(c)
 
 def _createDatabaseID(dictData):
