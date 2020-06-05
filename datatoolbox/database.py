@@ -531,7 +531,7 @@ class GitRepository_Manager(dict):
 
         print('creating folder ' + repoPath)
         os.makedirs(repoPath, exist_ok=True)
-        git.gitManager.init(repoPath)
+        git.Repo.init(repoPath)
         self[repoID] = git.Git(repoPath)  
         for subFolder in config.SOURCE_SUB_FOLDERS:
             os.makedirs(os.path.join(repoPath, subFolder), exist_ok=True)
@@ -581,4 +581,4 @@ class GitRepository_Manager(dict):
         
     def pull_source_from_remote(self, repoName, repoPath):
         url = config.DATASHELF_REMOTE +  repoName + '.git'
-        git.gitManager.base.Repo.clone_from(url=url, to_path=repoPath)   
+        git.Repo.base.Repo.clone_from(url=url, to_path=repoPath)   
