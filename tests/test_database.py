@@ -30,7 +30,7 @@ def test_update_meta():
     df.generateTableID()
     dt.updateTable(oldID, df, 'update meta data of table')
     
-    assert  'Emissions|CO2|transport|Historic|XYZ_2020' in dt.core.DB.inventory.index
+    assert  'Emissions|CO2|transport__Historic__XYZ_2020' in dt.core.DB.inventory.index
     
 def test_delete_table():
     dt.removeTable(df.ID)
