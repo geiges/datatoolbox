@@ -492,13 +492,13 @@ def zipExport(IDList, fileName):
     from zipfile import ZipFile
     folder = os.path.join(config.PATH_TO_DATASHELF, 'exports/')
     os.makedirs(folder, exist_ok=True)
-    zipObj = ZipFile(os.path.join(folder, fileName), 'w')
+    
 #    root = config.PATH_TO_DATASHELF
     
-    sources = list(dt.find().loc[IDList].source.unique())
+    sources = dt.find().loc[IDList].source.unique()
     sourceMeta = dt.core.DB.sources.loc[sources]
     sourceMeta.to_csv(os.path.join(folder, 'sources.csv'))
-    
+    zipObj = ZipFile(os.path.join(folder, fileName), 'w')
     zipObj.write(os.path.join(folder, 'sources.csv'),'./sources.csv')
     for ID in tqdm.tqdm(IDList):
         # Add multiple files to the zip
