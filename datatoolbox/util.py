@@ -488,6 +488,7 @@ def update_DB_from_folder(folderToRead, message=None):
                         append_data=True, 
                         update=True)
 
+
 def update_DB_from_folderV3(folderToRead, message=None):
     import math
     fileList = os.listdir(folderToRead)
@@ -630,7 +631,10 @@ def metaV2_to_meta_V3(tableSet):
         
         for entity in entityList:
             if table.meta['entity'].startswith(entity):
-                table.meta['category'] = '|'.join([table.meta['entity'].replace(entity,''), table.meta['category']]).lstrip('|')
+                if 'category' in table.meta:
+                    table.meta['category'] = '|'.join([table.meta['entity'].replace(entity,''), table.meta['category']]).lstrip('|')
+                else:
+                    table.meta['category'] = table.meta['entity'].replace(entity,'')
                 table.meta['entity'] = entity.rstrip('|')
                 
         if hasattr(table.meta,'model') and (table.meta['model'] in table.meta['scenario']):
@@ -680,6 +684,7 @@ def update_DB_from_zip_toV3(filePath):
     update_source_from_file(os.path.join(tempFolder, 'sources.csv'))
     tablesToUpdate = update_DB_from_folderV3(os.path.join(tempFolder, 'data'), message= 'DB update from ' + os.path.basename(filePath))
     return tablesToUpdate
+
 def update_DB_from_zip(filePath):
     
 #%%        

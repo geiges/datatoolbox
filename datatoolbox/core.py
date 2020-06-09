@@ -103,7 +103,7 @@ LOG['tableIDs'] = list()
 ur.add_context(c)
 
 def _createDatabaseID(dictData):
-    return '__'.join([dictData[key] for key in config.ID_FIELDS])
+    return '|'.join([dictData[key] for key in config.ID_FIELDS])
 
 
 def osIsWindows():

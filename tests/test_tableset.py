@@ -52,7 +52,7 @@ def test_add_remove():
     tableSet.add(df)
     
     obs = list(tableSet.keys())
-    exp = ['values|cat1__#1__TEST']
+    exp = ['values|cat1|#1|TEST']
     assert obs == exp
     
     tableSet.add(df2)
@@ -60,7 +60,7 @@ def test_add_remove():
     tableSet.remove(df.ID)
     
     obs = list(tableSet.keys())
-    exp = ['area|cat2__#2__TEST2']
+    exp = ['area|cat2|#2|TEST2']
     assert obs == exp
     
     assert len(tableSet.inventory.index) == 1
@@ -69,7 +69,7 @@ def test_add_list():
     tableSet = dt.TableSet()
     tableSet.add([df, df2])
     obs = list(tableSet.keys())
-    exp = ['values|cat1__#1__TEST', 'area|cat2__#2__TEST2']
+    exp = ['values|cat1|#1|TEST', 'area|cat2|#2|TEST2']
     assert obs == exp
     
 def test_to_long_table():
