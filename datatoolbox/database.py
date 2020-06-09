@@ -576,4 +576,4 @@ class GitRepository_Manager(dict):
         
     def pull_source_from_remote(self, repoName, repoPath):
         url = config.DATASHELF_REMOTE +  repoName + '.git'
-        git.Repo.base.Repo.clone_from(url=url, to_path=repoPath)   
+        git.repo.base.Repo.clone_from(url=url, to_path=repoPath)   
