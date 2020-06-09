@@ -3729,7 +3729,7 @@ class FAO(BaseImportTool):
 #        self.setup.MODEL_COLUMN_NAME = 'model'
         self.setup.SCENARIO_COLUMN_NAME = 'scenario'
         self.setup.REGION_COLUMN_NAME   = 'region'
-        self.setup.VARIABLE_COLUMN_NAME   = 'variable'        
+        self.setup.VARIABLE_COLUMN_NAME   = 'entity'        
 #        self.setup.INDEX_COLUMN_NAME = ['FLOW', 'PRODUCT']
 #        self.setup.SPATIAL_COLUM_NAME = 'COUNTRY'
 #        self.setup.COLUMNS_TO_DROP = [ 'PRODUCT','FLOW','combined']
@@ -3739,7 +3739,7 @@ class FAO(BaseImportTool):
             print("no mapping file found")
         else:
             self.mapping = dict()
-            for var in ['variable', 'scenario', 'region']:
+            for var in ['entity', 'scenario', 'region']:
                 df = pd.read_excel(self.setup.MAPPING_FILE, sheet_name=var +'_mapping', index_col=0)
                 df = df.loc[~df.loc[:,var].isna()]
                 self.mapping.update(df.to_dict())
@@ -3748,20 +3748,24 @@ class FAO(BaseImportTool):
 
     def loadData(self):
         
-        for fileKey in self.setup.DATA_FILE.keys():
+        for i, fileKey in enumerate(self.setup.DATA_FILE.keys()):
+            print(fileKey)
             file = self.setup.DATA_FILE[fileKey]
             temp = pd.read_csv(file, encoding='utf8', engine='python',  index_col = None, header =0)
-            temp.Element = temp.Element.apply(lambda x: fileKey +x )
-            self.data = temp.append(temp)
+            temp.Element = temp.Element.apply(lambda x: fileKey + x )
+            if i == 0:
+                self.data = temp
+            else:
+                self.data = self.data.append(temp)
         
         
         
         self.data.loc[:,'region'] = self.data.Area
-        self.data.loc[:,'variable'] = self.data.Item + '_' + self.data.Element
+        self.data.loc[:,'entity'] = self.data.Element + '_' + self.data.Item
         self.data.loc[:,'scenario'] = 'Historic'
         self.data.loc[:,'model'] = ''
         
-        newColumns = ['region', 'variable','scenario', 'model', 'Unit']
+        newColumns = ['region', 'entity','scenario', 'model', 'Unit']
         self.timeColumns = list()
         for column in self.data.columns:
             if column.startswith('Y') and len(column) == 5:
@@ -3854,15 +3858,15 @@ class FAO(BaseImportTool):
 #                for variable in self.mapping['variable'].keys():
 #                    tempMoScVa = tempMoSc.loc[self.data.variable == variable]    
                 
-                for variable in list(self.mapping['variable'].keys()):
-                    tempMoScVar =  tempMoSc.loc[tempMoSc.variable == variable]
+                for variable in list(self.mapping['entity'].keys()):
+                    tempMoScVar =  tempMoSc.loc[tempMoSc.entity == variable]
                     tempMoScVar.unit = self.mapping['unit'][variable]
 #                    tables = dt.interfaces.read_long_table(tempMoScVar, [variable])
 
                     table = tempMoScVar.loc[:, self.timeColumns]
                     
-                    table = Datatable(table, meta = {'entity': self.mapping['variable'][variable],
-                                                     'category': '',
+                    table = Datatable(table, meta = {'entity': self.mapping['entity'][variable],
+                                                     'category':self.mapping['category'][variable],
                                                      'scenario' : scenario,
                                                      'source' : self.setup.SOURCE_ID,
                                                      'unit' : self.mapping['unit'][variable]})
