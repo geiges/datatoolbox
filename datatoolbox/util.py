@@ -494,11 +494,12 @@ def update_DB_from_folderV3(folderToRead, message=None):
     fileList = os.listdir(folderToRead)
     fileList = [file for file in fileList if '.csv' in file[-5:].lower()]
 
-    tablesToUpdate = dict()
+    
 
     filesPerCommit = 5000
     nCommits = math.ceil((len(fileList))/filesPerCommit)
     for nCommit in range(nCommits):
+        tablesToUpdate = dict()
         for file in fileList[nCommit*filesPerCommit:(nCommit+1)*filesPerCommit]:
 
             table = dt.read_csv(os.path.join(folderToRead, file))
@@ -512,7 +513,7 @@ def update_DB_from_folderV3(folderToRead, message=None):
         
         if message is None:
     
-            message = 'External data added from external source by ' + config.CRUNCHER
+            message = 'External data added from external source by ' + config.CRUNCHER + '{}/{}'.format(nCommit,nCommits)
     
         for source in tablesToUpdate.keys():
     
@@ -523,10 +524,8 @@ def update_DB_from_folderV3(folderToRead, message=None):
             sourceMetaDict = dict()
             sourceMetaDict['SOURCE_ID']= source
             dt.commitTables(tablesToUpdate[source], 
-                            message = message, 
+                            message = message,
                             sourceMetaDict = sourceMetaDict, 
-                            append_data=True, 
-                            update=True,
                             cleanTables=False)
 
 def metaV2_to_meta_V3(tableSet):

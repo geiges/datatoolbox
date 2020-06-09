@@ -166,8 +166,6 @@ class Database():
         
 
     def commitTable(self, dataTable, message, sourceMetaDict=None):
-#        if config.DB_READ_ONLY:
-#            assert self._validateRepository()
             
         if dataTable.meta['source'] not in self.sources.index:
             if sourceMetaDict is None:
@@ -183,9 +181,6 @@ class Database():
         self._gitCommit(message)
 
     def commitTables(self, dataTables, message, sourceMetaDict, append_data=False, update=False, overwrite=False , cleanTables=True):
-#        if config.DB_READ_ONLY:
-#            assert self._validateRepository()
-
         # create a new source if not extisting
         if not(sourceMetaDict['SOURCE_ID'] in self.sources.index):
             self._addNewSource(sourceMetaDict)
@@ -193,7 +188,7 @@ class Database():
         # only test if an table is update if the source did exist
         if update:
             oldTableIDs = [table.generateTableID() for table in dataTables]
-            self.updateTables(oldTableIDs, dataTables, message + 'UPDATE')
+            self.updateTables(oldTableIDs, dataTables, message)
             return            
         
         else:
@@ -226,14 +221,12 @@ class Database():
         
 
     def updateTable(self, oldTableID, newDataTable, message):
-        if config.DB_READ_ONLY:
-            assert self._validateRepository()
+
         self._updateTable(oldTableID, newDataTable)
         self._gitCommit(message)
     
     def updateTables(self, oldTableIDs, newDataTables, message):
-        if config.DB_READ_ONLY:
-            assert self._validateRepository()
+
         """
         same as updateTable, but for list of tables
         """
@@ -253,7 +246,7 @@ class Database():
         
         oldDataTable = self.getTable(oldTableID)
         oldID = oldDataTable.meta['ID']
-        print(oldDataTable.meta)
+        #print(oldDataTable.meta)
         newID = newDataTable.generateTableID()
         
         if oldID == newID:
