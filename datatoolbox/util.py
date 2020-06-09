@@ -523,7 +523,7 @@ def update_DB_from_folderV3(folderToRead, message=None):
         for source in tablesToUpdate.keys():
             sourceMetaDict = dict()
             sourceMetaDict['SOURCE_ID']= source
-            dt.commitTables(tablesToUpdate[source], 
+            core.DB.commitTables(tablesToUpdate[source], 
                             message = message,
                             sourceMetaDict = sourceMetaDict, 
                             cleanTables=False)

@@ -3710,12 +3710,19 @@ class FAO(BaseImportTool):
     """
     FAO data import tool
     """
-    def __init__(self, year):
+    def __init__(self, year=2019):
         self.setup = setupStruct()
         self.setup.SOURCE_ID    = "FAO_" + str(year)
         self.setup.SOURCE_PATH  = config.PATH_TO_DATASHELF + 'rawdata/FAO_' + str(year) + '/'
-        self.setup.DATA_FILE    = [os.path.join(self.setup.SOURCE_PATH, 'Emissions_Land_Use_Land_Use_Total_E_All_Data.csv'),
-                                   os.path.join(self.setup.SOURCE_PATH, 'Emissions_Agriculture_Agriculture_total_E_All_Data.csv')]
+        self.setup.DATA_FILE    = {'Emissions_Land_Use_' : os.path.join(self.setup.SOURCE_PATH, 'Emissions_Land_Use_Land_Use_Total_E_All_Data.csv'),
+                                   'Emissions_Agriculture_' : os.path.join(self.setup.SOURCE_PATH, 'Emissions_Agriculture_Agriculture_total_E_All_Data.csv'),
+                                   'Environment_Emissions_by_Sector_' : os.path.join(self.setup.SOURCE_PATH, 'Environment_Emissions_by_Sector_E_All_Data.csv'),
+                                   'Environment_Emissions_intensities_' : os.path.join(self.setup.SOURCE_PATH, 'Environment_Emissions_intensities_E_All_Data.csv'),
+                                   'Environment_LandCover_' : os.path.join(self.setup.SOURCE_PATH, 'Environment_LandCover_E_All_Data.csv'),
+                                   'Environment_LandUse_'   : os.path.join(self.setup.SOURCE_PATH, 'Environment_LandUse_E_All_Data.csv'),
+                                   'Inputs_LandUse_'        : os.path.join(self.setup.SOURCE_PATH, 'Inputs_LandUse_E_All_Data.csv')
+                                   }
+
         self.setup.MAPPING_FILE = os.path.join(self.setup.SOURCE_PATH, 'mapping.xlsx')
         self.setup.LICENCE = 'Food and Agriculture Organization of the United Nations (FAO)'
         self.setup.URL     = 'http://www.fao.org/faostat/en/#data/GL'
@@ -3741,14 +3748,11 @@ class FAO(BaseImportTool):
 
     def loadData(self):
         
-        file = self.setup.DATA_FILE[0]
-        temp = pd.read_csv(file, encoding='utf8', engine='python',  index_col = None, header =0)
-        temp.Element = temp.Element.apply(lambda x: 'Landuse_' +x )
-        file = self.setup.DATA_FILE[1]
-        agri = pd.read_csv(file, encoding='utf8', engine='python',  index_col = None, header =0)
-        agri.Element = agri.Element.apply(lambda x: 'Agriculture_' + x)
-
-        self.data = temp.append(agri)
+        for fileKey in self.setup.DATA_FILE.keys():
+            file = self.setup.DATA_FILE[fileKey]
+            temp = pd.read_csv(file, encoding='utf8', engine='python',  index_col = None, header =0)
+            temp.Element = temp.Element.apply(lambda x: fileKey +x )
+            self.data = temp.append(temp)
         
         
         
@@ -4031,8 +4035,132 @@ class WEO(BaseImportTool):
         
         return tablesList, []
 
-#%%
+#%% Enerdata
+class ENERDATA_2019(BaseImportTool):
+    def __init__(self):
+        self.setup = setupStruct()
+        self.setup.SOURCE_ID    = "ENERDATA_2019"
+        self.setup.SOURCE_PATH  = os.path.join([config.PATH_TO_DATASHELF,'rawdata', self.setup.SOURCE_ID])
+        self.setup.DATA_FILE    = os.path.join([self.setup.SOURCE_PATH, 'export_enerdata_1137124_112738.xlsx'])
+        self.setup.MAPPING_FILE =  os.path.join([self.setup.SOURCE_PATH,'mapping.xlsx'])
+        self.setup.LICENCE = ' Restricted use in the Brown 2 Green project only'
+        self.setup.URL     = 'https://www.enerdata.net/user/?destination=services.html'
         
+        self.setup.REGION_COLUMN_NAME   = 'SIO code'
+        self.setup.VARIABLE_COLUMN_NAME   = 'Item code'
+        
+        if not(os.path.exists(self.setup.MAPPING_FILE)):
+            self.createVariableMapping()
+            print("no mapping file found")
+        else:
+            self.mapping = dict()
+            
+            
+            for var in ['variable', 'region']:
+                df = pd.read_excel(self.setup.MAPPING_FILE, sheet_name=var +'_mapping', index_col=0)
+                df = df.loc[~df.loc[:,var].isna()]
+                self.mapping.update(df.to_dict())
+            
+        self.createSourceMeta()
+
+    def loadData(self):
+        self.data = pd.read_csv(self.setup.DATA_FILE,   index_col = None, header =0)
+        
+    def createVariableMapping(self):        
+        
+        # loading data if necessary
+        if not hasattr(self, 'data'):        
+            self.loadData()
+        
+        
+        import numpy as np
+ 
+        writer = pd.ExcelWriter(self.setup.MAPPING_FILE,
+                    engine='xlsxwriter',
+                    datetime_format='mmm d yyyy hh:mm:ss',
+                    date_format='mmmm dd yyyy')       
+        
+        #variables
+        #index = self.data[self.setup.VARIABLE_COLUMN_NAME].unique()
+        self.availableSeries = self.data.drop_duplicates('variable').set_index( self.setup.VARIABLE_COLUMN_NAME)['unit']
+        self.mapping = pd.DataFrame(index=self.availableSeries.index, columns =  [ self.setup.VARIABLE_COLUMN_NAME])
+        self.mapping = pd.concat([self.mapping, self.availableSeries], axis=1)
+        self.mapping = self.mapping.sort_index()
+        self.mapping.to_excel(writer, engine='openpyxl', sheet_name=VAR_MAPPING_SHEET)
+        
+        #models
+#        index = np.unique(self.data[self.setup.MODEL_COLUMN_NAME].values)
+#        
+#        self.availableSeries = pd.DataFrame(index=index)
+#        self.mapping = pd.DataFrame(index=index, columns = [self.setup.MODEL_COLUMN_NAME])
+#        self.mapping = pd.concat([self.mapping, self.availableSeries], axis=1)
+#        self.mapping = self.mapping.sort_index()
+#        
+#        self.mapping.to_excel(writer, engine='openpyxl', sheet_name='model_mapping')
+
+        #scenarios
+#        index = np.unique(self.data[self.setup.SCENARIO_COLUMN_NAME].values)
+#        
+#        self.availableSeries = pd.DataFrame(index=index)
+#        self.mapping = pd.DataFrame(index=index, columns = [self.setup.SCENARIO_COLUMN_NAME])
+#        self.mapping = pd.concat([self.mapping, self.availableSeries], axis=1)
+#        self.mapping = self.mapping.sort_index()
+#        self.mapping.to_excel(writer, engine='openpyxl', sheet_name='scenario_mapping')
+        
+        #region
+        index = np.unique(self.data[self.setup.region_COLUMN_NAME].values)
+        
+        self.availableSeries = pd.DataFrame(index=index)
+        self.mapping = pd.DataFrame(index=index, columns = [self.setup.REGION_COLUMN_NAME])
+        self.mapping = pd.concat([self.mapping, self.availableSeries], axis=1)
+        self.mapping = self.mapping.sort_index()
+        
+        for idx in self.mapping.index:
+            iso = dt.util.identifyCountry(idx)
+            if iso is not None:
+                self.mapping.loc[idx,'region'] = iso
+        
+        self.mapping.to_excel(writer, engine='openpyxl', sheet_name='region_mapping')
+        writer.close()
+
+
+    def gatherMappedData(self, spatialSubSet = None, updateTables=False):
+        #%%
+        import tqdm
+        # loading data if necessary
+        if not hasattr(self, 'data'):
+            self.loadData()        
+      
+        tablesToCommit  = []
+        metaDict = dict()
+        metaDict['source'] = self.setup.SOURCE_ID
+        excludedTables = dict()
+        excludedTables['empty'] = list()
+        excludedTables['error'] = list()
+        excludedTables['exists'] = list()
+        tempMoSc
+        
+#        for model in self.mapping['model'].keys():
+#            tempMo = self.data.loc[self.data.model == model]
+#            for scenario in self.mapping['scenario'].keys():
+#                tempMoSc = tempMo.loc[self.data.scenario == scenario]
+        for variable in self.mapping['variable'].keys():
+            tempMoScVa = self.data.loc[self.data.variable == variable]    
+            
+        tables = dt.interfaces.read_long_table(tempMoScVa, list(self.mapping['variable'].keys()))
+        for table in tables:
+            table.meta['category'] = ""
+            table.meta['source'] = self.setup.SOURCE_ID
+            table.index = table.index.map(self.mapping['region'])
+            
+            tableID = dt.core._createDatabaseID(table.meta)
+            if not updateTables:
+                if dt.core.DB.tableExist(tableID):
+                    excludedTables['exists'].append(tableID)
+                else:
+                    tablesToCommit.append(table)
+        return tablesToCommit, excludedTables  
+   
 #%%
 def UN_WPP_2019_import():
     sourceMeta = {'SOURCE_ID': 'UN_WPP2019',
@@ -4104,6 +4232,9 @@ def UN_WPP_2019_import():
     dt.commitTables(tables, 'UNWPP2017 data', sourceMeta, append_data=True)
     return tables
 
+
+
+#%% 
 sources = sourcesStruct()
 _sourceClasses = [IEA_WEB_2019_New, IEA_WEB_2018, ADVANCE_DB, IAMC15_2019, IRENA2019, 
                   SSP_DATA, SDG_DATA_2019, AR5_DATABASE, IEA_FUEL_2019, PRIMAP_HIST, SDG_DATA_2019,
