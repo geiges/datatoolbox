@@ -3877,6 +3877,9 @@ class FAO(BaseImportTool):
                     
                     table = table.loc[~pd.isna(table.index),:]
                     
+                    if not pd.isna(metaDict['unitTo']):
+                        table = table.convert(metaDict['unitTo'])
+                    
                     tableID = dt.core._createDatabaseID(table.meta)
                     if not updateTables:
                         if dt.core.DB.tableExist(tableID):
@@ -4040,17 +4043,17 @@ class WEO(BaseImportTool):
         return tablesList, []
 
 #%% Enerdata
-class ENERDATA_2019(BaseImportTool):
-    def __init__(self):
+class ENERDATA(BaseImportTool):
+    def __init__(self, year = 2019):
         self.setup = setupStruct()
-        self.setup.SOURCE_ID    = "ENERDATA_2019"
-        self.setup.SOURCE_PATH  = os.path.join([config.PATH_TO_DATASHELF,'rawdata', self.setup.SOURCE_ID])
-        self.setup.DATA_FILE    = os.path.join([self.setup.SOURCE_PATH, 'export_enerdata_1137124_112738.xlsx'])
-        self.setup.MAPPING_FILE =  os.path.join([self.setup.SOURCE_PATH,'mapping.xlsx'])
+        self.setup.SOURCE_ID    = "ENERDATA_" + str(year)
+        self.setup.SOURCE_PATH  = os.path.join(config.PATH_TO_DATASHELF,'rawdata', self.setup.SOURCE_ID)
+        self.setup.DATA_FILE    = os.path.join(self.setup.SOURCE_PATH, 'export_enerdata_1137124_112738.xlsx')
+        self.setup.MAPPING_FILE =  os.path.join(self.setup.SOURCE_PATH,'mapping.xlsx')
         self.setup.LICENCE = ' Restricted use in the Brown 2 Green project only'
         self.setup.URL     = 'https://www.enerdata.net/user/?destination=services.html'
         
-        self.setup.REGION_COLUMN_NAME   = 'SIO code'
+        self.setup.REGION_COLUMN_NAME   = 'ISO code'
         self.setup.VARIABLE_COLUMN_NAME   = 'Item code'
         
         if not(os.path.exists(self.setup.MAPPING_FILE)):
@@ -4060,7 +4063,7 @@ class ENERDATA_2019(BaseImportTool):
             self.mapping = dict()
             
             
-            for var in ['variable', 'region']:
+            for var in ['entity', 'region']:
                 df = pd.read_excel(self.setup.MAPPING_FILE, sheet_name=var +'_mapping', index_col=0)
                 df = df.loc[~df.loc[:,var].isna()]
                 self.mapping.update(df.to_dict())
@@ -4068,10 +4071,19 @@ class ENERDATA_2019(BaseImportTool):
         self.createSourceMeta()
 
     def loadData(self):
-        self.data = pd.read_csv(self.setup.DATA_FILE,   index_col = None, header =0)
+        self.data = pd.read_excel(self.setup.DATA_FILE,   index_col = None, header =0)
         
+        self.data.loc[:,'region'] = self.data.loc[:,self.setup.REGION_COLUMN_NAME]
+        self.data.loc[:,'entity'] = self.data.loc[:,self.setup.VARIABLE_COLUMN_NAME]
+        self.data.loc[:,'scenario'] = 'Historic'
+        
+        self.timeColumns = list()
+        for col in self.data.columns:
+            if isinstance(col,int):
+                self.timeColumns.append(col)
+#        self.data.loc[:,'model'] = ''
     def createVariableMapping(self):        
-        
+        #%%
         # loading data if necessary
         if not hasattr(self, 'data'):        
             self.loadData()
@@ -4086,8 +4098,8 @@ class ENERDATA_2019(BaseImportTool):
         
         #variables
         #index = self.data[self.setup.VARIABLE_COLUMN_NAME].unique()
-        self.availableSeries = self.data.drop_duplicates('variable').set_index( self.setup.VARIABLE_COLUMN_NAME)['unit']
-        self.mapping = pd.DataFrame(index=self.availableSeries.index, columns =  [ self.setup.VARIABLE_COLUMN_NAME])
+        self.availableSeries = self.data.drop_duplicates(self.setup.VARIABLE_COLUMN_NAME).set_index( self.setup.VARIABLE_COLUMN_NAME)[['Unit', 'Title']]
+        self.mapping = pd.DataFrame(index=self.availableSeries.index, columns =  [ 'entity', 'category', 'unitTo'])
         self.mapping = pd.concat([self.mapping, self.availableSeries], axis=1)
         self.mapping = self.mapping.sort_index()
         self.mapping.to_excel(writer, engine='openpyxl', sheet_name=VAR_MAPPING_SHEET)
@@ -4112,21 +4124,23 @@ class ENERDATA_2019(BaseImportTool):
 #        self.mapping.to_excel(writer, engine='openpyxl', sheet_name='scenario_mapping')
         
         #region
-        index = np.unique(self.data[self.setup.region_COLUMN_NAME].values)
+        index = self.data[self.setup.REGION_COLUMN_NAME].unique()
         
         self.availableSeries = pd.DataFrame(index=index)
-        self.mapping = pd.DataFrame(index=index, columns = [self.setup.REGION_COLUMN_NAME])
+        self.mapping = pd.DataFrame(index=index, columns = ['region'])
         self.mapping = pd.concat([self.mapping, self.availableSeries], axis=1)
         self.mapping = self.mapping.sort_index()
         
         for idx in self.mapping.index:
+            if not isinstance(idx,(str, int)):
+                continue
             iso = dt.util.identifyCountry(idx)
             if iso is not None:
                 self.mapping.loc[idx,'region'] = iso
         
         self.mapping.to_excel(writer, engine='openpyxl', sheet_name='region_mapping')
         writer.close()
-
+        #%%
 
     def gatherMappedData(self, spatialSubSet = None, updateTables=False):
         #%%
@@ -4142,21 +4156,39 @@ class ENERDATA_2019(BaseImportTool):
         excludedTables['empty'] = list()
         excludedTables['error'] = list()
         excludedTables['exists'] = list()
-        tempMoSc
         
-#        for model in self.mapping['model'].keys():
-#            tempMo = self.data.loc[self.data.model == model]
+        
+#        for model in ['']:
+#            tempMo = self.data
+#            
+##            tempMo = self.data.loc[self.data.model == model]
 #            for scenario in self.mapping['scenario'].keys():
-#                tempMoSc = tempMo.loc[self.data.scenario == scenario]
-        for variable in self.mapping['variable'].keys():
-            tempMoScVa = self.data.loc[self.data.variable == variable]    
+#                tempMoSc = tempMo.loc[tempMo.scenario == scenario]
+##                for variable in self.mapping['variable'].keys():
+##                    tempMoScVa = tempMoSc.loc[self.data.variable == variable]    
+                
+        for variable in list(self.mapping['entity'].keys()):
+#            metaDf = self.mapping.loc[variable]
+            tempMoScVar =  self.data.loc[self.data.entity == variable]
+            tempMoScVar.unit = self.mapping['unit'][variable]
+#                    tables = dt.interfaces.read_long_table(tempMoScVar, [variable])
+
+            table = tempMoScVar.loc[:, self.timeColumns]
             
-        tables = dt.interfaces.read_long_table(tempMoScVa, list(self.mapping['variable'].keys()))
-        for table in tables:
-            table.meta['category'] = ""
-            table.meta['source'] = self.setup.SOURCE_ID
+            table = Datatable(table, meta = {'entity': self.mapping['entity'][variable],
+                                             'category':self.mapping['category'][variable],
+                                             'scenario' : 'Historic',
+                                             'source' : self.setup.SOURCE_ID,
+                                             'unit' : self.mapping['unit'][variable]})
+            table.index = tempMoScVar.region
+#                    table.meta['category'] = ""
+#                    table.meta['source'] = 
             table.index = table.index.map(self.mapping['region'])
             
+            table = table.loc[~pd.isna(table.index),:]
+            if not pd.isna(self.mapping['unitTo'][variable]):
+                print('conversion to : ' +str(self.mapping['unitTo'][variable]))
+                table = table.convert(self.mapping['unitTo'][variable])
             tableID = dt.core._createDatabaseID(table.meta)
             if not updateTables:
                 if dt.core.DB.tableExist(tableID):
@@ -4374,6 +4406,10 @@ if __name__ == '__main__':
     vanmarle = VANMARLE2017()
 #    tableList, excludedTables = vanmarle.gatherMappedData()
 #    dt.commitTables(tableList, 'vanmarle data updated', vanmarle.meta, update=False)  
+#%% Enerdata
+    enerdata = ENERDATA(2019)
+    tableList, excludedTables = enerdata.gatherMappedData()
+#    dt.commitTables(tableList, 'enerdata data updated', enerdata.meta, update=False)  
     #%%
 ##################################################################
 #    helper funtions

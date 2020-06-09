@@ -224,14 +224,6 @@ class Datatable(pd.DataFrame):
     #%%
     def generateTableID(self):
         # update meta data required for the ID
-        if 'category' in self.meta:
-            if (self.meta['category'] == np.nan) or self.meta['category'] == '':
-                del self.meta['category']
-#        print(self.meta)
-        self.meta['variable'] = '|'.join([ self.meta[key] for key in ['entity', 'category'] if key in  self.meta.keys()]).strip('|')
-        self.meta['pathway'] = '|'.join([ self.meta[key] for key in ['scenario', 'model'] if key in  self.meta.keys()]).strip('|')
-        if 'source' not in  self.meta.keys():
-            self.meta['pathway'] = '|'.join([ self.meta[key] for key in ['institution', 'year'] if key in  self.meta.keys()]).strip('|')    
         self.ID =  core._createDatabaseID(self.meta)
         self.meta['ID'] = self.ID
         return self.ID
