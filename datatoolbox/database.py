@@ -182,7 +182,7 @@ class Database():
            
         self._gitCommit(message)
 
-    def commitTables(self, dataTables, message, sourceMetaDict, append_data=False, update=False, overwrite=False):
+    def commitTables(self, dataTables, message, sourceMetaDict, append_data=False, update=False, overwrite=False , cleanTables=True):
 #        if config.DB_READ_ONLY:
 #            assert self._validateRepository()
 
@@ -198,7 +198,8 @@ class Database():
         
         else:
             for dataTable in tqdm.tqdm(dataTables):
-                dataTable = util.cleanDataTable(dataTable)
+                if cleanTables:
+                    dataTable = util.cleanDataTable(dataTable)
                 
                 if dataTable.isnull().all().all():
                     print('ommiting empty table: ' + dataTable.ID)

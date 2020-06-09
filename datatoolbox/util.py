@@ -489,37 +489,44 @@ def update_DB_from_folder(folderToRead, message=None):
                         update=True)
 
 def update_DB_from_folderV3(folderToRead, message=None):
+    import math
     fileList = os.listdir(folderToRead)
     fileList = [file for file in fileList if '.csv' in file[-5:].lower()]
 
     tablesToUpdate = dict()
 
-    for file in fileList:
-        table = dt.read_csv(os.path.join(folderToRead, file))
-        source = table.meta['source']
-        if source in tablesToUpdate.keys():
+    filesPerCommit = 5000
+    nCommits = math.ceil((len(fileList))/filesPerCommit)
+    for nCommit in range(nCommits):
+        for file in fileList[nCommit*filesPerCommit:(nCommit+1)*filesPerCommit]:
 
-
-            tablesToUpdate[source].append(table)
-        else:
-            tablesToUpdate[source] = [table]
-    if message is None:
-
-        message = 'External data added from external source by ' + config.CRUNCHER
-
-    for source in tablesToUpdate.keys():
-
-        tablesToUpdate[source] = metaV2_to_meta_V3(tablesToUpdate[source])
-#    return tablesToUpdate
-
-    for source in tablesToUpdate.keys():
-        sourceMetaDict = dict()
-        sourceMetaDict['SOURCE_ID']= source
-        dt.commitTables(tablesToUpdate[source], 
-                        message = message, 
-                        sourceMetaDict = sourceMetaDict, 
-                        append_data=True, 
-                        update=True)
+            table = dt.read_csv(os.path.join(folderToRead, file))
+            source = table.meta['source']
+            if source in tablesToUpdate.keys():
+    
+    
+                tablesToUpdate[source].append(table)
+            else:
+                tablesToUpdate[source] = [table]
+        
+        if message is None:
+    
+            message = 'External data added from external source by ' + config.CRUNCHER
+    
+        for source in tablesToUpdate.keys():
+    
+            tablesToUpdate[source] = metaV2_to_meta_V3(tablesToUpdate[source])
+    #    return tablesToUpdate
+    
+        for source in tablesToUpdate.keys():
+            sourceMetaDict = dict()
+            sourceMetaDict['SOURCE_ID']= source
+            dt.commitTables(tablesToUpdate[source], 
+                            message = message, 
+                            sourceMetaDict = sourceMetaDict, 
+                            append_data=True, 
+                            update=True,
+                            cleanTables=False)
 
 def metaV2_to_meta_V3(tableSet):
     replacementDict = {#'Capacity': 'Electricity|capacity',
@@ -532,8 +539,9 @@ def metaV2_to_meta_V3(tableSet):
                    'Emissions|KyotoGHG' : 'Emissions|KYOTOGHG_AR4',
                    'Emissions|KYOTOGHG' : 'Emissions|KYOTOGHG',
                    'Emission|KYOTO_GHG_AR4' : 'Emissions|KYOTOGHG_AR4',
+                   'Emission|KYOTOGHG'      : 'Emissions|KYOTOGHG_AR4',
                    'Emissions|Kyoto Gases|AR5-GWP100' : 'Emissions|KYOTOGHG_AR5',
-                   'Emissions|KYOTOGHGAR4' : 'Emissions|KYOTOGHG_AR4',
+                   'Emission|KYOTO_GHG_AR4' : 'Emissions|KYOTOGHG_AR4',
                    'Emissions_KYOTOGHGAR4' : 'Emissions|KYOTOGHG_AR4',
                    'Emissions|Kyoto Gases|AR4-GWP10' : 'Emissions|KYOTOGHG_AR4',
                    'Emissions|KYOTOGHG_AR40' : 'Emissions|KYOTOGHG_AR4',
@@ -625,7 +633,7 @@ def metaV2_to_meta_V3(tableSet):
                 table.meta['category'] = '|'.join([table.meta['entity'].replace(entity,''), table.meta['category']]).lstrip('|')
                 table.meta['entity'] = entity.rstrip('|')
                 
-        if table.meta['model'] in table.meta['scenario']:
+        if hasattr(table.meta,'model') and (table.meta['model'] in table.meta['scenario']):
             table.meta['scenario'] = table.meta['scenario'].replace(table.meta['model'],'').rstrip('|')
             table.generateTableID()
         outList.append(table)

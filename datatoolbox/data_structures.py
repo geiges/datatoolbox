@@ -15,6 +15,7 @@ from . import core
 from . import config 
 from . import mapping as mapp
 from . import util
+#from . import io_tools
             
 class Datatable(pd.DataFrame):
     
@@ -109,7 +110,7 @@ class Datatable(pd.DataFrame):
         
         metaSeries.to_excel(writer, sheet_name=sheetName, header=None, columns=None)
         super(Datatable, self).to_excel(writer, sheet_name= sheetName, startrow=len(metaSeries))
-        #writer.close()
+        writer.close()
         
         
                 
@@ -223,6 +224,10 @@ class Datatable(pd.DataFrame):
     #%%
     def generateTableID(self):
         # update meta data required for the ID
+        if 'category' in self.meta:
+            if (self.meta['category'] == np.nan) or self.meta['category'] == '':
+                del self.meta['category']
+#        print(self.meta)
         self.meta['variable'] = '|'.join([ self.meta[key] for key in ['entity', 'category'] if key in  self.meta.keys()]).strip('|')
         self.meta['pathway'] = '|'.join([ self.meta[key] for key in ['scenario', 'model'] if key in  self.meta.keys()]).strip('|')
         if 'source' not in  self.meta.keys():
@@ -515,9 +520,10 @@ class TableSet(dict):
                 table.loc[:,'model'] = scenModel[1]
                 table.loc[:,'scenario']   =scenModel[0]
             else:
-                table.loc[:,'model'] = table.meta['scenario']
-                table.loc[:,'scenario']   = ''
-            tableNew = table.loc[:, ['variable','region', 'scenario',  'model', 'unit'] +  oldColumns]
+                table.loc[:,'scenario']   = table.meta['scenario']
+                table.loc[:,'model']      = ''
+                
+            tableNew = table.loc[:, ['variable', 'region', 'scenario',  'model', 'unit'] +  oldColumns]
             tableNew.index= range(len(tableNew.index))
             tableList.append(tableNew)
         #df = pd.DataFrame(columns = ['variable','region', 'model', 'unit'] + list(range(minMax[0], minMax[1])))
@@ -531,7 +537,11 @@ class TableSet(dict):
             #print(table)
             fullDf = fullDf.append(pd.DataFrame(table))
         fullDf.index = range(len(fullDf))
-        return fullDf
+        
+        columns = list(fullDf.columns)
+        [columns.remove(x) for x in ['variable', 'region', 'scenario',  'model', 'unit']]
+        columns = ['variable', 'region', 'scenario',  'model', 'unit'] + columns 
+        return fullDf.loc[:, columns]
     
     def to_IamDataFrame(self):
         #%%
@@ -823,6 +833,37 @@ def read_csv(fileName):
 
     fid.close()
     return df
+
+def read_excel(fileName, sheetNames = None):
+ 
+    out = TableSet()
+    if sheetNames is None:
+        xlFile = pd.ExcelFile(fileName)
+        sheetNames = xlFile.sheet_names
+        xlFile.close()
+
+        
+    for sheet in sheetNames:
+        fileContent = pd.read_excel(fileName, sheet_name=sheet, header=None)
+        metaDict = dict()
+        try:
+            for idx in fileContent.index:
+                key, value = fileContent.loc[idx, [0,1]]
+                if key == '###DATA###':
+                    break
+                
+                metaDict[key] = value
+            columnIdx = idx +1
+            dataTable = Datatable(data    = fileContent.loc[columnIdx+1:, 1:].astype(float).values, 
+                                  index   = fileContent.loc[columnIdx+1:, 0], 
+                                  columns = [int(x) for x in fileContent.loc[columnIdx, 1:]], 
+                                  meta    = metaDict)
+            dataTable.generateTableID()
+            out.add(dataTable)
+        except:
+            print('Failed to read the sheet: {}'.format(sheet))
+        
+    return out
 #%%
 class MetaData(dict):
     
