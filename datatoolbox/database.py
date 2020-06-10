@@ -383,7 +383,7 @@ class Database():
 #            self.gitManager['main'].execute(["git", "commit", '-m' "" +  message + " by " + config.CRUNCHER])
 #        except:
 #            print('commit failed')   
-        gitHashes = self.gitManager.commit(message)
+        self.gitManager.commit(message)
         
 
     def _addNewSource(self, sourceMetaDict):
@@ -571,7 +571,8 @@ class GitRepository_Manager(dict):
         for repoID in self.updatedRepos:
             try:
                 self[repoID].execute(["git", "commit", '-m' "" +  message + " by " + config.CRUNCHER])
-                self.source.loc[repoID,'git_commit_hash'] = self[repoID].execute(['git', 'rev-parse', 'HEAD'])
+                self.sources.loc[repoID,'git_commit_hash'] = self[repoID].execute(['git', 'rev-parse', 'HEAD'])
+                
             except:
                 print('Commit of {} repository failed'.format(repoID))  
         
