@@ -492,27 +492,35 @@ class GitRepository_Manager(dict):
         self.updatedRepos      = set()
         self.sources   = pd.read_csv(config.SOURCE_FILE, index_col='SOURCE_ID')
         
+        self.unvalidated_repos = dict()
+        for sourceID in self.sources.index:
+            repoPath = os.path.join(self.PATH_TO_DATASHELF,  'database', sourceID)
+            self.unvalidated_repos[sourceID] = git.Git(repoPath)
+            commitHash = self.unvalidated_repos[sourceID].execute(['git', 'rev-parse', 'HEAD'])
+            if commitHash != self.sources.loc[sourceID, 'git_commit_hash']:
+                raise(BaseException('Source {} is inconsistend with overall database'.format(sourceID)))
+            
     def __getitem__(self, *args, **kwargs):
         """ 
         Overwrites __getitem__ to automatically load git class of a 
         repository and checks for uncommited changes
         """
-        source = args[0]
+        sourceID = args[0]
         
         
-        if hasattr(self,source):
-            return super().__getattribute__(source)
+        if hasattr(self, sourceID):
+            return super().__getattribute__(sourceID)
         else:
-            if source == 'main':
-                object.__setattr__(self,source, git.Git(self.PATH_TO_DATASHELF))
-                if super().__getattribute__(source).diff() != '':
-                    raise(Exception('Git repository: "' + source + '" is inconsistent! - please check uncommitted modifications'))
+            if sourceID == 'main':
+                object.__setattr__(self,sourceID, git.Git(self.PATH_TO_DATASHELF))
+                if super().__getattribute__(sourceID).diff() != '':
+                    raise(Exception('Main database repository is inconsistent! - please check uncommitted modifications'))
                 
             else:
-                object.__setattr__(self,source, git.Git(os.path.join(self.PATH_TO_DATASHELF,  'database', source)))
-                if super().__getattribute__(source).diff() != '':
-                    raise(Exception('Git repository: "' + source + '" is inconsistent! - please check uncommitted modifications'))
-            return super().__getattribute__(source)
+                object.__setattr__(self,sourceID , self.unvalidated_repos[sourceID])
+                if super().__getattribute__(sourceID).diff() != '':
+                    raise(Exception('Source repository: "' + sourceID + '" is inconsistent! - please check uncommitted modifications'))
+            return super().__getattribute__(sourceID)
         
     def _validateRepository(self, repoName):
         if self[repoName].diff() != '':
