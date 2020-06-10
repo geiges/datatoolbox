@@ -23,14 +23,14 @@ def create_empty_datashelf(pathToDataself):
     from pathlib import Path
     path = Path(pathToDataself)
     path.mkdir(parents=True,exist_ok=True)
-    
+    os.makedirs(os.path.join(pathToDataself, 'mappings'),exist_ok=True)
     shutil.copyfile(os.path.join(config.MODULE_PATH, 'data/SANDBOX_datashelf/mappings/regions.csv'),
                     os.path.join(pathToDataself, 'mappings/regions.csv'))
     shutil.copyfile(os.path.join(config.MODULE_PATH, 'data/SANDBOX_datashelf/mappings/continent.csv'),
                     os.path.join(pathToDataself, 'mappings/continent.csv'))
     shutil.copyfile(os.path.join(config.MODULE_PATH, 'data/SANDBOX_datashelf/mappings/country_codes.csv'),
                     os.path.join(pathToDataself, 'mappings/country_codes.csv'))    
-    os.makedirs(os.path.join(pathToDataself, 'mappings'),exist_ok=True)
+    
     sourcesDf = pd.DataFrame(columns = config.SOURCE_META_FIELDS)
     filePath= os.path.join(pathToDataself, 'sources.csv')
     sourcesDf.to_csv(filePath)

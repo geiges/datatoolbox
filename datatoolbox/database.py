@@ -475,7 +475,7 @@ class Database():
         
         self.gitManager.commit('added export inventory')
         self.gitManager.push_to_remote_datashelf(sourceID)
-        print('export succesful: ({})'.format( config.DATASHELF_REMOTE +  sourceID))
+        print('export successful: ({})'.format( config.DATASHELF_REMOTE +  sourceID))
 #%%
 class GitRepository_Manager(dict):
     """

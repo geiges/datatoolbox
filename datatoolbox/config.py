@@ -7,8 +7,12 @@ Created on Fri Mar  1 14:15:56 2019
 """
 import os
 import platform
-OS = platform.system() #'win32' , linux, #darwin
+OS = platform.system() #'win32' , linux, #Darwin
 
+
+if OS == 'Darwin':
+    import matplotlib
+    matplotlib.use("TkAgg")
 #%% Personal setup
 if not os.path.isfile(os.path.dirname(__file__) + '/settings/personal.py'):
     from .tools.install_support import create_initial_config
