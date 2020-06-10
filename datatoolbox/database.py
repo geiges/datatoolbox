@@ -29,7 +29,7 @@ class Database():
         self.gitManager = GitRepository_Manager(config)
         self.INTVENTORY_PATH = os.path.join(self.path, 'inventory.csv')
         self.inventory = pd.read_csv(self.INTVENTORY_PATH, index_col=0)
-        self.sources   = pd.read_csv(config.SOURCE_FILE, index_col='SOURCE_ID')
+        self.sources   = self.gitManager.sources
         
         self.gitManager._validateRepository('main')
             
@@ -54,7 +54,7 @@ class Database():
         from pathlib import Path
         print('######## Database informations: #############')
         print('Number of tables: {}'.format(len(self.inventory)))  
-        print('Number of data sources: {}'.format(len(self.sources))) 
+        print('Number of data sources: {}'.format(len(self.gitManager.sources))) 
         print('Number of commits: {}'.format(self.gitManager['main'].execute(["git", "rev-list", "--all", "--count"])))
 #        root_directory = Path(config.PATH_TO_DATASHELF)
 #        print('Size of datashelf: {:2.2f} MB'.format(sum(f.stat().st_size for f in root_directory.glob('**/*') if f.is_file() )/1e6))
@@ -63,7 +63,7 @@ class Database():
         print('#############################################')
         #%%
     def sourceInfo(self):
-        sources = copy.copy(self.sources)
+        sources = copy.copy(self.gitManager.sources)
         return sources.sort_index()
 
     def returnInventory(self):
@@ -74,7 +74,7 @@ class Database():
         self.inventory = pd.read_csv(self.INTVENTORY_PATH, index_col=0)
         
     def sourceExists(self, source):
-        return source in self.sources.index
+        return source in self.gitManager.sources.index
     
     def add_to_inventory(self, datatable):
 #        if config.DB_READ_ONLY:
@@ -167,11 +167,11 @@ class Database():
 
     def commitTable(self, dataTable, message, sourceMetaDict=None):
             
-        if dataTable.meta['source'] not in self.sources.index:
+        if dataTable.meta['source'] not in self.gitManager.sources.index:
             if sourceMetaDict is None:
                 raise(BaseException('Source does not extist and now sourceMeta provided'))
             else:
-                if not( sourceMetaDict['SOURCE_ID'] in self.sources.index):
+                if not( sourceMetaDict['SOURCE_ID'] in self.gitManager.sources.index):
                     self._addNewSource(sourceMetaDict)
         
         dataTable = util.cleanDataTable(dataTable)
@@ -182,7 +182,7 @@ class Database():
 
     def commitTables(self, dataTables, message, sourceMetaDict, append_data=False, update=False, overwrite=False , cleanTables=True):
         # create a new source if not extisting
-        if not(sourceMetaDict['SOURCE_ID'] in self.sources.index):
+        if not(sourceMetaDict['SOURCE_ID'] in self.gitManager.sources.index):
             self._addNewSource(sourceMetaDict)
 
         # only test if an table is update if the source did exist
@@ -390,14 +390,8 @@ class Database():
         source_ID = sourceMetaDict['SOURCE_ID']
         
         if not self.sourceExists(source_ID):
-            self.sources.loc[source_ID] = pd.Series(sourceMetaDict)
-            self.sources.to_csv(config.SOURCE_FILE)
-            self.gitManager.gitAddFile('main', config.SOURCE_FILE)
-            self.gitManager.commit('added source: ' + source_ID)
-#            self._gitCommit()
-    
-            sourcePath = os.path.join(config.PATH_TO_DATASHELF, 'database', sourceMetaDict['SOURCE_ID'])
             
+            sourcePath = os.path.join(config.PATH_TO_DATASHELF, 'database', sourceMetaDict['SOURCE_ID'])
             self.gitManager.init_new_repo(sourcePath, source_ID, sourceMetaDict)
             
 
@@ -534,9 +528,16 @@ class GitRepository_Manager(dict):
     def init_new_repo(self, repoPath, repoID, sourceMetaDict):
         import pathlib as plib
 
+        self.sources.loc[repoID] = pd.Series(sourceMetaDict)
+        self.sources.to_csv(config.SOURCE_FILE)
+        self.gitAddFile('main', config.SOURCE_FILE)
+
+#            self._gitCommit()
+
         print('creating folder ' + repoPath)
         os.makedirs(repoPath, exist_ok=True)
         git.Repo.init(repoPath)
+        self.unvalidated_repos[repoID] = git.Git(repoPath)
         self[repoID] = git.Git(repoPath)  
         for subFolder in config.SOURCE_SUB_FOLDERS:
             os.makedirs(os.path.join(repoPath, subFolder), exist_ok=True)
@@ -546,9 +547,9 @@ class GitRepository_Manager(dict):
         metaFilePath = os.path.join(repoPath, 'meta.csv')
         util.dict_to_csv(sourceMetaDict, metaFilePath)
         self.gitAddFile(repoID, metaFilePath)
-        self.commit('added empty folders')
-    
-    
+        self.commit('added source: ' + repoID)
+        
+#                self.gitManager.commit('added source: ' + source_ID)
     def gitAddFile(self, repoName, filePath):
         if config.DEBUG:
             print('Added file {} to repo: {}'.format(filePath,repoName))
@@ -579,7 +580,7 @@ class GitRepository_Manager(dict):
         # commit main repository
         self.sources.to_csv(config.SOURCE_FILE)
         self.gitAddFile('main', config.SOURCE_FILE)
-        self['main'].execute(["git", "commit", '-m' "" + message + " by " + config.CRUNCHER])
+        self['main'].execute(["git", "commit", '-m ' " " + message + " by " + config.CRUNCHER])
                 
     def create_remote_repo(self, repoName):
         if self[repoName].execute(["git", "remote"]) == 'origin':
