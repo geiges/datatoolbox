@@ -24,7 +24,7 @@ before_script:
   - source venv/bin/activate
   - pip install -r requirements.txt # TODO: update to move depedencies into setup.py?
   - pip install pytest flake8
-
+  - git config --global user.email "you@example.com"
 test:
   script:
     - pip install -e .
