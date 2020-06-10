@@ -58,7 +58,7 @@ def main():
             "pint==0.9",
             "pycountry",
             "fuzzywuzzy",
-            "tqdm"
+            "tqdm",
             "pyam-iamc<=0.3.0",
             "openpyxl"],
         }

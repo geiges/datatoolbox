@@ -14,7 +14,7 @@ Authors: Andreas Geiges
 @Climate Analytics gGmbH
 """
 
-__version__ = "0.2.19"
+__version__ = "0.2.22"
 
 import os
 import time
