@@ -383,7 +383,8 @@ class Database():
 #            self.gitManager['main'].execute(["git", "commit", '-m' "" +  message + " by " + config.CRUNCHER])
 #        except:
 #            print('commit failed')   
-        self.gitManager.commit(message)
+        gitHashes = self.gitManager.commit(message)
+        
 
     def _addNewSource(self, sourceMetaDict):
         source_ID = sourceMetaDict['SOURCE_ID']
@@ -480,7 +481,7 @@ class Database():
         
         self.gitManager.commit('added export inventory')
         self.gitManager.push_to_remote_datashelf(sourceID)
-        print('export succesful: ')
+        print('export succesful: ({})'.format( config.DATASHELF_REMOTE +  sourceID))
 #%%
 class GitRepository_Manager(dict):
     """
@@ -489,6 +490,7 @@ class GitRepository_Manager(dict):
     def __init__(self, config):
         self.PATH_TO_DATASHELF = config.PATH_TO_DATASHELF
         self.updatedRepos      = set()
+        self.sources   = pd.read_csv(config.SOURCE_FILE, index_col='SOURCE_ID')
         
     def __getitem__(self, *args, **kwargs):
         """ 
@@ -555,13 +557,20 @@ class GitRepository_Manager(dict):
         pass
         
     def commit(self, message):
-                
+        
+        if 'main' in        self.updatedRepos:
+            self.updatedRepos.remove('main')
         for repoID in self.updatedRepos:
             try:
                 self[repoID].execute(["git", "commit", '-m' "" +  message + " by " + config.CRUNCHER])
+                self.source.loc[repoID,'git_commit_hash'] = self[repoID].execute(['git', 'rev-parse', 'HEAD'])
             except:
                 print('Commit of {} repository failed'.format(repoID))  
-                
+        
+        # commit main repository
+        self.sources.to_csv(config.SOURCE_FILE)
+        self.gitAddFile('main', config.SOURCE_FILE)
+        self['main'].execute(["git", "commit", '-m' "" + message + " by " + config.CRUNCHER])
                 
     def create_remote_repo(self, repoName):
         if self[repoName].execute(["git", "remote"]) == 'origin':

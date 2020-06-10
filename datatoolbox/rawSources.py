@@ -3877,8 +3877,9 @@ class FAO(BaseImportTool):
                     
                     table = table.loc[~pd.isna(table.index),:]
                     
-                    if not pd.isna(metaDict['unitTo']):
-                        table = table.convert(metaDict['unitTo'])
+                    if not pd.isna(self.mapping['unitTo'][variable]):
+                        print('conversion to : ' +str(self.mapping['unitTo'][variable]))
+                        table = table.convert(self.mapping['unitTo'][variable])
                     
                     tableID = dt.core._createDatabaseID(table.meta)
                     if not updateTables:
@@ -4071,7 +4072,7 @@ class ENERDATA(BaseImportTool):
         self.createSourceMeta()
 
     def loadData(self):
-        self.data = pd.read_excel(self.setup.DATA_FILE,   index_col = None, header =0)
+        self.data = pd.read_excel(self.setup.DATA_FILE,   index_col = None, header =0, na_values='n.a.')
         
         self.data.loc[:,'region'] = self.data.loc[:,self.setup.REGION_COLUMN_NAME]
         self.data.loc[:,'entity'] = self.data.loc[:,self.setup.VARIABLE_COLUMN_NAME]
@@ -4409,7 +4410,7 @@ if __name__ == '__main__':
 #%% Enerdata
     enerdata = ENERDATA(2019)
     tableList, excludedTables = enerdata.gatherMappedData()
-#    dt.commitTables(tableList, 'enerdata data updated', enerdata.meta, update=False)  
+    dt.commitTables(tableList, 'enerdata data updated', enerdata.meta, update=False)  
     #%%
 ##################################################################
 #    helper funtions
