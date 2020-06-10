@@ -581,7 +581,10 @@ class GitRepository_Manager(dict):
         self.sources.to_csv(config.SOURCE_FILE)
         self.gitAddFile('main', config.SOURCE_FILE)
         self['main'].execute(["git", "commit", '-m ' " " + message + " by " + config.CRUNCHER])
-                
+
+        #reset updated repos to empty
+        self.updatedRepos      = set()
+        
     def create_remote_repo(self, repoName):
         if self[repoName].execute(["git", "remote"]) == 'origin':
             print('remote origin already exists, skip')

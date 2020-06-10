@@ -489,7 +489,7 @@ def update_DB_from_folder(folderToRead, message=None):
                         update=True)
 
 
-def update_DB_from_folderV3(folderToRead, message=None):
+def update_DB_from_folderV3(folderToRead, message=None, cleanTables=True):
     import math
     fileList = os.listdir(folderToRead)
     fileList = [file for file in fileList if '.csv' in file[-5:].lower()]
@@ -526,7 +526,7 @@ def update_DB_from_folderV3(folderToRead, message=None):
             core.DB.commitTables(tablesToUpdate[source], 
                             message = message,
                             sourceMetaDict = sourceMetaDict, 
-                            cleanTables=False)
+                            cleanTables=cleanTables)
 
 def metaV2_to_meta_V3(tableSet):
     replacementDict = {#'Capacity': 'Electricity|capacity',
@@ -667,7 +667,7 @@ def zipExport(IDList, fileName):
     # close the Zip File
     zipObj.close()
     
-def update_DB_from_zip_toV3(filePath):
+def update_DB_from_zip_toV3(filePath, cleanTables=True):
     
 #%%        
     from zipfile import ZipFile

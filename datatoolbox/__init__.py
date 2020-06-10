@@ -85,7 +85,13 @@ if config.PATH_TO_DATASHELF == os.path.join(config.MODULE_PATH, 'data/SANDBOX_da
           You are using datatoolbox with a testing database as a SANDBOX.
           This allows for testing and initial tutorial use.
           
-          For switching to a excisting database use: 
+
+          For creating an empty dataase please use:
+              "datatoolbox.admin.create_empty_datashelf(pathToDatabase)"
+
+          For switching to a existing database use: 
               "datatoolbox.admin.change_personal_config()"
+              
+              
           ################################################################
           """)

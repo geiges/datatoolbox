@@ -3749,7 +3749,7 @@ class FAO(BaseImportTool):
     def loadData(self):
         
         for i, fileKey in enumerate(self.setup.DATA_FILE.keys()):
-            print(fileKey)
+#            print(fileKey)
             file = self.setup.DATA_FILE[fileKey]
             temp = pd.read_csv(file, encoding='utf8', engine='python',  index_col = None, header =0)
             temp.Element = temp.Element.apply(lambda x: fileKey + x )

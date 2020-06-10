@@ -68,7 +68,8 @@ SOURCE_META_FIELDS = ['SOURCE_ID',
                       'collected_by',
                       'date',
                       'source_url',
-                      'licence']
+                      'licence',
+                      'git_commit_hash']
 
 SOURCE_SUB_FOLDERS = ['tables',
                       'raw_data'
