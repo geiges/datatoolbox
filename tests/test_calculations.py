@@ -1,6 +1,9 @@
 import datatoolbox as dt
 import pandas as pd
 import numpy as np
+
+
+from pandas._testing import assert_frame_equal
 #%%
 
 metaDict = {'entity':'Emissions|Candy',
@@ -42,15 +45,13 @@ def test_addition_int():
                        index= ['DEU', 'IND'],
                        meta = metaDict)
     
-    obs = df1 + 20
-    
-    assert (obs.values == exp.values).all()
+    obs = df1 + 20    
+    assert_frame_equal(obs, exp)
     assert obs.meta['unit']   == exp.meta['unit']
     assert obs.meta['source'] == 'calculation'
     
     obs = 20 + df1
-    
-    assert (obs.values == exp.values).all()
+    assert_frame_equal(obs, exp)
     assert obs.meta['unit']   == exp.meta['unit']
     assert obs.meta['source'] == 'calculation'
 
@@ -63,12 +64,11 @@ def test_addition_dfs():
                        columns = [2000, 2010, 2020],
                        index= ['DEU', 'IND'],
                        meta = metaDict)
-    
-    assert (obs.values == exp.values).all()
+    assert_frame_equal(obs, exp)
     assert obs.meta['unit']   == exp.meta['unit']
     assert obs.meta['source'] == 'calculation'
 
-def test_raddition_dfs_conv1():
+def test_raddition_dfs_conv():
     # adding two datatables + conversion
     obs = df1 + df3
     exp = dt.Datatable([[10.05,  20.05, np.nan],
@@ -77,12 +77,12 @@ def test_raddition_dfs_conv1():
                        index= ['DEU', 'IND'],
                        meta = metaDict)
     
-    assert (obs.loc[:,[2000,2010]].values == exp.loc[:,[2000,2010]].values).all()
-    assert obs.loc[:,2020].isnull().all()
+    assert_frame_equal(obs, exp)
     assert obs.meta['unit']   == exp.meta['unit']
     assert obs.meta['source'] == 'calculation'
 
-def test_laddition_dfs_conv2():
+    
+def test_laddition_dfs_conv():
     
     obs = df3 + df1
     exp = dt.Datatable([[10050,  20050, np.nan],
@@ -90,9 +90,8 @@ def test_laddition_dfs_conv2():
                        columns = [2000, 2010, 2020],
                        index= ['DEU', 'IND'],
                        meta = metaDict2)
-    
-    assert (obs.loc[:,[2000,2010]].values == exp.loc[:,[2000,2010]].values).all()
-    assert obs.loc[:,2020].isnull().all()
+    # TODO: conversion makes this a float, fix?
+    assert_frame_equal(obs, exp, check_dtype=False)
     assert obs.meta['unit']   == exp.meta['unit']
     assert obs.meta['source'] == 'calculation'
 
@@ -103,9 +102,8 @@ def test_sum():
                        columns = [2000, 2010, 2020],
                        index= ['DEU', 'IND'],
                        meta = metaDict2)
-    
-    assert (obs.loc[:,[2000,2010]].values == exp.loc[:,[2000,2010]].values).all()
-    assert obs.loc[:,2020].isnull().all()
+    # TODO: conversion makes this a float, fix?
+    assert_frame_equal(obs, exp, check_dtype=False)
     assert obs.meta['unit']   == exp.meta['unit']
     assert obs.meta['source'] == 'calculation'  
     
@@ -119,8 +117,7 @@ def test_rsubstraction_int():
                        meta = metaDict)
     
     obs = df1 - 20
-    
-    assert (obs.values == exp.values).all()
+    assert_frame_equal(obs, exp)
     assert obs.meta['unit']   == exp.meta['unit']
     assert obs.meta['source'] == 'calculation'
     
@@ -133,8 +130,7 @@ def test_lsubstraction_int():
                        meta = metaDict)
     
     obs = 20 - df1
-    
-    assert (obs.values == exp.values).all()
+    assert_frame_equal(obs, exp)
     assert obs.meta['unit']   == exp.meta['unit']
     assert obs.meta['source'] == 'calculation'
 
@@ -148,7 +144,7 @@ def test_substraction_dfs():
                        index= ['DEU', 'IND'],
                        meta = metaDict)
     
-    assert (obs.values == exp.values).all()
+    assert_frame_equal(obs, exp)
     assert obs.meta['unit']   == exp.meta['unit']
     assert obs.meta['source'] == 'calculation'
 
@@ -162,8 +158,7 @@ def test_rsubstraction_dfs_conv():
                        index= ['DEU', 'IND'],
                        meta = metaDict)
     
-    assert (obs.loc[:,[2000,2010]].values == exp.loc[:,[2000,2010]].values).all()
-    assert obs.loc[:,2020].isnull().all()
+    assert_frame_equal(obs, exp)
     assert obs.meta['unit']   == exp.meta['unit']
     assert obs.meta['source'] == 'calculation'
 
@@ -175,8 +170,6 @@ def test_lsubstraction_dfs_conv():
                        columns = [2000, 2010, 2020],
                        index= ['DEU', 'IND'],
                        meta = metaDict2)
-    
-    assert (obs.loc[:,[2000,2010]].values == exp.loc[:,[2000,2010]].values).all()
-    assert obs.loc[:,2020].isnull().all()
+    assert_frame_equal(obs, exp)
     assert obs.meta['unit']   == exp.meta['unit']
     assert obs.meta['source'] == 'calculation'
