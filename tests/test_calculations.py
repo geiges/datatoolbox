@@ -167,9 +167,3 @@ def test_substraction():
     assert obs.loc[:,2020].isnull().all()
     assert obs.meta['unit']   == exp.meta['unit']
     assert obs.meta['source'] == 'calculation'
-
-    
-
-test_addition()
-test_sum()
-test_substraction()
