@@ -42,9 +42,9 @@ thousands = 1000 * count
 millions = 1000000 * count
 
 # Transport
-[person_travelled] = [count * length]
+[person_travelled] = [count] * [length]
 pkm = person * km
-[mass_transported] = [mass * length]
+[mass_transported] = [mass] * [length]
 tkm = tonnes *km
 
 
