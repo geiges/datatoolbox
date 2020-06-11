@@ -33,7 +33,7 @@ df3 = dt.Datatable([[50,50],
                    index= ['DEU', 'IND'],
                     meta = metaDict2)
 
-def test_addition():
+def test_addition_int():
     
     # adding integer
     exp = dt.Datatable([[30,40,50,],
@@ -47,13 +47,15 @@ def test_addition():
     assert (obs.values == exp.values).all()
     assert obs.meta['unit']   == exp.meta['unit']
     assert obs.meta['source'] == 'calculation'
-
+    
     obs = 20 + df1
     
     assert (obs.values == exp.values).all()
     assert obs.meta['unit']   == exp.meta['unit']
     assert obs.meta['source'] == 'calculation'
-    
+
+def test_addition_dfs():
+        
     # adding two datatables
     obs = df1 + df2
     exp = dt.Datatable([[60,70,80,],
@@ -66,6 +68,7 @@ def test_addition():
     assert obs.meta['unit']   == exp.meta['unit']
     assert obs.meta['source'] == 'calculation'
 
+def test_raddition_dfs_conv1():
     # adding two datatables + conversion
     obs = df1 + df3
     exp = dt.Datatable([[10.05,  20.05, np.nan],
@@ -78,6 +81,8 @@ def test_addition():
     assert obs.loc[:,2020].isnull().all()
     assert obs.meta['unit']   == exp.meta['unit']
     assert obs.meta['source'] == 'calculation'
+
+def test_laddition_dfs_conv2():
     
     obs = df3 + df1
     exp = dt.Datatable([[10050,  20050, np.nan],
@@ -104,7 +109,7 @@ def test_sum():
     assert obs.meta['unit']   == exp.meta['unit']
     assert obs.meta['source'] == 'calculation'  
     
-def test_substraction():
+def test_rsubstraction_int():
     
     # adding integer
     exp = dt.Datatable([[-10, 0,10,],
@@ -118,7 +123,9 @@ def test_substraction():
     assert (obs.values == exp.values).all()
     assert obs.meta['unit']   == exp.meta['unit']
     assert obs.meta['source'] == 'calculation'
-
+    
+def test_lsubstraction_int():
+    
     exp = dt.Datatable([[10, 0,-10,],
                        [-20,-20,-30,]], 
                        columns = [2000, 2010, 2020],
@@ -130,6 +137,8 @@ def test_substraction():
     assert (obs.values == exp.values).all()
     assert obs.meta['unit']   == exp.meta['unit']
     assert obs.meta['source'] == 'calculation'
+
+def test_substraction_dfs():
     
     # adding two datatables
     obs = df1 - df2
@@ -143,6 +152,8 @@ def test_substraction():
     assert obs.meta['unit']   == exp.meta['unit']
     assert obs.meta['source'] == 'calculation'
 
+def test_rsubstraction_dfs_conv():
+
     # adding two datatables + conversion
     obs = df1 - df3
     exp = dt.Datatable([[9.95,  19.95, np.nan],
@@ -155,6 +166,8 @@ def test_substraction():
     assert obs.loc[:,2020].isnull().all()
     assert obs.meta['unit']   == exp.meta['unit']
     assert obs.meta['source'] == 'calculation'
+
+def test_lsubstraction_dfs_conv():
     
     obs = df3 - df1
     exp = dt.Datatable([[-9950.0, -19950.0, np.nan],
