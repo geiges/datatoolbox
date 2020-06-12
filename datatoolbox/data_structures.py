@@ -264,14 +264,10 @@ class Datatable(pd.DataFrame):
     
         
     def __add__(self, other):
-        #print('other in' + str(other))
         if isinstance(other,Datatable):
-            
             factor = core.getUnit(other.meta['unit']).to(self.meta['unit']).m
-            #print('factor: ' + str(factor))
-            #print('other' + str(other))
-            #print(other * factor)
-            out = Datatable(super(Datatable, self).__add__(other * factor))
+            rhs = pd.DataFrame(other * factor)
+            out = Datatable(super(Datatable, self.copy()).__add__(rhs))
             out.meta['unit'] = self.meta['unit']
             out.meta['source'] = 'calculation'
         else:
@@ -286,7 +282,8 @@ class Datatable(pd.DataFrame):
     def __sub__(self, other):
         if isinstance(other,Datatable):
             factor = core.getUnit(other.meta['unit']).to(self.meta['unit']).m
-            out = Datatable(super(Datatable, self).__sub__(other * factor))
+            rhs = pd.DataFrame(other * factor)
+            out = Datatable(super(Datatable, self).__sub__(rhs))
             out.meta['unit'] = self.meta['unit']
             out.meta['source'] = 'calculation'
         else:
@@ -294,7 +291,7 @@ class Datatable(pd.DataFrame):
             out.meta['unit'] = self.meta['unit']
             out.meta['source'] = 'calculation'
         return out
-
+    
     def __rsub__(self, other):
         if isinstance(other,Datatable):
             factor = core.getUnit(other.meta['unit']).to(self.meta['unit']).m

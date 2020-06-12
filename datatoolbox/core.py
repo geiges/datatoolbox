@@ -15,34 +15,15 @@ gases = {"CO2eq":"carbon_dioxide_equivalent",
          "CO2e" : "CO2eq",
          "NO2" : "NO2"}
 
-#try:
-#    from openscm.units import unit_registry as ur
-#    from openscm.units import _add_gases_to_unit_registry
-#    _add_gases_to_unit_registry(ur, gases)
-#except:
-#    try:
-#        from openscm.units import _unit_registry as ur
-#    except:
-#        from openscm.core.units import _unit_registry as ur
-#    try:
-#        ur._add_gases(gases)
-#    except:
-#        pass
 from openscm_units import unit_registry as ur
-try:
-    ur._add_gases(gases)
+ur._add_gases(gases)
+ur.define('fraction = [] = frac')
+ur.define('percent = 1e-2 frac = pct')
+ur.define('ppm = 1e-6 fraction')
+ur.define('sqkm = km * km')
+ur.define('none = dimensionless')
+ur.load_definitions(config.PATH_PINT_DEFINITIONS)
 
-#import openscm
-    ur.define('fraction = [] = frac')
-    ur.define('percent = 1e-2 frac = pct')
-    ur.define('ppm = 1e-6 fraction')
-    ur.define('sqkm = km * km')
-    ur.define('none = dimensionless')
-    
-    ur.load_definitions(config.PATH_PINT_DEFINITIONS)
-except:
-    print('Using old unit defintions')
-        
 import pint
 
 c = pint.Context('GWP_AR5')
