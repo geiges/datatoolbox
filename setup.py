@@ -55,11 +55,11 @@ def main():
             "pandas",
             "gitpython",
             "openscm_units",
-            "pint",
+            "pint==0.9",
             "pycountry",
             "fuzzywuzzy",
             "tqdm",
-            "pyam-iamc",
+            "pyam-iamc<=0.3.0",
             "openpyxl"],
         }
     rtn = setup(**setup_kwargs)
