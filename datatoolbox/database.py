@@ -264,15 +264,40 @@ class Database():
             self.inventory.rename(index = {oldID: newID}, inplace = True)
             self.add_to_inventory(newDataTable)
 
-    def validateEntry(self, ID):
+    def validate_ID(self, ID, print_statement=False):
+        RED = '\033[31m'
+        GREEN = '\033[32m'
+
         source = ID.split('|')[-1]
+        valid = list()
         if self.sourceExists(source):
-            print("source entry exists")
+            if print_statement:
+                print(GREEN + "Source {} does exists".format(source))
+            valid.append(True)
+        else:
+            if print_statement:
+                print(RED + "Source {} does not exists".format(source))
+            valid.append(False)
         if ID in self.inventory.index:
-            print("inventory entry exists")
+            if print_statement:
+                print(GREEN + "ID is in the inventory")
+            valid.append(True)
+        else:
+            if print_statement:
+                print(RED + "ID is missing in the inventory")
+            valid.append(False)
+            
         tablePath = config.PATH_TO_DATASHELF + 'database/' + source + '/' + ID + '.csv'
         if os.path.isfile(tablePath):
-            print("csv file exists")
+            if print_statement:
+                print(GREEN + "csv file exists")
+            valid.append(True)
+        else:
+            if print_statement:
+                print(RED + "csv file does not exists")
+            
+            valid.append(False)
+        return all(valid)
 
     def removeTables(self, IDList):
         for ID in IDList:
