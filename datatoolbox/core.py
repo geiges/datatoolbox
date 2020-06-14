@@ -108,11 +108,12 @@ def _update_meta(metaDict):
     for key in list(metaDict.keys()):
         if (metaDict[key] is np.nan) or metaDict[key] == '':
             del metaDict[key]
-    metaDict['variable'] = config.FIELD_SEPARATOR.join([ metaDict[key] for key in ['entity', 'category'] if key in  metaDict.keys()]).strip('|')
-    metaDict['pathway'] = config.FIELD_SEPARATOR.join([ metaDict[key] for key in ['scenario', 'model'] if key in  metaDict.keys()]).strip('|')
-    if 'source' not in  metaDict.keys():
-        metaDict['pathway'] = '_'.join([ metaDict[key] for key in ['institution', 'year'] if key in  metaDict.keys()]).strip('|')    
-   
+            
+    for id_field in config.ID_FIELDS:
+        fieldList = [ metaDict[key] for key in config.SUB_FIELDS[id_field] if key in  metaDict.keys()]
+        if len(fieldList)>0:
+            metaDict[id_field] =  config.SUB_SEP[id_field].join(fieldList).strip('|')
+    
     return metaDict
 
 

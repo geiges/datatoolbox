@@ -616,6 +616,12 @@ def metaV2_to_meta_V3(tableSet):
                   'Price|',
                   'Production|']
 
+
+    scenarioReplacementDict = {'historic'   :'Historic',
+                               'Historical' : 'Historic',
+                               'historical' : 'Historic',
+                               }
+    
 #inventory.category = None
 #for entity in entityList:
 #    mask = inventory.entity.str.startswith(entity)
@@ -635,10 +641,15 @@ def metaV2_to_meta_V3(tableSet):
                 else:
                     table.meta['category'] = table.meta['entity'].replace(entity,'')
                 table.meta['entity'] = entity.rstrip('|')
-                
+       
+        for scenario in scenarioReplacementDict.keys():
+            table.meta['scenario'] = table.meta['scenario'].replace(scenario, scenarioReplacementDict[scenario])
+        
         if hasattr(table.meta,'model') and (table.meta['model'] in table.meta['scenario']):
             table.meta['scenario'] = table.meta['scenario'].replace(table.meta['model'],'').rstrip('|')
             table.generateTableID()
+            
+        
         outList.append(table)
         
     return outList

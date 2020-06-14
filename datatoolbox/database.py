@@ -33,10 +33,10 @@ class Database():
         
         self.gitManager._validateRepository('main')
             
-        if (config.OS == 'win32') | (config.OS == "Windows"):
-            self.getTable = self._getTableWindows
-        else:
-            self.getTable = self._getTableLinux
+#        if (config.OS == 'win32') | (config.OS == "Windows"):
+#            self.getTable = self._getTableWindows
+#        else:
+#            self.getTable = self._getTableLinux
 
         if config.DEBUG:
             print('Database loaded in {:2.4f} seconds'.format(time.time()-tt))
@@ -84,7 +84,7 @@ class Database():
 #        self.inventory.loc[datatable.ID] = entry
        
         self.inventory.loc[datatable.ID] = [datatable.meta.get(x,None) for x in config.INVENTORY_FIELDS]
-        self.gitManager.updatedRepos.add('main')
+        #self.gitManager.updatedRepos.add('main')
 
     def remove_from_inventory(self, tableID):
         self.inventory.drop(tableID, inplace=True)
@@ -118,9 +118,14 @@ class Database():
     
     def _getTableFilePath(self,ID):
         source = self.inventory.loc[ID].source
-        return os.path.join(config.PATH_TO_DATASHELF, 'database/', source, 'tables', ID + '.csv')
+        fileName = self._getTableFileName(ID)
+        return os.path.join(config.PATH_TO_DATASHELF, 'database/', source, 'tables', fileName)
+
+    def _getTableFileName(self, ID):
+        return ID.replace('|','-') + '.csv'
+
     
-    def _getTableLinux(self, ID):
+    def getTable(self, ID):
         
         if config.logTables:
             core.LOG['tableIDs'].append(ID)
@@ -128,13 +133,13 @@ class Database():
         filePath = self._getTableFilePath(ID)
         return read_csv(filePath)
 
-    def _getTableWindows(self, ID):
-        
-        if config.logTables:
-            core.LOG['tableIDs'].append(ID)
-
-        filePath = self._getTableFilePath(ID).replace('|','___')
-        return read_csv(filePath)
+#    def _getTableWindows(self, ID):
+#        
+#        if config.logTables:
+#            core.LOG['tableIDs'].append(ID)
+#
+#        filePath = self._getTableFilePath(ID).replace('|','___')
+#        return read_csv(filePath)
 
     def getTables(self, iterIDs):
         if config.logTables:
@@ -267,7 +272,7 @@ class Database():
     def validate_ID(self, ID, print_statement=True):
         RED = '\033[31m'
         GREEN = '\033[32m'
-
+        BLACK = '\033[30m'
         source = ID.split(config.ID_SEPARATOR)[-1]
         valid = list()
         if self.sourceExists(source):
@@ -287,7 +292,8 @@ class Database():
                 print(RED + "ID is missing in the inventory")
             valid.append(False)
             
-        tablePath = core.DB._getPathOfTable(ID)
+        fileName = self._getTableFileName(ID)
+        tablePath = os.path.join(config.PATH_TO_DATASHELF, 'database', source, 'tables', fileName)
         if os.path.isfile(tablePath):
             if print_statement:
                 print(GREEN + "csv file exists")
@@ -297,12 +303,13 @@ class Database():
                 print(RED + "csv file does not exists")
             
             valid.append(False)
+        print(BLACK)
         return all(valid)
 
     def removeTables(self, IDList):
         for ID in IDList:
             source = self.inventory.loc[ID, 'source']
-            tablePath = self._getPathOfTable(ID)
+            tablePath = self._getTableFilePath(ID)
 #            try:
             self.remove_from_inventory(ID)
 #            except:
@@ -323,7 +330,7 @@ class Database():
     def _removeTable(self, ID):
 
         source = self.inventory.loc[ID, 'source']
-        tablePath = self._getPathOfTable(ID)
+        tablePath = self._getTableFilePath(ID)
         self.remove_from_inventory(ID)
         
 #        self.gitManager[source].execute(["git", "rm", tablePath])
@@ -335,16 +342,12 @@ class Database():
     def _tableExists(self, ID):
         return ID in self.inventory.index
     
-    def _getPathOfTable(self, ID):
-        return os.path.join(config.PATH_TO_DATASHELF, 'database', self.inventory.loc[ID].source, 'tables', ID + '.csv')
 
-    
 
     def tableExist(self, tableID):
         return self._tableExists(tableID)
 
     def isConsistentTable(self, datatable):
-        
         
         if not pd.np.issubdtype(datatable.values.dtype, pd.np.number):
             raise(BaseException('Sorry, data is needed to be numeric'))            
@@ -372,8 +375,7 @@ class Database():
         source = datatable.source()
         datatable.meta['creator'] = config.CRUNCHER
         sourcePath = os.path.join('database', source)
-        filePath = os.path.join(sourcePath, 'tables',  ID + '.csv')
-#        relFilePath = os.path.join('tables',  ID + '.csv')
+        filePath = os.path.join(sourcePath, 'tables',  self._getTableFileName(ID))
         if (config.OS == 'win32') | (config.OS == "Windows"):
             filePath = filePath.replace('|','___')
         
@@ -394,7 +396,7 @@ class Database():
     def _gitAddTable(self, datatable, source, filePath):
         datatable.to_csv(os.path.join(config.PATH_TO_DATASHELF, filePath))
         
-        self.gitManager.gitAddFile(source, os.path.join('tables', datatable.ID + '.csv'))
+        self.gitManager.gitAddFile(source, os.path.join('tables', self._getTableFileName(datatable.ID)))
 
 #    def _gitAddFile(self, filePath):
         
