@@ -224,9 +224,12 @@ class Datatable(pd.DataFrame):
     #%%
     def generateTableID(self):
         # update meta data required for the ID
-        self.ID =  core._createDatabaseID(self.meta)
+        self.meta =  core._update_meta(self.meta)
+        self.ID   =  core._createDatabaseID(self.meta)
         self.meta['ID'] = self.ID
         return self.ID
+
+
     
     def source(self):
         return self.meta['source']

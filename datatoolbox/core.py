@@ -103,16 +103,21 @@ LOG['tableIDs'] = list()
 #print(c.funcs)
 ur.add_context(c)
 
-def _createDatabaseID(metaDict):
-    if 'category' in metaDict:
-        if (metaDict['category'] is np.nan) or metaDict['category'] == '':
-            del metaDict['category']
-#        print(metaDict)
+def _update_meta(metaDict):
+    
+    for key in list(metaDict.keys()):
+        if (metaDict[key] is np.nan) or metaDict[key] == '':
+            del metaDict[key]
     metaDict['variable'] = '|'.join([ metaDict[key] for key in ['entity', 'category'] if key in  metaDict.keys()]).strip('|')
     metaDict['pathway'] = '|'.join([ metaDict[key] for key in ['scenario', 'model'] if key in  metaDict.keys()]).strip('|')
     if 'source' not in  metaDict.keys():
         metaDict['pathway'] = '|'.join([ metaDict[key] for key in ['institution', 'year'] if key in  metaDict.keys()]).strip('|')    
-        
+   
+    return metaDict
+
+
+def _createDatabaseID(metaDict):
+    
     return '|'.join([metaDict[key] for key in config.ID_FIELDS])
 
 
