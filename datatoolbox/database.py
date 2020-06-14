@@ -88,7 +88,7 @@ class Database():
 
     def remove_from_inventory(self, tableID):
         self.inventory.drop(tableID, inplace=True)
-        self.gitManager.updatedRepos.add('main')
+#        self.gitManager.updatedRepos.add('main')
     
     def getInventory(self, **kwargs):
         
@@ -185,7 +185,14 @@ class Database():
            
         self._gitCommit(message)
 
-    def commitTables(self, dataTables, message, sourceMetaDict, append_data=False, update=False, overwrite=False , cleanTables=True):
+    def commitTables(self, 
+                     dataTables, 
+                     message, 
+                     sourceMetaDict, 
+                     append_data=False, 
+                     update=False, 
+                     overwrite=False , 
+                     cleanTables=True):
         # create a new source if not extisting
         if not(sourceMetaDict['SOURCE_ID'] in self.gitManager.sources.index):
             self._addNewSource(sourceMetaDict)
@@ -389,29 +396,28 @@ class Database():
 #        if not self.sourceExists(source):
             
         
-        
+#        tt = time.time()
         self._gitAddTable(datatable, source, filePath)
+#        print('time: {:2.6f}'.format(time.time()-tt))
         #self.add_to_inventory(datatable)
         
     def _gitAddTable(self, datatable, source, filePath):
         datatable.to_csv(os.path.join(config.PATH_TO_DATASHELF, filePath))
         
         self.gitManager.gitAddFile(source, os.path.join('tables', self._getTableFileName(datatable.ID)))
-
-#    def _gitAddFile(self, filePath):
-        
         
     def _gitCommit(self, message):
         self.inventory.to_csv(self.INTVENTORY_PATH)
 #        self['main'].execute(["git", "add", self.INTVENTORY_PATH])
         self.gitManager.gitAddFile('main',self.INTVENTORY_PATH)
-#        self.gitManager['main'].execute(["git", "add", self.INTVENTORY_PATH])
-#        try:
-#            self.gitManager['main'].execute(["git", "commit", '-m' "" +  message + " by " + config.CRUNCHER])
-#        except:
-#            print('commit failed')   
+
+        for sourceID in self.gitManager.updatedRepos:
+            repoPath = os.path.join(config.PATH_TO_DATASHELF, 'database', sourceID)
+            sourceInventory = self.inventory.loc[self.inventory.source==sourceID,:]
+            sourceInventory.to_csv(os.path.join(repoPath, 'source_inventory.csv'))
+            self.gitManager.gitAddFile(sourceID, os.path.join(repoPath, 'source_inventory.csv'))  
         self.gitManager.commit(message)
-        
+            
 
     def _addNewSource(self, sourceMetaDict):
         source_ID = sourceMetaDict['SOURCE_ID']
@@ -425,7 +431,17 @@ class Database():
         else:
             print('source already exists')
 
-    
+    def _removeSource(self, sourceID):
+        import shutil
+        if self.sourceExists(sourceID):
+            sourcePath = os.path.join(config.PATH_TO_DATASHELF, 'database', sourceID)
+            shutil.rmtree(sourcePath, ignore_errors=False, onerror=None)
+        self.gitManager.sources = self.gitManager.sources.drop(sourceID, axis=0)
+        self.sources            = self.gitManager.sources
+        tableIDs = self.inventory.index[self.inventory.source==sourceID]
+        self.inventory = self.inventory.drop(tableIDs, axis=0)
+#        self.gitManager.updatedRepos.add('main')
+        self._gitCommit(sourceID + ' deleted')
     
     def updateExcelInput(self, fileName):
         """
@@ -481,7 +497,7 @@ class Database():
     def importSourceFromRemote(self, remoteName):
         repoPath = os.path.join(config.PATH_TO_DATASHELF, 'database', remoteName)
         
-        self.gitManager.pull_source_from_remote(remoteName, repoPath)
+        self.gitManager.clone_source_from_remote(remoteName, repoPath)
         sourceMetaDict = util.csv_to_dict(os.path.join(repoPath, 'meta.csv'))
         self.sources.loc[remoteName] = pd.Series(sourceMetaDict)        
         self.sources.to_csv(config.SOURCE_FILE)
@@ -497,12 +513,15 @@ class Database():
         
         self.gitManager.create_remote_repo(sourceID)
         sourceInventory = self.inventory.loc[self.inventory.source==sourceID,:]
-        sourceInventory.to_csv(os.path.join(repoPath, 'inventory_export.csv'))
-        self.gitManager.gitAddFile(sourceID, os.path.join(repoPath, 'inventory_export.csv')) 
+        sourceInventory.to_csv(os.path.join(repoPath, 'source_inventory.csv'))
+        self.gitManager.gitAddFile(sourceID, os.path.join(repoPath, 'source_inventory.csv')) 
         
         self.gitManager.commit('added export inventory')
         self.gitManager.push_to_remote_datashelf(sourceID)
         print('export successful: ({})'.format( config.DATASHELF_REMOTE +  sourceID))
+        
+#    def updateSourceFromRemote(self, sourceID):
+        
 #%%
 class GitRepository_Manager(dict):
     """
@@ -513,9 +532,12 @@ class GitRepository_Manager(dict):
         self.updatedRepos      = set()
         self.sources   = pd.read_csv(config.SOURCE_FILE, index_col='SOURCE_ID')
         
-        self.unvalidated_repos = dict()
+        self.unvalidated_repos   = dict()
+        self.filesToAdd          = dict()
+        self.filesToAdd['main']  =list()
         for sourceID in self.sources.index:
             repoPath = os.path.join(self.PATH_TO_DATASHELF,  'database', sourceID)
+#            self.filesToAdd[sourceID]  =list()
             self.unvalidated_repos[sourceID] = git.Git(repoPath)
             commitHash = self.unvalidated_repos[sourceID].execute(['git', 'rev-parse', 'HEAD'])
             if commitHash != self.sources.loc[sourceID, 'git_commit_hash']:
@@ -565,6 +587,7 @@ class GitRepository_Manager(dict):
         os.makedirs(repoPath, exist_ok=True)
         git.Repo.init(repoPath)
         self.unvalidated_repos[repoID] = git.Git(repoPath)
+        self.filesToAdd[repoID]        = list()
         self[repoID] = git.Git(repoPath)  
         for subFolder in config.SOURCE_SUB_FOLDERS:
             os.makedirs(os.path.join(repoPath, subFolder), exist_ok=True)
@@ -575,54 +598,74 @@ class GitRepository_Manager(dict):
         util.dict_to_csv(sourceMetaDict, metaFilePath)
         self.gitAddFile(repoID, metaFilePath)
         self.commit('added source: ' + repoID)
-        
+
+       
 #                self.gitManager.commit('added source: ' + source_ID)
-    def gitAddFile(self, repoName, filePath):
+    def gitAddFile(self, repoName, filePath, addToGit=True):
+#        print(filePath)
         if config.DEBUG:
             print('Added file {} to repo: {}'.format(filePath,repoName))
-        self[repoName].execute(["git", "add", filePath])
-        self.updatedRepos.add(repoName)
+        
+        # important to initial the existing repos
+        try:
+            self.filesToAdd[repoName].append(filePath)
+        except:
+            self[repoName].refresh()
+            self.filesToAdd[repoName] = [filePath]
+            
+#        self[repoName].execute(["git", "add", filePath])
+#        self[repoName].add(filePath)    
+        if repoName != 'main':
+            self.updatedRepos.add(repoName)
         
     def gitRemoveFile(self, repoName, filePath):
         if config.DEBUG:
             print('Removed file {} to repo: {}'.format(filePath,repoName))
         self[repoName].execute(["git", "rm", filePath])
-        self.updatedRepos.add(repoName)
+        if repoName != 'main':
+            self.updatedRepos.add(repoName)
     
     def _gitUpdateFile(self, repoName, filePath):
         pass
         
     def commit(self, message):
         
-        if 'main' in        self.updatedRepos:
+        if 'main' in self.updatedRepos:
             self.updatedRepos.remove('main')
         for repoID in self.updatedRepos:
-            try:
-                self[repoID].execute(["git", "commit", '-m' "" +  message + " by " + config.CRUNCHER])
-                self.sources.loc[repoID,'git_commit_hash'] = self[repoID].execute(['git', 'rev-parse', 'HEAD'])
-                
-            except:
-                print('Commit of {} repository failed'.format(repoID))  
+#            try:
+            self[repoID].add(self.filesToAdd[repoID])
+            self[repoID].execute(["git", "commit", '-m' "" +  message + " by " + config.CRUNCHER])
+            self.sources.loc[repoID,'git_commit_hash'] = self[repoID].execute(['git', 'rev-parse', 'HEAD'])
+            self.filesToAdd[repoID]  = list()
+#            except:
+#                print('Commit of {} repository failed'.format(repoID))  
         
         # commit main repository
         self.sources.to_csv(config.SOURCE_FILE)
         self.gitAddFile('main', config.SOURCE_FILE)
+        self['main'].add(self.filesToAdd['main'])
         self['main'].execute(["git", "commit", '-m ' " " + message + " by " + config.CRUNCHER])
-
+        self.filesToAdd['main']  = list()
         #reset updated repos to empty
-        self.updatedRepos      = set()
+        self.updatedRepos        = set()
+        
         
     def create_remote_repo(self, repoName):
         if self[repoName].execute(["git", "remote"]) == 'origin':
             print('remote origin already exists, skip')
-            return
+            return 
         self[repoName].execute(["git", "remote", "add",  "origin",  config.DATASHELF_REMOTE + repoName + ".git"])
         self[repoName].execute(["git","push", "--set-upstream","origin","master"])
-        self[repoName].execute(["git","push"])
+        #self[repoName].execute(["git","push"])
     
     def push_to_remote_datashelf(self, repoName):
         self[repoName].execute(["git","push"])
         
-    def pull_source_from_remote(self, repoName, repoPath):
+    def clone_source_from_remote(self, repoName, repoPath):
         url = config.DATASHELF_REMOTE +  repoName + '.git'
         git.repo.base.Repo.clone_from(url=url, to_path=repoPath)   
+        
+    def pull_update_from_remote(self, repoName):
+        self[repoName].pull()
+        

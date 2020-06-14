@@ -620,7 +620,10 @@ def metaV2_to_meta_V3(tableSet):
     scenarioReplacementDict = {'historic'   :'Historic',
                                'Historical' : 'Historic',
                                'historical' : 'Historic',
-                               }
+                               'History'    : 'Historic',
+                               'HISTCR'     : 'Historic|country_reported',
+                               'HISTTR'     : 'Historic|thrid_party',
+                               'computed historic' : 'Historic|computed'}
     
 #inventory.category = None
 #for entity in entityList:
@@ -648,8 +651,46 @@ def metaV2_to_meta_V3(tableSet):
         if hasattr(table.meta,'model') and (table.meta['model'] in table.meta['scenario']):
             table.meta['scenario'] = table.meta['scenario'].replace(table.meta['model'],'').rstrip('|')
             table.generateTableID()
-            
-        
+           
+        sourceSplit = table.meta['source'].split('_') 
+        if len(sourceSplit) ==2 :
+            table.meta['source_name'], table.meta['source_year'] = sourceSplit
+        else:
+            if table.meta['source'].startswith('CAT'):
+                table.meta['source_name'] = 'CAT'
+                table.meta['source_year'] = table.meta['source'].replace('CAT_','')
+            elif table.meta['source'].startswith('CA_NDCA'):
+                table.meta['source_name'] = 'CA_NDCA'
+                table.meta['source_year'] = table.meta['source'].replace('CA_NDCA_','')
+            elif table.meta['source'].startswith('AIM_SSPx_DATA'):
+                table.meta['source_name'] = 'AIM_SSPx_DATA'
+                table.meta['source_year'] = table.meta['source'].replace('AIM_SSPx_DATA_','')
+            elif table.meta['source'].startswith('CA_NDCA'):
+                table.meta['source_name'] = 'CA_NDCA'
+                table.meta['source_year'] = table.meta['source'].replace('CA_NDCA_','')
+            elif table.meta['source'].startswith('IEA_CO2_FUEL'):
+                table.meta['source_name'] = 'IEA_CO2_FUEL'
+                table.meta['source_year'] = table.meta['source'].replace('IEA_CO2_FUEL_','')
+            elif table.meta['source'].startswith('IEA_WEB'):
+                table.meta['source_name'] = 'IEA_WEB'
+                table.meta['source_year'] = table.meta['source'].replace('IEA_WEB_','')
+            elif table.meta['source'].startswith('SDG_DB'):
+                table.meta['source_name'] = 'SDG_DB'
+                table.meta['source_year'] = table.meta['source'].replace('SDG_DB_','')
+                  
+            elif table.meta['source'].startswith('SSP_DB'):
+                table.meta['source_name'] = 'SSP_DB'
+                table.meta['source_year'] = table.meta['source'].replace('SSP_DB_','')
+                  
+            elif table.meta['source'].startswith('UNFCCC_CRF'):
+                table.meta['source_name'] = 'UNFCCC_CRF'
+                table.meta['source_year'] = table.meta['source'].replace('UNFCCC_CRF_','')
+                  
+            elif table.meta['source'].startswith('UN_WPP'):
+                table.meta['source_name'] = 'UN_WPP'
+                table.meta['source_year'] = table.meta['source'].replace('UN_WPP','')
+
+                
         outList.append(table)
         
     return outList

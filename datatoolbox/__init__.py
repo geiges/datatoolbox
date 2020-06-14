@@ -78,6 +78,11 @@ inventory = core.DB.returnInventory
 validate_ID = core.DB.validate_ID
 #writeMAGICC6ScenFile = tools.wr
 
+# Remote access functions 
+import_new_source_from_remote = core.DB.importSourceFromRemote
+export_new_source_to_remote = core.DB.exportSourceToRemote
+
+
 from .tools.kaya_idendentiy_decomposition import kaya_decomposion
 
 

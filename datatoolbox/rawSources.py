@@ -4409,8 +4409,8 @@ if __name__ == '__main__':
 #    dt.commitTables(tableList, 'vanmarle data updated', vanmarle.meta, update=False)  
 #%% Enerdata
     enerdata = ENERDATA(2019)
-    tableList, excludedTables = enerdata.gatherMappedData()
-    dt.commitTables(tableList, 'enerdata data updated', enerdata.meta, update=False)  
+#    tableList, excludedTables = enerdata.gatherMappedData()
+#    dt.commitTables(tableList, 'enerdata data updated', enerdata.meta, update=False)  
     #%%
 ##################################################################
 #    helper funtions

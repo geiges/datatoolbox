@@ -50,6 +50,9 @@ def test_delete_mutliple_tables():
     assert not dt.isAvailable(df.ID)
     assert not dt.isAvailable(df.ID)
     
+def test_delete_source():    
+    dt.core.DB._removeSource('XYZ_2020')
+    
 if __name__ == '__main__':
     test_commit_new_table()
     test_validate_ID()
@@ -58,3 +61,4 @@ if __name__ == '__main__':
     test_delete_table()
     test_commit_mutliple_tables()
     test_delete_mutliple_tables()
+    test_delete_source()
