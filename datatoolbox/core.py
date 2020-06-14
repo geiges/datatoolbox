@@ -108,17 +108,17 @@ def _update_meta(metaDict):
     for key in list(metaDict.keys()):
         if (metaDict[key] is np.nan) or metaDict[key] == '':
             del metaDict[key]
-    metaDict['variable'] = '|'.join([ metaDict[key] for key in ['entity', 'category'] if key in  metaDict.keys()]).strip('|')
-    metaDict['pathway'] = '|'.join([ metaDict[key] for key in ['scenario', 'model'] if key in  metaDict.keys()]).strip('|')
+    metaDict['variable'] = config.FIELD_SEPARATOR.join([ metaDict[key] for key in ['entity', 'category'] if key in  metaDict.keys()]).strip('|')
+    metaDict['pathway'] = config.FIELD_SEPARATOR.join([ metaDict[key] for key in ['scenario', 'model'] if key in  metaDict.keys()]).strip('|')
     if 'source' not in  metaDict.keys():
-        metaDict['pathway'] = '|'.join([ metaDict[key] for key in ['institution', 'year'] if key in  metaDict.keys()]).strip('|')    
+        metaDict['pathway'] = '_'.join([ metaDict[key] for key in ['institution', 'year'] if key in  metaDict.keys()]).strip('|')    
    
     return metaDict
 
 
 def _createDatabaseID(metaDict):
     
-    return '|'.join([metaDict[key] for key in config.ID_FIELDS])
+    return config.ID_SEPARATOR.join([metaDict[key] for key in config.ID_FIELDS])
 
 
 def osIsWindows():

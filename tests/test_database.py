@@ -17,6 +17,10 @@ def test_commit_new_table():
     df.loc['ARG', 2012] = 10
     dt.commitTable(df, 'add first table', sourceMeta)
     
+    
+def test_validate_ID():
+    assert dt.validate_ID(list(dt.find().index)[0])
+    
 def test_update_value_table():
     
     df.loc['ARG', 2012] = 20
@@ -30,7 +34,7 @@ def test_update_meta():
     df.generateTableID()
     dt.updateTable(oldID, df, 'update meta data of table')
     
-    assert  'Emissions|CO2|transport|Historic|XYZ_2020' in dt.core.DB.inventory.index
+    assert  'Emissions|CO2|transport__Historic__XYZ_2020' in dt.core.DB.inventory.index
     
 def test_delete_table():
     dt.removeTable(df.ID)
@@ -48,6 +52,7 @@ def test_delete_mutliple_tables():
     
 if __name__ == '__main__':
     test_commit_new_table()
+    test_validate_ID()
     test_update_value_table()
     test_update_meta()
     test_delete_table()

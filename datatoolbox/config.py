@@ -39,6 +39,9 @@ ID_FIELDS = ['variable',
              'pathway',
              'source']
 
+ID_SEPARATOR     = '__'
+FIELD_SEPARATOR  = '|'
+
 INVENTORY_FIELDS = ['variable',
                     'entity',
                     'category', 

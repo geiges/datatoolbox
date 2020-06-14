@@ -264,11 +264,11 @@ class Database():
             self.inventory.rename(index = {oldID: newID}, inplace = True)
             self.add_to_inventory(newDataTable)
 
-    def validate_ID(self, ID, print_statement=False):
+    def validate_ID(self, ID, print_statement=True):
         RED = '\033[31m'
         GREEN = '\033[32m'
 
-        source = ID.split('|')[-1]
+        source = ID.split(config.ID_SEPARATOR)[-1]
         valid = list()
         if self.sourceExists(source):
             if print_statement:
@@ -287,7 +287,7 @@ class Database():
                 print(RED + "ID is missing in the inventory")
             valid.append(False)
             
-        tablePath = config.PATH_TO_DATASHELF + 'database/' + source + '/' + ID + '.csv'
+        tablePath = core.DB._getPathOfTable(ID)
         if os.path.isfile(tablePath):
             if print_statement:
                 print(GREEN + "csv file exists")
