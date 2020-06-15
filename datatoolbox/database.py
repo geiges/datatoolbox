@@ -504,10 +504,11 @@ class Database():
         
         self.gitManager.clone_source_from_remote(remoteName, repoPath)
         sourceMetaDict = util.csv_to_dict(os.path.join(repoPath, 'meta.csv'))
-        self.sources.loc[remoteName] = pd.Series(sourceMetaDict)        
+        self.sources.loc[remoteName] = pd.Series(sourceMetaDict)   
+        self.sources.loc[remoteName,'git_commit_hash'] = self.gitManager[remoteName].execute(['git', 'rev-parse', 'HEAD'])
         self.sources.to_csv(config.SOURCE_FILE)
         self.gitManager.gitAddFile('main', config.SOURCE_FILE) 
-        sourceInventory = pd.read_csv(os.path.join(repoPath, 'inventory_export.csv'), index_col=0)
+        sourceInventory = pd.read_csv(os.path.join(repoPath, 'source_inventory.csv'), index_col=0)
         for idx in sourceInventory.index:
             self.inventory.loc[idx,:] = sourceInventory.loc[idx,:]
         self._gitCommit('imported ' + remoteName)
@@ -674,3 +675,6 @@ class GitRepository_Manager(dict):
     def pull_update_from_remote(self, repoName):
         self[repoName].pull()
         
+    def updateGitHash(self, repoName):
+        self.sources.loc[repoName,'git_commit_hash'] = self[repoName].execute(['git', 'rev-parse', 'HEAD'])
+        self.commit()
