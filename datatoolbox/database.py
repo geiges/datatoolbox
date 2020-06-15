@@ -505,6 +505,7 @@ class Database():
         self.gitManager.clone_source_from_remote(remoteName, repoPath)
         sourceMetaDict = util.csv_to_dict(os.path.join(repoPath, 'meta.csv'))
         self.sources.loc[remoteName] = pd.Series(sourceMetaDict)   
+        self.gitManager.unvalidated_repos[remoteName] = git.Git(repoPath)
         self.sources.loc[remoteName,'git_commit_hash'] = self.gitManager[remoteName].execute(['git', 'rev-parse', 'HEAD'])
         self.sources.to_csv(config.SOURCE_FILE)
         self.gitManager.gitAddFile('main', config.SOURCE_FILE) 
