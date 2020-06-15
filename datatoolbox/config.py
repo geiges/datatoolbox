@@ -7,31 +7,61 @@ Created on Fri Mar  1 14:15:56 2019
 """
 import os
 import platform
-OS = platform.system() #'win32' , linux, #darwin
+OS = platform.system() #'win32' , linux, #Darwin
 
+
+if OS == 'Darwin':
+    import matplotlib
+    matplotlib.use("TkAgg")
 #%% Personal setup
 if not os.path.isfile(os.path.dirname(__file__) + '/settings/personal.py'):
     from .tools.install_support import create_initial_config
     modulePath =  os.path.dirname(__file__) + '/'
-    CRUNCHER, PATH_TO_DATASHELF, DB_READ_ONLY = create_initial_config(modulePath)
+    CRUNCHER, PATH_TO_DATASHELF, DB_READ_ONLY, DEBUG = create_initial_config(modulePath)
 
 else:
-    from .settings.personal import CRUNCHER, PATH_TO_DATASHELF, DB_READ_ONLY
+    from .settings.personal import CRUNCHER, PATH_TO_DATASHELF, DB_READ_ONLY, DEBUG
   
 
 #%% general setup
-DEBUG = True
+
 
 REQUIRED_META_FIELDS = {'entity',
-                        'category',
                         'scenario',
-                        'source',
+                        'institution',
+                        'year',
                         'unit'}
 
-ID_FIELDS = ['entity',
-             'category',
-             'scenario',
+OPTIONAL_META_FIELDS = ['category',
+                       'model']
+
+ID_FIELDS = ['variable',
+             'pathway',
              'source']
+
+SUB_FIELDS = {'variable' : ['entity', 'category'],
+              'pathway' : ['scenario', 'model'],
+              'source' : ['source_name', 'source_year']}
+
+SUB_SEP = {'variable' :'|',
+          'pathway' : '|',
+          'source' : '_'}
+
+ID_SEPARATOR     = '__'
+
+
+INVENTORY_FIELDS = ['variable',
+                    'entity',
+                    'category', 
+                    'pathway',
+                    'scenario',
+                    'model',
+                    'source',
+                    'source_name',
+                    'source_year',
+                    'unit'
+                    ]
+
 
 META_DECLARATION = '### META ###\n'
 DATA_DECLARATION = '### DATA ###\n'
@@ -53,7 +83,12 @@ SOURCE_META_FIELDS = ['SOURCE_ID',
                       'collected_by',
                       'date',
                       'source_url',
-                      'licence']
+                      'licence',
+                      'git_commit_hash']
+
+SOURCE_SUB_FOLDERS = ['tables',
+                      'raw_data'
+                      ]
 
 GHG_GAS_TABLE_FILE = 'GHG_properties_2019_CA.csv'
 GHG_NAMING_FILENAME = 'GHG_alternative_naming.pkl'
@@ -82,7 +117,7 @@ COUNTRY_LIST = ['AFG', 'ALA', 'ALB', 'DZA', 'ASM', 'AND', 'AGO', 'AIA', 'ATA', '
 
 logTables = False
 
-
+DATASHELF_REMOTE  = 'git@gitlab.com:climateanalytics/datashelf/'
 
 #### FUNCTION TESTS ########
 if __name__ == '__main__':

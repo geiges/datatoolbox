@@ -54,18 +54,21 @@ def create_personal_setting(modulePath, OS):
 
 
 def create_initial_config(modulePath):
+    import git
     fin = open(modulePath + 'data/personal_template.py', 'r')
     os.makedirs(modulePath + 'settings/',exist_ok=True)
     fout = open(modulePath + 'settings/personal.py', 'w')
     
+    DEBUG = False
+    READ_ONLY = True
     sandboxPath = os.path.join(modulePath, 'data/SANDBOX_datashelf')
-    
+    git.Repo.init(sandboxPath)
     for line in fin.readlines():
         outLine = line.replace('/PPP/PPP', sandboxPath)
         fout.write(outLine)
     fin.close()
     fout.close()
-    return 'XXX', sandboxPath, True
+    return 'XXX', sandboxPath, READ_ONLY, DEBUG
 #%%
 
 if __name__ == '__main__':

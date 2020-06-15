@@ -15,6 +15,7 @@ from . import core
 from . import config 
 from . import mapping as mapp
 from . import util
+#from . import io_tools
             
 class Datatable(pd.DataFrame):
     
@@ -22,11 +23,13 @@ class Datatable(pd.DataFrame):
 
     def __init__(self, *args, **kwargs):
         
-        metaData = kwargs.pop('meta', {x:None for x in config.REQUIRED_META_FIELDS})
+        metaData = kwargs.pop('meta', {x:'' for x in config.REQUIRED_META_FIELDS})
+
         super(Datatable, self).__init__(*args, **kwargs)
 #        print(metaData)
         if metaData['unit'] is None or pd.isna(metaData['unit']):
             metaData['unit'] = ''
+#        metaData['variable'] = metaData['entity'] + metaData['category']
         self.__appendMetaData__(metaData)
         self.vis = Visualization(self)
         try:
@@ -34,12 +37,9 @@ class Datatable(pd.DataFrame):
         except:
             self.ID = None
 
-
-#    def __getattr__(self, key):
-#        if key == 'ID' and self.ID is None:
-#            self.ID = self.generateTableID()
-#        else:
-#            return super(Datatable, self).__getitem__(key)
+        #compatibililty with v1
+#        if not 'model' in self.meta.keys():
+#            self.meta['model'] = ''
     
     @property
     def _constructor(self):
@@ -110,7 +110,7 @@ class Datatable(pd.DataFrame):
         
         metaSeries.to_excel(writer, sheet_name=sheetName, header=None, columns=None)
         super(Datatable, self).to_excel(writer, sheet_name= sheetName, startrow=len(metaSeries))
-        #writer.close()
+        writer.close()
         
         
                 
@@ -223,10 +223,13 @@ class Datatable(pd.DataFrame):
     
     #%%
     def generateTableID(self):
-        metaDict = self.meta
-        self.ID =  core._createDatabaseID(metaDict)
+        # update meta data required for the ID
+        self.meta =  core._update_meta(self.meta)
+        self.ID   =  core._createDatabaseID(self.meta)
         self.meta['ID'] = self.ID
         return self.ID
+
+
     
     def source(self):
         return self.meta['source']
@@ -236,8 +239,8 @@ class Datatable(pd.DataFrame):
         if isinstance(other,Datatable):
             
             if other.meta['entity'] != self.meta['entity']:
-                print(other.meta['entity'] )
-                print(self.meta['entity'])
+#                print(other.meta['entity'] )
+#                print(self.meta['entity'])
                 raise(BaseException('Physical entities do not match, please correct'))
             if other.meta['unit'] != self.meta['unit']:
                 other = other.convert(self.meta['unit'])
@@ -388,7 +391,7 @@ class Datatable(pd.DataFrame):
 class TableSet(dict):
     def __init__(self, IDList=None):
         super(dict, self).__init__()
-        self.inventory = pd.DataFrame(columns = config.ID_FIELDS)
+        self.inventory = pd.DataFrame(columns = config.INVENTORY_FIELDS)
         
         if IDList is not None:
             for tableID in IDList:
@@ -415,7 +418,7 @@ class TableSet(dict):
             if datatable.ID is None:
                 datatable.generateTableID()
             self[datatable.ID] = datatable
-            self.inventory.loc[datatable.ID] = [datatable.meta[x] for x in config.ID_FIELDS]
+            self.inventory.loc[datatable.ID] = [datatable.meta.get(x,None) for x in config.INVENTORY_FIELDS]
     
     def remove(self, tableID):
         del self[tableID]
@@ -512,9 +515,10 @@ class TableSet(dict):
                 table.loc[:,'model'] = scenModel[1]
                 table.loc[:,'scenario']   =scenModel[0]
             else:
-                table.loc[:,'model'] = table.meta['scenario']
-                table.loc[:,'scenario']   = ''
-            tableNew = table.loc[:, ['variable','region', 'scenario',  'model', 'unit'] +  oldColumns]
+                table.loc[:,'scenario']   = table.meta['scenario']
+                table.loc[:,'model']      = ''
+                
+            tableNew = table.loc[:, ['variable', 'region', 'scenario',  'model', 'unit'] +  oldColumns]
             tableNew.index= range(len(tableNew.index))
             tableList.append(tableNew)
         #df = pd.DataFrame(columns = ['variable','region', 'model', 'unit'] + list(range(minMax[0], minMax[1])))
@@ -528,7 +532,11 @@ class TableSet(dict):
             #print(table)
             fullDf = fullDf.append(pd.DataFrame(table))
         fullDf.index = range(len(fullDf))
-        return fullDf
+        
+        columns = list(fullDf.columns)
+        [columns.remove(x) for x in ['variable', 'region', 'scenario',  'model', 'unit']]
+        columns = ['variable', 'region', 'scenario',  'model', 'unit'] + columns 
+        return fullDf.loc[:, columns]
     
     def to_IamDataFrame(self):
         #%%
@@ -548,15 +556,14 @@ class TableSet(dict):
             
             table.loc[:,'region'] = table.index
             table.loc[:,'unit']   = table.meta['unit']
-            table.loc[:,'variable']   = table.meta['entity']
+            table.loc[:,'variable']   = table.meta['variable']
             
-            scenModel = table.meta['scenario'].split('|')
-            if len(scenModel) == 2:
-                table.loc[:,'model'] = scenModel[1]
-                table.loc[:,'scenario']   =scenModel[0]
-            else:
+
+            table.loc[:,'scenario'] = table.meta['scenario']
+            if 'model' in table.meta.keys():
                 table.loc[:,'model'] = table.meta['scenario']
-                table.loc[:,'scenario']   = ''
+            else:
+                table.loc[:,'model']   = ''
             tableNew = table.loc[:, ['variable','region', 'scenario',  'model', 'unit'] +  oldColumns]
             tableNew.index= range(len(tableNew.index))
             tableList.append(tableNew)
@@ -815,12 +822,60 @@ def read_csv(fileName):
         dataTuple = line.replace('\n','').split(',')
         meta[dataTuple[0]] = dataTuple[1].strip()
 
-    #print(meta.keys())
-    assert config.REQUIRED_META_FIELDS.issubset(set(meta.keys()))
-
     df = Datatable(pd.read_csv(fid, index_col=0), meta=meta)
     df.columns = df.columns.map(int)
 
     fid.close()
     return df
 
+def read_excel(fileName, sheetNames = None):
+ 
+    out = TableSet()
+    if sheetNames is None:
+        xlFile = pd.ExcelFile(fileName)
+        sheetNames = xlFile.sheet_names
+        xlFile.close()
+
+        
+    for sheet in sheetNames:
+        fileContent = pd.read_excel(fileName, sheet_name=sheet, header=None)
+        metaDict = dict()
+        try:
+            for idx in fileContent.index:
+                key, value = fileContent.loc[idx, [0,1]]
+                if key == '###DATA###':
+                    break
+                
+                metaDict[key] = value
+            columnIdx = idx +1
+            dataTable = Datatable(data    = fileContent.loc[columnIdx+1:, 1:].astype(float).values, 
+                                  index   = fileContent.loc[columnIdx+1:, 0], 
+                                  columns = [int(x) for x in fileContent.loc[columnIdx, 1:]], 
+                                  meta    = metaDict)
+            dataTable.generateTableID()
+            out.add(dataTable)
+        except:
+            print('Failed to read the sheet: {}'.format(sheet))
+        
+    return out
+#%%
+class MetaData(dict):
+    
+    def __init__(self):
+        super(MetaData, self).__init__()
+        self.update({x : '' for x in config.REQUIRED_META_FIELDS})
+    
+    
+    def __setitem__(self, key, value):
+        super(MetaData, self).__setitem__(key, value)
+        super(MetaData, self).__setitem__('variable', '|'.join([self[key] for key in ['entity', 'category'] if key in self.keys()]))
+        super(MetaData, self).__setitem__('pathway', '|'.join([self[key] for key in ['scenario', 'model'] if key in self.keys()]))
+        super(MetaData, self).__setitem__('source', '_'.join([self[key] for key in ['institution', 'year'] if key in self.keys()]))
+        
+        
+if __name__ == '__main__':
+    meta = MetaData()
+    meta['entity'] = 'Emissions|CO2'
+    meta['institution'] = 'WDI'
+    meta['year']  = '2020'
+    #print(meta)

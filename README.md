@@ -8,8 +8,8 @@ This is a python tool box project for handling global datasets. It contains the 
 3. ID based data structure
 
 Authors:
-Andreas Geiges 
-
+Andreas Geiges  
+Gaurav Ganti
 
 Dependencies
 ------------

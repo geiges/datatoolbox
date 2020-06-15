@@ -8,6 +8,8 @@ Created on Fri Mar  1 14:15:56 2019
 
 import time
 from . import config
+import numpy as np
+tt = time.time()
 #%% unit handling
 gases = {"CO2eq":"carbon_dioxide_equivalent",
          "CO2e" : "CO2eq",
@@ -98,11 +100,26 @@ LOG['tableIDs'] = list()
 #        "[NH3]" ,
 #        "[GWP]",
 #        lambda ur, x: x * 1 / ur.NH3 * ur.CO2eq)
-print(c.funcs)
+#print(c.funcs)
 ur.add_context(c)
 
-def _createDatabaseID(dictData):
-    return '|'.join([dictData[key] for key in config.ID_FIELDS])
+def _update_meta(metaDict):
+    
+    for key in list(metaDict.keys()):
+        if (metaDict[key] is np.nan) or metaDict[key] == '':
+            del metaDict[key]
+            
+    for id_field in config.ID_FIELDS:
+        fieldList = [ metaDict[key] for key in config.SUB_FIELDS[id_field] if key in  metaDict.keys()]
+        if len(fieldList)>0:
+            metaDict[id_field] =  config.SUB_SEP[id_field].join(fieldList).strip('|')
+    
+    return metaDict
+
+
+def _createDatabaseID(metaDict):
+    
+    return config.ID_SEPARATOR.join([metaDict[key] for key in config.ID_FIELDS])
 
 
 def osIsWindows():
@@ -175,3 +192,5 @@ def _AR4_conversionFactor(unitFrom, unitTo):
     factor = conversFactor * co2eq_factor
     return factor
     
+if config.DEBUG:
+    print('core loaded in {:2.4f} seconds'.format(time.time()-tt))

@@ -71,7 +71,7 @@ def read_long_table(longDf, relationList):
     outTables = list()
     
     if not set(longDf.columns) == requiredColumns:
-        raise(BaseException('Input data must have this columnes' + str(requiredColumns)))
+        raise(BaseException('Input data must have this columns' + str(requiredColumns)))
     
     for varName in relationList:
         
