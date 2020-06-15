@@ -508,15 +508,15 @@ class Database():
         self._gitCommit('imported ' + remoteName)
 
     def exportSourceToRemote(self, sourceID):
-        repoPath = os.path.join(config.PATH_TO_DATASHELF, 'database', sourceID)
+#        repoPath = os.path.join(config.PATH_TO_DATASHELF, 'database', sourceID)
         
         
         self.gitManager.create_remote_repo(sourceID)
-        sourceInventory = self.inventory.loc[self.inventory.source==sourceID,:]
-        sourceInventory.to_csv(os.path.join(repoPath, 'source_inventory.csv'))
-        self.gitManager.gitAddFile(sourceID, os.path.join(repoPath, 'source_inventory.csv')) 
+#        sourceInventory = self.inventory.loc[self.inventory.source==sourceID,:]
+#        sourceInventory.to_csv(os.path.join(repoPath, 'source_inventory.csv'))
+#        self.gitManager.gitAddFile(sourceID, os.path.join(repoPath, 'source_inventory.csv')) 
         
-        self.gitManager.commit('added export inventory')
+#        self.gitManager.commit('added export inventory')
         self.gitManager.push_to_remote_datashelf(sourceID)
         print('export successful: ({})'.format( config.DATASHELF_REMOTE +  sourceID))
         

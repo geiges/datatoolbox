@@ -589,7 +589,7 @@ def metaV2_to_meta_V3(tableSet):
                   'Emissions|KYOTOGHG_AR5|',
                   'Emissions|KYOTOGHG|',
                   'Emissions|BC|',
-                  'Emissions|CO2',
+                  'Emissions|CO2|',
                   'Emissions|CH4|',
                   'Emissions|NH3|',
                   'Emissions|N2O|',
@@ -622,7 +622,7 @@ def metaV2_to_meta_V3(tableSet):
                                'historical' : 'Historic',
                                'History'    : 'Historic',
                                'HISTCR'     : 'Historic|country_reported',
-                               'HISTTR'     : 'Historic|thrid_party',
+                               'HISTTP'     : 'Historic|third_party',
                                'computed historic' : 'Historic|computed'}
     
 #inventory.category = None
@@ -648,7 +648,7 @@ def metaV2_to_meta_V3(tableSet):
         for scenario in scenarioReplacementDict.keys():
             table.meta['scenario'] = table.meta['scenario'].replace(scenario, scenarioReplacementDict[scenario])
         
-        if hasattr(table.meta,'model') and (table.meta['model'] in table.meta['scenario']):
+        if 'model' in table.meta.keys() and (table.meta['model'] in table.meta['scenario']):
             table.meta['scenario'] = table.meta['scenario'].replace(table.meta['model'],'').rstrip('|')
             table.generateTableID()
            
