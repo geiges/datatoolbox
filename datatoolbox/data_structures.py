@@ -508,15 +508,14 @@ class TableSet(dict):
             
             table.loc[:,'region'] = table.index
             table.loc[:,'unit']   = table.meta['unit']
-            table.loc[:,'variable']   = table.meta['entity']
+            table.loc[:,'variable']   = table.meta['variable']
             
-            scenModel = table.meta['scenario'].split('|')
-            if len(scenModel) == 2:
-                table.loc[:,'model'] = scenModel[1]
-                table.loc[:,'scenario']   =scenModel[0]
+
+            table.loc[:,'scenario'] = table.meta['scenario']
+            if 'model' in table.meta.keys():
+                table.loc[:,'model'] = table.meta['scenario']
             else:
-                table.loc[:,'scenario']   = table.meta['scenario']
-                table.loc[:,'model']      = ''
+                table.loc[:,'model']   = ''
                 
             tableNew = table.loc[:, ['variable', 'region', 'scenario',  'model', 'unit'] +  oldColumns]
             tableNew.index= range(len(tableNew.index))

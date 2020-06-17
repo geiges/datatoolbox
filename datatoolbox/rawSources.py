@@ -3887,6 +3887,8 @@ class FAO(BaseImportTool):
                             excludedTables['exists'].append(tableID)
                         else:
                             tablesToCommit.append(table)
+                    else:
+                        tablesToCommit.append(table)
         return tablesToCommit, excludedTables  
 
 class WEO(BaseImportTool):
@@ -4391,8 +4393,8 @@ if __name__ == '__main__':
     
 #%% FAO
     fao = FAO(2020)
-    tableList, excludedTables = fao.gatherMappedData()
-    dt.commitTables(tableList, 'FAO  data added', fao.meta, update=False)  
+    tableList, excludedTables = fao.gatherMappedData(updateTables=True)
+    dt.commitTables(tableList, 'FAO  data added', fao.meta, update=True)  
     
 #%% APEC
     apec = APEC(2019)
@@ -4410,7 +4412,7 @@ if __name__ == '__main__':
 #%% Enerdata
     enerdata = ENERDATA(2019)
     tableList, excludedTables = enerdata.gatherMappedData()
-    dt.commitTables(tableList, 'enerdata data updated', enerdata.meta, update=False)  
+#    dt.commitTables(tableList, 'enerdata data updated', enerdata.meta, update=False)  
     #%%
 ##################################################################
 #    helper funtions
