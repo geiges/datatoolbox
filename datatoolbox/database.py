@@ -718,5 +718,9 @@ class GitRepository_Manager(dict):
         self[repoName].refresh()
         
     def isSource(self, sourceID):
-        self[sourceID].refresh()
-        return sourceID in self.sources.index
+        if sourceID in self.sources.index:
+            self[sourceID].refresh()
+            return True
+        else:
+            return False
+        
