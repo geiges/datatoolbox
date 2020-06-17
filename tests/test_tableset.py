@@ -80,14 +80,14 @@ def test_to_long_table():
     longTable = tableSet.to_LongTable()
 
     exp = pd.DataFrame.from_dict(
-            {'variable': {0: 'values',
-              1: 'values',
-              2: 'values',
-              3: 'values',
-              4: 'area',
-              5: 'area',
-              6: 'area',
-              7: 'area'},
+            {'variable': {0: 'values|cat1',
+              1: 'values|cat1',
+              2: 'values|cat1',
+              3: 'values|cat1',
+              4: 'area|cat2',
+              5: 'area|cat2',
+              6: 'area|cat2',
+              7: 'area|cat2'},
             'region': {0: 'ARG',
               1: 'DEU',
               2: 'FRA',
