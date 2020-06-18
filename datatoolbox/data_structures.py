@@ -500,6 +500,8 @@ class TableSet(dict):
         for key in self.keys():
             table= copy.copy(self[key])
             #print(table.columns)
+            if (len(table.index)== 0) or (len(table.columns)== 0):
+                continue
             
             oldColumns = list(table.columns)
             minMax = (max(minMax[0], min(oldColumns)), min(minMax[1],max(oldColumns)))
@@ -547,6 +549,8 @@ class TableSet(dict):
         for key in self.keys():
             table= copy.copy(self[key])
             #print(table.columns)
+            if (len(table.index)== 0) or (len(table.columns)== 0):
+                continue
             
             oldColumns = list(table.columns)
             minMax = (max(minMax[0], min(oldColumns)), min(minMax[1],max(oldColumns)))

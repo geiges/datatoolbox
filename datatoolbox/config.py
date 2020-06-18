@@ -28,8 +28,8 @@ else:
 
 REQUIRED_META_FIELDS = {'entity',
                         'scenario',
-                        'institution',
-                        'year',
+                        'source_name',
+                        'source_year',
                         'unit'}
 
 OPTIONAL_META_FIELDS = ['category',
