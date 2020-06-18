@@ -181,7 +181,9 @@ class WDI_2020(BaseImportTool):
         self.setup = setupStruct()
         
         self.setup.SOURCE_ID    = "WDI_2020"
-        self.setup.SOURCE_PATH  = os.path.join(config.PATH_TO_DATASHELF, 'database', self.setup.SOURCE_ID)
+        self.setup.SOURCE_NAME    = "WDI"
+        self.setup.SOURCE_YEAR    = "2020"
+        self.setup.SOURCE_PATH  = os.path.join(config.PATH_TO_DATASHELF, 'rawdata', self.setup.SOURCE_ID)
         self.setup.DATA_FILE    = 'WDIData.csv'
         self.setup.MAPPING_FILE = os.path.join(self.setup.SOURCE_PATH, 'mapping.xlsx')
         self.setup.LICENCE = 'CC BY-4.0'
@@ -209,19 +211,19 @@ class WDI_2020(BaseImportTool):
         
     def createVariableMapping(self):
         
-        fullFilePath = os.path.join(self.setup.SOURCE_PATH, 'raw_data', self.setup.DATA_FILE)
+        fullFilePath = os.path.join(self.setup.SOURCE_PATH, self.setup.DATA_FILE)
         self.availableSeries = pd.read_csv(fullFilePath, index_col=None, header =0)
         print(self.availableSeries.index)
         self.mapping = pd.DataFrame(index=self.availableSeries.index, columns = list(config.REQUIRED_META_FIELDS) + ['unitTo'])
         self.mapping = pd.concat([self.mapping, self.availableSeries], axis=1)
         self.mapping.source = self.setup.SOURCE_ID
-        self.mapping.scenario = 'historic'
+        self.mapping.scenario = 'Historic'
         
         self.mapping.to_excel(self.setup.MAPPING_FILE, engine='openpyxl', sheet_name=VAR_MAPPING_SHEET)
 
 
     def loadData(self):        
-        fullFilePath = os.path.join(self.setup.SOURCE_PATH, 'raw_data', self.setup.DATA_FILE)
+        fullFilePath = os.path.join(self.setup.SOURCE_PATH, self.setup.DATA_FILE)
         self.data = pd.read_csv(fullFilePath, index_col = self.setup.INDEX_COLUMN_NAME, header =0) 
     
     def gatherMappedData(self, spatialSubSet = None, updateTables = False):
@@ -240,17 +242,20 @@ class WDI_2020(BaseImportTool):
             print(metaDf[config.REQUIRED_META_FIELDS].isnull().all() == False)
             #print(metaData[self.setup.INDEX_COLUMN_NAME])
             
-            
-            metaDict = {key : metaDf[key] for key in config.REQUIRED_META_FIELDS.union({'unitTo'})}
+            metaDf['source_name'] = self.setup.SOURCE_NAME
+            metaDf['source_year'] = self.setup.SOURCE_YEAR
+            metaDict = {key : metaDf[key] for key in config.REQUIRED_META_FIELDS.union({'category', 'unitTo'})}
 #            metaDict['unitTo'] = self.mappingEntity.loc[entity]['unitTo']
             seriesIdx = metaDf['Series Code']
             metaDict['original code'] = metaDf['Series Code']
             metaDict['original name'] = metaDf['Indicator Name']
+            
+            
 
             if pd.isnull(metaDict['category']):
                 metaDict['category'] = ''
-            if pd.isnull(metaDict['model']):
-                metaDict['model'] = ''
+#            if pd.isnull(metaDict['model']):
+#                metaDict['model'] = ''
             if not updateTables:
                 #print(metaDict)
                 if dt.core.DB.tableExist(dt.core._createDatabaseID(metaDict)):
@@ -2964,10 +2969,12 @@ class PRIMAP_HIST(BaseImportTool):
         self.setup = setupStruct()
         
         self.setup.SOURCE_ID    = "PRIMAP_" + str(year)
+        self.setup.SOURCE_NAME    = "PRIMAP"
+        self.setup.SOURCE_YEAR    = str(year)
         self.setup.SOURCE_PATH  = config.PATH_TO_DATASHELF + 'rawdata/PRIMAP/'
         self.setup.DATA_FILE    = self.setup.SOURCE_PATH +  str(year) + '/PRIMAP-hist_' + str(year) + '.csv'
         self.setup.MAPPING_FILE = self.setup.SOURCE_PATH + 'mapping.xlsx'
-        self.setup.LICENCE = 'open access (UN)'
+        self.setup.LICENCE = 'open access'
         self.setup.URL     = 'https://www.pik-potsdam.de/primap-live/primap-hist/'
 
         
@@ -3074,12 +3081,15 @@ class PRIMAP_HIST(BaseImportTool):
             #print(metaDf[config.REQUIRED_META_FIELDS].isnull().all() == False)
             #print(metaData[self.setup.INDEX_COLUMN_NAME])
             
-            
-            metaDict = {key : metaDf[key] for key in config.REQUIRED_META_FIELDS.union({'unitTo'})}           
+            metaDf['source_name'] = self.setup.SOURCE_NAME
+            metaDf['source_year'] = self.setup.SOURCE_YEAR
+            metaDict = {key : metaDf[key] for key in config.REQUIRED_META_FIELDS.union({'unitTo', 'category'})}           
             metaDict['source'] = self.setup.SOURCE_ID
+            
             if pd.isna(metaDict['category']):
                 metaDict['category'] = ''
             if not updateTables:
+                metaDict= dt.core._update_meta(metaDict)
                 tableID = dt.core._createDatabaseID(metaDict)
                 if not updateTables:
                     if dt.core.DB.tableExist(tableID):
@@ -4298,7 +4308,7 @@ if config.DEBUG:
 if __name__ == '__main__':
 #%% PRIMAP
     primap = PRIMAP_HIST(2019)
-#    tableList, excludedTables = primap.gatherMappedData()
+    tableList, excludedTables = primap.gatherMappedData()
 #    dt.commitTables(tableList, 'PRIMAP 2019 update', primap.meta)
 #%% CRF data
     crf_data = CRF_DATA(2019)
@@ -4313,9 +4323,9 @@ if __name__ == '__main__':
 #    dt.commitTables(tableList, 'ADVANCE DB IAM data', advance.meta)
 #%%WDI data
     wdi = WDI_2020()    
-#    tableList = wdi.gatherMappedData(updateTables=True)
+    tableList = wdi.gatherMappedData(updateTables=True)
 #    iea.openMappingFile()
-#    dt.commitTables(tableList, 'update WDI2019  data', wdi.meta, update=True)
+    dt.commitTables(tableList, 'Added WDI 2020  data', wdi.meta, update=False)
     
 #%%IEA data
     iea19 = IEA_WEB_2019_New()
