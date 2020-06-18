@@ -800,6 +800,39 @@ def csv_to_dict(filePath):
 #            v = rows[1]
             mydict[row[0]] =  row[1]
     return mydict
+
+def aggregate_table_to_region(table, mapping):
+    missingCountryDict = dict()
+    
+    for region in mapping.listAll():
+
+        
+        missingCountries = set(mapping.membersOf(region)) - set(table.index)
+#                print('missing countries: {}'.format(missingCountries))
+        missingCountryDict[region] = list(missingCountries)
+        availableCountries = set(mapping.membersOf(region)).intersection(table.index)
+        if len(availableCountries) >0:
+            table.loc[region,:] = table.loc[availableCountries,:].sum(axis=0, skipna=True)
+
+    return table, missingCountryDict
+
+def aggregate_tableset_to_region(tableSet, mapping):
+    missingCountryDf = pd.DataFrame(columns=mapping.listAll())
+
+    for tableKey in tableSet.keys():
+
+        for region in mapping.listAll():
+#                print(region)
+            
+            missingCountries = set(mapping.membersOf(region)) - set(tableSet[tableKey].index)
+#                print('missing countries: {}'.format(missingCountries))
+            missingCountryDf.loc[tableSet[tableKey].ID, region] = list(missingCountries)
+            availableCountries = set(mapping.membersOf(region)).intersection(tableSet[tableKey].index)
+            if len(availableCountries) >0:
+                tableSet[tableKey].loc[region,:] = tableSet[tableKey].loc[availableCountries,:].sum(axis=0, skipna=True)
+
+    return tableSet, missingCountryDf
+    
 #%%    
 if __name__ == '__main__':
     #%%
@@ -833,3 +866,5 @@ if __name__ == '__main__':
         return table
 
     outputTables, success = forAll(calculateTotalBiomass, "scenario")
+    
+    

@@ -147,7 +147,14 @@ class Datatable(pd.DataFrame):
         dfNew.meta['modified'] = core.getTimeString()
         return dfNew
         
-    
+    def aggregate_to_region(self, mapping):
+        """ 
+        This functions added the aggregates to the table according to the provided
+        mapping.( See datatools.mapp.regions)
+        
+        Returns the result, but does not inplace add it.
+        """
+        return util.aggregate_table_to_region(self, mapping)
     
     def interpolate(self, method, newSource):
         
@@ -428,6 +435,16 @@ class TableSet(dict):
     def filter(self, ):
         pass
     
+    def aggregate_to_region(self, mapping):
+        """ 
+        This functions added the aggregates to the output according to the provided
+        mapping.( See datatools.mapp.regions)
+        
+        Returns the result, but does not inplace add it.
+        """
+        return util.aggregate_tableset_to_region(self, mapping)
+        
+        
     def __getitem__(self, key):
         item = super(TableSet, self).__getitem__(key)
         
