@@ -295,7 +295,10 @@ class Datatable(pd.DataFrame):
     
     def __sub__(self, other):
         if isinstance(other,Datatable):
-            factor = core.getUnit(other.meta['unit']).to(self.meta['unit']).m
+            if other.meta['unit'] == other.meta['unit']:
+                factor = 1
+            else:
+                factor = core.getUnit(other.meta['unit']).to(other.meta['unit']).m
             out = Datatable(super(Datatable, self).__sub__(other * factor))
             out.meta['unit'] = self.meta['unit']
             out.meta['source'] = 'calculation'
@@ -307,7 +310,10 @@ class Datatable(pd.DataFrame):
 
     def __rsub__(self, other):
         if isinstance(other,Datatable):
-            factor = core.getUnit(other.meta['unit']).to(self.meta['unit']).m
+            if other.meta['unit'] == other.meta['unit']:
+                factor = 1
+            else:
+                factor = core.getUnit(other.meta['unit']).to(other.meta['unit']).m
             out = Datatable(super(Datatable, self).__rsub__(other * factor))
             out.meta['unit'] = self.meta['unit']
             out.meta['source'] = 'calculation'
@@ -841,7 +847,8 @@ def read_csv(fileName):
             break
         dataTuple = line.replace('\n','').split(',')
         meta[dataTuple[0]] = dataTuple[1].strip()
-
+        if "unit" not in meta.keys():
+            meta["unit"] = ""
     df = Datatable(pd.read_csv(fid, index_col=0), meta=meta)
     df.columns = df.columns.map(int)
 

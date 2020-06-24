@@ -96,8 +96,12 @@ def read_MAGICC6_BINOUT(filePath):
     return Datatable(data, meta=metaDict)
 
 
-def read_PRIMAP_Excel(fileName, sheet_name= 0):
-    allDf = pd.read_excel(fileName, sheet_name = sheet_name, usecols=[0,1], index_col=0)
+def read_PRIMAP_Excel(fileName, sheet_name= 0, xlsFile=None):
+    if xlsFile is not None:
+        xlsFile = xlsFile
+    else:   
+        xlsFile = pd.ExcelFile(fileName)
+    allDf = pd.read_excel(xlsFile, sheet_name = sheet_name, usecols=[0,1], index_col=0)
     #print(os.path.basename(fileName))
 
     firstDataRow = allDf.loc['SHEET_FIRSTDATAROW','Unnamed: 1']
@@ -116,7 +120,7 @@ def read_PRIMAP_Excel(fileName, sheet_name= 0):
     setup['timeIdxList']  = ('B' + str(firstDataRow-1), 'XX'+ str(firstDataRow-1))
     setup['spaceIdxList'] = ('A'+ str(firstDataRow), 'A1000')
     #print(setup)
-    ex = ExcelReader(setup)
+    ex = ExcelReader(setup, xlsFile=xlsFile)
     data = ex.gatherData().astype(float)
     #return data
     meta = {'source': '',
@@ -224,7 +228,7 @@ def getAllSheetNames(filePath):
 
 class ExcelReader():
     
-    def __init__(self, setupDict):
+    def __init__(self, setupDict, xlsFile=None):
         """
         Required setup parameters:
             filePath    = './data/'
@@ -235,6 +239,8 @@ class ExcelReader():
         
         """
         self.setup(**setupDict)
+        if xlsFile is not None:
+            self.xlsFile = xlsFile
         
     
 #    def setSetup(self, **kwargs):
@@ -268,7 +274,10 @@ class ExcelReader():
 
     def gatherValue(self, excelIdx):
         if not hasattr(self, 'df'):
-            self.df = pd.read_excel(os.path.join(self.filePath, self.fileName), sheet_name=self.sheetName, header=None)
+            if hasattr(self, 'xlsFile'):
+                self.df = pd.read_excel(self.xlsFile, sheet_name=self.sheetName, header=None)
+            else:
+                self.df = pd.read_excel(os.path.join(self.filePath, self.fileName), sheet_name=self.sheetName, header=None)
         elif core.config.DEBUG:
             print('use loaded df')
         return self.df.iloc[excelIdx2PandasIdx(excelIdx)]             
