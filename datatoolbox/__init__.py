@@ -14,7 +14,8 @@ Authors: Andreas Geiges
 @Climate Analytics gGmbH
 """
 
-__version__ = "0.2.25"
+__version__ = "0.3.5"
+
 
 import os
 import time
@@ -74,9 +75,16 @@ executeForAll = util.forAll
 DBinfo = core.DB.info
 sourceInfo = core.DB.sourceInfo
 inventory = core.DB.returnInventory
+
+validate_ID = core.DB.validate_ID
 #writeMAGICC6ScenFile = tools.wr
 
-from .tools.kaya_idendentiy_decomposition import kaya_decomposion
+# Source management
+import_new_source_from_remote = core.DB.importSourceFromRemote
+export_new_source_to_remote   = core.DB.exportSourceToRemote
+remove_source                 = core.DB.removeSource
+
+#from .tools.kaya_idendentiy_decomposition import kaya_decomposion
 
 
 if config.PATH_TO_DATASHELF == os.path.join(config.MODULE_PATH, 'data/SANDBOX_datashelf'):

@@ -28,8 +28,8 @@ else:
 
 REQUIRED_META_FIELDS = {'entity',
                         'scenario',
-                        'institution',
-                        'year',
+                        'source_name',
+                        'source_year',
                         'unit'}
 
 OPTIONAL_META_FIELDS = ['category',
@@ -39,6 +39,17 @@ ID_FIELDS = ['variable',
              'pathway',
              'source']
 
+SUB_FIELDS = {'variable' : ['entity', 'category'],
+              'pathway' : ['scenario', 'model'],
+              'source' : ['source_name', 'source_year']}
+
+SUB_SEP = {'variable' :'|',
+          'pathway' : '|',
+          'source' : '_'}
+
+ID_SEPARATOR     = '__'
+
+
 INVENTORY_FIELDS = ['variable',
                     'entity',
                     'category', 
@@ -46,8 +57,8 @@ INVENTORY_FIELDS = ['variable',
                     'scenario',
                     'model',
                     'source',
-                    'institution',
-                    'year',
+                    'source_name',
+                    'source_year',
                     'unit'
                     ]
 

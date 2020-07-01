@@ -1,9 +1,13 @@
 import datatoolbox as dt
 import pandas as pd
 import numpy as np
+#<<<<<<< HEAD
 
 
-from pandas._testing import assert_frame_equal
+#from pandas._testing import assert_frame_equal
+#=======
+import numpy.testing as npt
+#>>>>>>> master
 #%%
 
 metaDict = {'entity':'Emissions|Candy',
@@ -24,7 +28,7 @@ df1 = dt.Datatable([[10,20,30,],
                    index= ['DEU', 'IND'],
                    meta = metaDict)
 
-df2 = dt.Datatable([[50,50,50,],
+df2 = dt.Datatable([[50.,50,50,],
                    [40,40,40,]], 
                    columns = [2000, 2010, 2020],
                    index= ['DEU', 'IND'],
@@ -46,12 +50,16 @@ def test_addition_int():
                        meta = metaDict)
     
     obs = df1 + 20    
-    assert_frame_equal(obs, exp)
+    # TODO use with new pandas version
+    # assert_frame_equal(obs, exp, check_dtype=False)
+    npt.assert_array_almost_equal(obs, exp, decimal = 6)
     assert obs.meta['unit']   == exp.meta['unit']
     assert obs.meta['source'] == 'calculation'
     
     obs = 20 + df1
-    assert_frame_equal(obs, exp)
+    # TODO use with new pandas version
+    # assert_frame_equal(obs, exp, check_dtype=False)
+    npt.assert_array_almost_equal(obs, exp, decimal = 6)
     assert obs.meta['unit']   == exp.meta['unit']
     assert obs.meta['source'] == 'calculation'
 
@@ -64,7 +72,9 @@ def test_addition_dfs():
                        columns = [2000, 2010, 2020],
                        index= ['DEU', 'IND'],
                        meta = metaDict)
-    assert_frame_equal(obs, exp)
+    # TODO use with new pandas version
+    # assert_frame_equal(obs, exp, check_dtype=False)
+    npt.assert_array_almost_equal(obs, exp, decimal = 6)
     assert obs.meta['unit']   == exp.meta['unit']
     assert obs.meta['source'] == 'calculation'
 
@@ -77,7 +87,9 @@ def test_raddition_dfs_conv():
                        index= ['DEU', 'IND'],
                        meta = metaDict)
     
-    assert_frame_equal(obs, exp)
+    # TODO use with new pandas version
+    # assert_frame_equal(obs, exp, check_dtype=False)
+    npt.assert_array_almost_equal(obs, exp, decimal = 6)
     assert obs.meta['unit']   == exp.meta['unit']
     assert obs.meta['source'] == 'calculation'
 
@@ -85,25 +97,34 @@ def test_raddition_dfs_conv():
 def test_laddition_dfs_conv():
     
     obs = df3 + df1
-    exp = dt.Datatable([[10050,  20050, np.nan],
+    exp = dt.Datatable([[10050.,  20050, np.nan],
                        [40040,  40040,  np.nan]], 
                        columns = [2000, 2010, 2020],
                        index= ['DEU', 'IND'],
                        meta = metaDict2)
+
     # TODO: conversion makes this a float, fix?
-    assert_frame_equal(obs, exp, check_dtype=False)
+    # TODO use with new pandas version
+    # assert_frame_equal(obs, exp, check_dtype=False)
+    npt.assert_array_almost_equal(obs, exp, decimal = 6)
+    assert obs.loc[:,2020].isnull().all()
     assert obs.meta['unit']   == exp.meta['unit']
     assert obs.meta['source'] == 'calculation'
 
 def test_sum():
-    obs = sum([df3 + df1])
-    exp = dt.Datatable([[10050,  20050, np.nan],
+    obs = sum([df3, df1])
+    exp = dt.Datatable([[10050.,  20050, np.nan],
                        [40040,  40040,  np.nan]], 
                        columns = [2000, 2010, 2020],
                        index= ['DEU', 'IND'],
                        meta = metaDict2)
+
     # TODO: conversion makes this a float, fix?
-    assert_frame_equal(obs, exp, check_dtype=False)
+    # TODO:use with new pandas version
+    #assert_frame_equal(obs, exp, check_dtype=False)
+ 
+    npt.assert_array_almost_equal(obs, exp, decimal = 5)
+    assert obs.loc[:,2020].isnull().all()
     assert obs.meta['unit']   == exp.meta['unit']
     assert obs.meta['source'] == 'calculation'  
     
@@ -117,7 +138,8 @@ def test_rsubstraction_int():
                        meta = metaDict)
     
     obs = df1 - 20
-    assert_frame_equal(obs, exp)
+    #assert_frame_equal(obs, exp)
+    npt.assert_array_almost_equal(obs, exp, decimal = 5)
     assert obs.meta['unit']   == exp.meta['unit']
     assert obs.meta['source'] == 'calculation'
     
@@ -130,7 +152,8 @@ def test_lsubstraction_int():
                        meta = metaDict)
     
     obs = 20 - df1
-    assert_frame_equal(obs, exp)
+    #assert_frame_equal(obs, exp)
+    npt.assert_array_almost_equal(obs, exp, decimal = 5)
     assert obs.meta['unit']   == exp.meta['unit']
     assert obs.meta['source'] == 'calculation'
 
@@ -144,13 +167,15 @@ def test_substraction_dfs():
                        index= ['DEU', 'IND'],
                        meta = metaDict)
     
-    assert_frame_equal(obs, exp)
+    #assert_frame_equal(obs, exp)
+    npt.assert_array_almost_equal(obs, exp, decimal = 5)
     assert obs.meta['unit']   == exp.meta['unit']
     assert obs.meta['source'] == 'calculation'
 
 def test_rsubstraction_dfs_conv():
 
     # adding two datatables + conversion
+    
     obs = df1 - df3
     exp = dt.Datatable([[9.95,  19.95, np.nan],
                        [39.96,  39.96,  np.nan]], 
@@ -158,7 +183,12 @@ def test_rsubstraction_dfs_conv():
                        index= ['DEU', 'IND'],
                        meta = metaDict)
     
-    assert_frame_equal(obs, exp)
+
+    # TODO:use with new pandas version
+    #assert_frame_equal(obs, exp)
+
+    npt.assert_array_almost_equal(obs, exp, decimal = 5)
+    assert obs.loc[:,2020].isnull().all()
     assert obs.meta['unit']   == exp.meta['unit']
     assert obs.meta['source'] == 'calculation'
 
@@ -170,6 +200,11 @@ def test_lsubstraction_dfs_conv():
                        columns = [2000, 2010, 2020],
                        index= ['DEU', 'IND'],
                        meta = metaDict2)
-    assert_frame_equal(obs, exp)
+
+    # TODO:use with new pandas version
+    # assert_frame_equal(obs, exp)
+    
+    npt.assert_array_almost_equal(obs, exp, decimal = 5)
+    assert obs.loc[:,2020].isnull().all()
     assert obs.meta['unit']   == exp.meta['unit']
     assert obs.meta['source'] == 'calculation'

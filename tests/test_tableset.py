@@ -52,7 +52,7 @@ def test_add_remove():
     tableSet.add(df)
     
     obs = list(tableSet.keys())
-    exp = ['values|cat1|#1|TEST']
+    exp = ['values|cat1__#1__TEST']
     assert obs == exp
     
     tableSet.add(df2)
@@ -60,7 +60,7 @@ def test_add_remove():
     tableSet.remove(df.ID)
     
     obs = list(tableSet.keys())
-    exp = ['area|cat2|#2|TEST2']
+    exp = ['area|cat2__#2__TEST2']
     assert obs == exp
     
     assert len(tableSet.inventory.index) == 1
@@ -69,7 +69,7 @@ def test_add_list():
     tableSet = dt.TableSet()
     tableSet.add([df, df2])
     obs = list(tableSet.keys())
-    exp = ['values|cat1|#1|TEST', 'area|cat2|#2|TEST2']
+    exp = ['values|cat1__#1__TEST', 'area|cat2__#2__TEST2']
     assert obs == exp
     
 def test_to_long_table():
@@ -80,14 +80,14 @@ def test_to_long_table():
     longTable = tableSet.to_LongTable()
 
     exp = pd.DataFrame.from_dict(
-            {'variable': {0: 'values',
-              1: 'values',
-              2: 'values',
-              3: 'values',
-              4: 'area',
-              5: 'area',
-              6: 'area',
-              7: 'area'},
+            {'variable': {0: 'values|cat1',
+              1: 'values|cat1',
+              2: 'values|cat1',
+              3: 'values|cat1',
+              4: 'area|cat2',
+              5: 'area|cat2',
+              6: 'area|cat2',
+              7: 'area|cat2'},
             'region': {0: 'ARG',
               1: 'DEU',
               2: 'FRA',

@@ -7,12 +7,11 @@ Created on Wed May  8 11:25:15 2019
 """
 import pandas as pd
 import numpy  as np
-import pandas as pd
 import datatoolbox as dt
 from datatoolbox import mapping as mapp
 from datatoolbox import core
 from datatoolbox import config
-#from datatoolbox.data_structures import Datatable, read_csv
+#from .data_structures import read_csv
 from datatoolbox.greenhouse_gas_database import GreenhouseGasTable 
 import matplotlib.pylab as plt
 import os
@@ -504,6 +503,9 @@ def update_DB_from_folderV3(folderToRead, message=None, cleanTables=True):
 
             table = dt.read_csv(os.path.join(folderToRead, file))
             source = table.meta['source']
+            
+#            if not 'Emissions|CO2|Industrial' in table.ID:
+#                continue
             if source in tablesToUpdate.keys():
     
     
@@ -518,7 +520,7 @@ def update_DB_from_folderV3(folderToRead, message=None, cleanTables=True):
         for source in tablesToUpdate.keys():
     
             tablesToUpdate[source] = metaV2_to_meta_V3(tablesToUpdate[source])
-    #    return tablesToUpdate
+#        return tablesToUpdate
     
         for source in tablesToUpdate.keys():
             sourceMetaDict = dict()
@@ -526,7 +528,50 @@ def update_DB_from_folderV3(folderToRead, message=None, cleanTables=True):
             core.DB.commitTables(tablesToUpdate[source], 
                             message = message,
                             sourceMetaDict = sourceMetaDict, 
-                            cleanTables=cleanTables)
+                            cleanTables=cleanTables,
+                            update=True)
+
+#def update_DB_from_folderV3(folderToRead, message=None, cleanTables=True):
+#    import math
+#    fileList = os.listdir(folderToRead)
+#    fileList = [file for file in fileList if '.csv' in file[-5:].lower()]
+#
+#    
+#
+##    filesPerCommit = 5000
+##    nCommits = math.ceil((len(fileList))/filesPerCommit)
+##    for nCommit in range(nCommits):
+#    tablesToUpdate = dict()
+#    for file in fileList:
+#
+#        table = dt.read_csv(os.path.join(folderToRead, file))
+#        source = table.meta['source']
+#        
+#        if not 'Emissions|CO2|Industrial' in table.ID:
+#                continue
+#        if source in tablesToUpdate.keys():
+#
+#
+#            tablesToUpdate[source].append(table)
+#        else:
+#            tablesToUpdate[source] = [table]
+#    
+##    if message is None:
+##
+##        message = 'External data added from external source by ' + config.CRUNCHER + '{}/{}'.format(nCommit,nCommits)
+#
+#    for source in tablesToUpdate.keys():
+#
+#        tablesToUpdate[source] = metaV2_to_meta_V3(tablesToUpdate[source])
+#    return tablesToUpdate
+    
+#        for source in tablesToUpdate.keys():
+#            sourceMetaDict = dict()
+#            sourceMetaDict['SOURCE_ID']= source
+#            core.DB.commitTables(tablesToUpdate[source], 
+#                            message = message,
+#                            sourceMetaDict = sourceMetaDict, 
+#                            cleanTables=cleanTables)
 
 def metaV2_to_meta_V3(tableSet):
     replacementDict = {#'Capacity': 'Electricity|capacity',
@@ -580,7 +625,7 @@ def metaV2_to_meta_V3(tableSet):
                    'Transfers_' : 'Transfers|',
                    'Total_PE_supply_' : 'Total_PE_supply|',
                    'Total_consumption_' : 'Total_consumption|',
-                   'Emissions_er_capita' : 'Emissions_per_capita'}
+                   'Emissions_per_capita' : 'Emissions_per_capita'}
 
     entityList = ['Electricity|generation|',
                   'Electricity|capacity|',
@@ -589,7 +634,7 @@ def metaV2_to_meta_V3(tableSet):
                   'Emissions|KYOTOGHG_AR5|',
                   'Emissions|KYOTOGHG|',
                   'Emissions|BC|',
-                  'Emissions|CO2',
+                  'Emissions|CO2|',
                   'Emissions|CH4|',
                   'Emissions|NH3|',
                   'Emissions|N2O|',
@@ -616,6 +661,15 @@ def metaV2_to_meta_V3(tableSet):
                   'Price|',
                   'Production|']
 
+
+    scenarioReplacementDict = {'historic'   :'Historic',
+                               'Historical' : 'Historic',
+                               'historical' : 'Historic',
+                               'History'    : 'Historic',
+                               'HISTCR'     : 'Historic|country_reported',
+                               'HISTTP'     : 'Historic|third_party',
+                               'computed historic' : 'Historic|computed'}
+    
 #inventory.category = None
 #for entity in entityList:
 #    mask = inventory.entity.str.startswith(entity)
@@ -635,10 +689,53 @@ def metaV2_to_meta_V3(tableSet):
                 else:
                     table.meta['category'] = table.meta['entity'].replace(entity,'')
                 table.meta['entity'] = entity.rstrip('|')
-                
-        if hasattr(table.meta,'model') and (table.meta['model'] in table.meta['scenario']):
+       
+        for scenario in scenarioReplacementDict.keys():
+            table.meta['scenario'] = table.meta['scenario'].replace(scenario, scenarioReplacementDict[scenario])
+        
+        if 'model' in table.meta.keys() and (table.meta['model'] in table.meta['scenario']):
             table.meta['scenario'] = table.meta['scenario'].replace(table.meta['model'],'').rstrip('|')
             table.generateTableID()
+           
+        sourceSplit = table.meta['source'].split('_') 
+        if len(sourceSplit) ==2 :
+            table.meta['source_name'], table.meta['source_year'] = sourceSplit
+        else:
+            if table.meta['source'].startswith('CAT'):
+                table.meta['source_name'] = 'CAT'
+                table.meta['source_year'] = table.meta['source'].replace('CAT_','')
+            elif table.meta['source'].startswith('CA_NDCA'):
+                table.meta['source_name'] = 'CA_NDCA'
+                table.meta['source_year'] = table.meta['source'].replace('CA_NDCA_','')
+            elif table.meta['source'].startswith('AIM_SSPx_DATA'):
+                table.meta['source_name'] = 'AIM_SSPx_DATA'
+                table.meta['source_year'] = table.meta['source'].replace('AIM_SSPx_DATA_','')
+            elif table.meta['source'].startswith('CA_NDCA'):
+                table.meta['source_name'] = 'CA_NDCA'
+                table.meta['source_year'] = table.meta['source'].replace('CA_NDCA_','')
+            elif table.meta['source'].startswith('IEA_CO2_FUEL'):
+                table.meta['source_name'] = 'IEA_CO2_FUEL'
+                table.meta['source_year'] = table.meta['source'].replace('IEA_CO2_FUEL_','')
+            elif table.meta['source'].startswith('IEA_WEB'):
+                table.meta['source_name'] = 'IEA_WEB'
+                table.meta['source_year'] = table.meta['source'].replace('IEA_WEB_','')
+            elif table.meta['source'].startswith('SDG_DB'):
+                table.meta['source_name'] = 'SDG_DB'
+                table.meta['source_year'] = table.meta['source'].replace('SDG_DB_','')
+                  
+            elif table.meta['source'].startswith('SSP_DB'):
+                table.meta['source_name'] = 'SSP_DB'
+                table.meta['source_year'] = table.meta['source'].replace('SSP_DB_','')
+                  
+            elif table.meta['source'].startswith('UNFCCC_CRF'):
+                table.meta['source_name'] = 'UNFCCC_CRF'
+                table.meta['source_year'] = table.meta['source'].replace('UNFCCC_CRF_','')
+                  
+            elif table.meta['source'].startswith('UN_WPP'):
+                table.meta['source_name'] = 'UN_WPP'
+                table.meta['source_year'] = table.meta['source'].replace('UN_WPP','')
+
+                
         outList.append(table)
         
     return outList
@@ -648,13 +745,13 @@ def zipExport(IDList, fileName):
     from zipfile import ZipFile
     folder = os.path.join(config.PATH_TO_DATASHELF, 'exports/')
     os.makedirs(folder, exist_ok=True)
-    zipObj = ZipFile(os.path.join(folder, fileName), 'w')
+    
 #    root = config.PATH_TO_DATASHELF
     
-    sources = list(dt.find().loc[IDList].source.unique())
+    sources = dt.find().loc[IDList].source.unique()
     sourceMeta = dt.core.DB.sources.loc[sources]
     sourceMeta.to_csv(os.path.join(folder, 'sources.csv'))
-    
+    zipObj = ZipFile(os.path.join(folder, fileName), 'w')
     zipObj.write(os.path.join(folder, 'sources.csv'),'./sources.csv')
     for ID in tqdm.tqdm(IDList):
         # Add multiple files to the zip
@@ -749,6 +846,39 @@ def csv_to_dict(filePath):
 #            v = rows[1]
             mydict[row[0]] =  row[1]
     return mydict
+
+def aggregate_table_to_region(table, mapping):
+    missingCountryDict = dict()
+    
+    for region in mapping.listAll():
+
+        
+        missingCountries = set(mapping.membersOf(region)) - set(table.index)
+#                print('missing countries: {}'.format(missingCountries))
+        missingCountryDict[region] = list(missingCountries)
+        availableCountries = set(mapping.membersOf(region)).intersection(table.index)
+        if len(availableCountries) >0:
+            table.loc[region,:] = table.loc[availableCountries,:].sum(axis=0, skipna=True)
+
+    return table, missingCountryDict
+
+def aggregate_tableset_to_region(tableSet, mapping):
+    missingCountryDf = pd.DataFrame(columns=mapping.listAll())
+
+    for tableKey in tableSet.keys():
+
+        for region in mapping.listAll():
+#                print(region)
+            
+            missingCountries = set(mapping.membersOf(region)) - set(tableSet[tableKey].index)
+#                print('missing countries: {}'.format(missingCountries))
+            missingCountryDf.loc[tableSet[tableKey].ID, region] = list(missingCountries)
+            availableCountries = set(mapping.membersOf(region)).intersection(tableSet[tableKey].index)
+            if len(availableCountries) >0:
+                tableSet[tableKey].loc[region,:] = tableSet[tableKey].loc[availableCountries,:].sum(axis=0, skipna=True)
+
+    return tableSet, missingCountryDf
+    
 #%%    
 if __name__ == '__main__':
     #%%
@@ -782,3 +912,5 @@ if __name__ == '__main__':
         return table
 
     outputTables, success = forAll(calculateTotalBiomass, "scenario")
+    
+    

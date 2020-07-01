@@ -100,8 +100,41 @@ def test_clean():
     df2_clean = df2.clean()
     df2_clean == df2.clean()
     assert assert_frame_equal(df2_clean, exp) is None
+
+
+def test_consistent_meta():
+    #%%
+    df = dt.Datatable(data=np.asarray([[2.2,3.4 ],
+                                       [2.3,  3.4]]
+                                       ), 
+                    meta={'source' : 'TEST',
+                          'entity' : 'Area',
+                          'category': 'Forestery',
+                          'scenario' : 'Historic',
+                          'unit' : 'm'}, 
+                    columns = [2010, 2012], 
+                    index = ['ARG', 'DEU'])
+    
+    df.generateTableID()
+    
+    assert df.meta['variable'] == 'Area|Forestery'
+    assert df.meta['pathway']  == 'Historic'
+    
+    # check removal of empty meta
+    df.meta['category'] = np.nan
+    df.meta['model'] = ''
+    df.meta['description'] = ''
+    df.generateTableID()
+    
+    assert 'category' not in df.meta.keys()
+    assert 'model' not in df.meta.keys()
+    assert 'description' not in df.meta.keys()
+    
+    #%%
     
 if __name__ == '__main__':    
     test_creation()
     test_append()
     test_clean()
+    test_consistent_meta()
+    

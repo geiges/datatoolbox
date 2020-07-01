@@ -181,7 +181,9 @@ class WDI_2020(BaseImportTool):
         self.setup = setupStruct()
         
         self.setup.SOURCE_ID    = "WDI_2020"
-        self.setup.SOURCE_PATH  = os.path.join(config.PATH_TO_DATASHELF, 'database', self.setup.SOURCE_ID)
+        self.setup.SOURCE_NAME    = "WDI"
+        self.setup.SOURCE_YEAR    = "2020"
+        self.setup.SOURCE_PATH  = os.path.join(config.PATH_TO_DATASHELF, 'rawdata', self.setup.SOURCE_ID)
         self.setup.DATA_FILE    = 'WDIData.csv'
         self.setup.MAPPING_FILE = os.path.join(self.setup.SOURCE_PATH, 'mapping.xlsx')
         self.setup.LICENCE = 'CC BY-4.0'
@@ -209,19 +211,19 @@ class WDI_2020(BaseImportTool):
         
     def createVariableMapping(self):
         
-        fullFilePath = os.path.join(self.setup.SOURCE_PATH, 'raw_data', self.setup.DATA_FILE)
+        fullFilePath = os.path.join(self.setup.SOURCE_PATH, self.setup.DATA_FILE)
         self.availableSeries = pd.read_csv(fullFilePath, index_col=None, header =0)
         print(self.availableSeries.index)
         self.mapping = pd.DataFrame(index=self.availableSeries.index, columns = list(config.REQUIRED_META_FIELDS) + ['unitTo'])
         self.mapping = pd.concat([self.mapping, self.availableSeries], axis=1)
         self.mapping.source = self.setup.SOURCE_ID
-        self.mapping.scenario = 'historic'
+        self.mapping.scenario = 'Historic'
         
         self.mapping.to_excel(self.setup.MAPPING_FILE, engine='openpyxl', sheet_name=VAR_MAPPING_SHEET)
 
 
     def loadData(self):        
-        fullFilePath = os.path.join(self.setup.SOURCE_PATH, 'raw_data', self.setup.DATA_FILE)
+        fullFilePath = os.path.join(self.setup.SOURCE_PATH, self.setup.DATA_FILE)
         self.data = pd.read_csv(fullFilePath, index_col = self.setup.INDEX_COLUMN_NAME, header =0) 
     
     def gatherMappedData(self, spatialSubSet = None, updateTables = False):
@@ -240,17 +242,20 @@ class WDI_2020(BaseImportTool):
             print(metaDf[config.REQUIRED_META_FIELDS].isnull().all() == False)
             #print(metaData[self.setup.INDEX_COLUMN_NAME])
             
-            
-            metaDict = {key : metaDf[key] for key in config.REQUIRED_META_FIELDS.union({'unitTo'})}
+            metaDf['source_name'] = self.setup.SOURCE_NAME
+            metaDf['source_year'] = self.setup.SOURCE_YEAR
+            metaDict = {key : metaDf[key] for key in config.REQUIRED_META_FIELDS.union({'category', 'unitTo'})}
 #            metaDict['unitTo'] = self.mappingEntity.loc[entity]['unitTo']
             seriesIdx = metaDf['Series Code']
             metaDict['original code'] = metaDf['Series Code']
             metaDict['original name'] = metaDf['Indicator Name']
+            
+            
 
             if pd.isnull(metaDict['category']):
                 metaDict['category'] = ''
-            if pd.isnull(metaDict['model']):
-                metaDict['model'] = ''
+#            if pd.isnull(metaDict['model']):
+#                metaDict['model'] = ''
             if not updateTables:
                 #print(metaDict)
                 if dt.core.DB.tableExist(dt.core._createDatabaseID(metaDict)):
@@ -266,6 +271,8 @@ class WDI_2020(BaseImportTool):
             dataframe= dataframe.dropna(axis=1, how='all')
             
             dataTable = Datatable(dataframe, meta=metaDict)
+            
+            dataTable.loc['EU28',:] = dataTable.loc['EUU',:]
             
             if not pd.isna(metaDict['unitTo']):
                 dataTable = dataTable.convert(metaDict['unitTo'])
@@ -623,7 +630,9 @@ class IEA_FUEL_2019(BaseImportTool):
     """
     def __init__(self):
         self.setup = setupStruct()
-        self.setup.SOURCE_ID    = "IEA_CO2_FUEL_2019"
+        self.setup.SOURCE_ID      = "IEA_CO2_FUEL_2019"
+        self.setup.SOURCE_NAME    = "IEA_CO2_FUEL"
+        self.setup.SOURCE_YEAR    = "2019"
         self.setup.SOURCE_PATH  = config.PATH_TO_DATASHELF + 'rawdata/IEA_CO2_FUEL_2019/'
         self.setup.DATA_FILE    = self.setup.SOURCE_PATH + 'World_CO2_emissions_fuel_2019.csv'
         self.setup.MAPPING_FILE = self.setup.SOURCE_PATH + 'mapping.xlsx'
@@ -712,7 +721,7 @@ class IEA_FUEL_2019(BaseImportTool):
         self.mapping = pd.DataFrame(index=index, columns = MAPPING_COLUMNS)
         self.mapping = pd.concat([self.mapping, self.availableSeries], axis=1)
         self.mapping.source = self.setup.SOURCE_ID
-        self.mapping.scenario = 'historic'
+        self.mapping.scenario = 'Historic'
         
         self.mapping['flow'] = self.mapping.index
         self.mapping['flow'] = self.mapping['flow'].apply(lambda x: x[0:x.rfind('_')])
@@ -750,12 +759,13 @@ class IEA_FUEL_2019(BaseImportTool):
             
             #print(metaDf[config.REQUIRED_META_FIELDS].isnull().all() == False)
             #print(metaData[self.setup.INDEX_COLUMN_NAME])
+            metaDf['source_name'] = self.setup.SOURCE_NAME
+            metaDf['source_year'] = self.setup.SOURCE_YEAR
             
-            
-            metaDict = {key : metaDf[key] for key in config.REQUIRED_META_FIELDS.union({'unitTo'})} 
-            if pd.isna(metaDict['category']):
-                metaDict['category'] = ''
-            metaDict['original codle'] = idx
+            metaDict = {key : metaDf[key] for key in config.REQUIRED_META_FIELDS.union({"unit", "category"})} 
+#            if pd.isna(metaDict['category']):
+#            metaDict['unit'] = metaDf['unit']
+            metaDict['original code'] = idx
             #metaDict['original name'] = metaDf['Indicator Name']
             
             seriesIdx = idx
@@ -791,8 +801,8 @@ class IEA_FUEL_2019(BaseImportTool):
             dataframe= dataframe.loc[~pd.isna(dataframe.index)]
             dataTable = Datatable(dataframe, meta=metaDict)
             
-            if not pd.isna(metaDict['unitTo']):
-                dataTable = dataTable.convert(metaDict['unitTo'])
+            if not pd.isna(metaDf['unitTo']):
+                dataTable = dataTable.convert(metaDf['unitTo'])
                 
             tablesToCommit.append(dataTable)
         
@@ -2964,10 +2974,12 @@ class PRIMAP_HIST(BaseImportTool):
         self.setup = setupStruct()
         
         self.setup.SOURCE_ID    = "PRIMAP_" + str(year)
+        self.setup.SOURCE_NAME    = "PRIMAP"
+        self.setup.SOURCE_YEAR    = str(year)
         self.setup.SOURCE_PATH  = config.PATH_TO_DATASHELF + 'rawdata/PRIMAP/'
         self.setup.DATA_FILE    = self.setup.SOURCE_PATH +  str(year) + '/PRIMAP-hist_' + str(year) + '.csv'
         self.setup.MAPPING_FILE = self.setup.SOURCE_PATH + 'mapping.xlsx'
-        self.setup.LICENCE = 'open access (UN)'
+        self.setup.LICENCE = 'open access'
         self.setup.URL     = 'https://www.pik-potsdam.de/primap-live/primap-hist/'
 
         
@@ -3014,27 +3026,27 @@ class PRIMAP_HIST(BaseImportTool):
         
 
         sector_mapping = {'IPCM0EL':'National Total excluding LULUCF',
-                            'IPC1':'Energy',
-                            'IPC1A':'Fuel Combustion Activities',
-                            'IPC1B':'Fugitive Emissions from Fuels',
-                            'IPC1B1':'Solid Fuels',
-                            'IPC1B2':'Oil and Natural Gas',
-                            'IPC1B3':'Other Emissons from Energy Production',
-                            'IPC1C':'Carbon Dioxide Transport and Storage (currently no data available)',
-                            'IPC2':'Industrial Processes and Product Use',
-                            'IPC2A':'Mineral Industry',
-                            'IPC2B':'Chemical Industry',
-                            'IPC2C':'Metal Industry',
-                            'IPC2D':'Non-Energy Products from Fuels and Solvent Use',
-                            'IPC2E':'Electronics Industry (no data available as the category is only used for fluorinated gases which are only resolved at the level of category IPC2)',
-                            'IPC2F':'Product uses as Substitutes for Ozone Depleting Substances (no data available as the category is only used for fluorinated gases which are only resolved at the level of category IPC2)',
-                            'IPC2G':'Other Product Manufacture and Use',
-                            'IPC2H':'Other',
-                            'IPCMAG':'Agriculture, sum of IPC3A and IPCMAGELV',
-                            'IPC3A':'Livestock',
-                            'IPCMAGELV':'Agriculture excluding Livestock',
-                            'IPC4':'Waste',
-                            'IPC5':'Other'}
+                        'IPC1':'Energy',
+                        'IPC1A':'Fuel Combustion Activities',
+                        'IPC1B':'Fugitive Emissions from Fuels',
+                        'IPC1B1':'Solid Fuels',
+                        'IPC1B2':'Oil and Natural Gas',
+                        'IPC1B3':'Other Emissons from Energy Production',
+                        'IPC1C':'Carbon Dioxide Transport and Storage (currently no data available)',
+                        'IPC2':'Industrial Processes and Product Use',
+                        'IPC2A':'Mineral Industry',
+                        'IPC2B':'Chemical Industry',
+                        'IPC2C':'Metal Industry',
+                        'IPC2D':'Non-Energy Products from Fuels and Solvent Use',
+                        'IPC2E':'Electronics Industry (no data available as the category is only used for fluorinated gases which are only resolved at the level of category IPC2)',
+                        'IPC2F':'Product uses as Substitutes for Ozone Depleting Substances (no data available as the category is only used for fluorinated gases which are only resolved at the level of category IPC2)',
+                        'IPC2G':'Other Product Manufacture and Use',
+                        'IPC2H':'Other',
+                        'IPCMAG':'Agriculture, sum of IPC3A and IPCMAGELV',
+                        'IPC3A':'Livestock',
+                        'IPCMAGELV':'Agriculture excluding Livestock',
+                        'IPC4':'Waste',
+                        'IPC5':'Other'}
 
         dataFrame = pd.DataFrame(data=[],columns = ['alternative'])
         for key, item in sector_mapping.items():
@@ -3074,12 +3086,15 @@ class PRIMAP_HIST(BaseImportTool):
             #print(metaDf[config.REQUIRED_META_FIELDS].isnull().all() == False)
             #print(metaData[self.setup.INDEX_COLUMN_NAME])
             
-            
-            metaDict = {key : metaDf[key] for key in config.REQUIRED_META_FIELDS.union({'unitTo'})}           
+            metaDf['source_name'] = self.setup.SOURCE_NAME
+            metaDf['source_year'] = self.setup.SOURCE_YEAR
+            metaDict = {key : metaDf[key] for key in config.REQUIRED_META_FIELDS.union({'unitTo', 'category'})}           
             metaDict['source'] = self.setup.SOURCE_ID
-            if pd.isna(metaDict['category']):
-                metaDict['category'] = ''
+            
+#            if pd.isna(metaDict['category']):
+#                metaDict['category'] = ''
             if not updateTables:
+                metaDict= dt.core._update_meta(metaDict)
                 tableID = dt.core._createDatabaseID(metaDict)
                 if not updateTables:
                     if dt.core.DB.tableExist(tableID):
@@ -3887,6 +3902,8 @@ class FAO(BaseImportTool):
                             excludedTables['exists'].append(tableID)
                         else:
                             tablesToCommit.append(table)
+                    else:
+                        tablesToCommit.append(table)
         return tablesToCommit, excludedTables  
 
 class WEO(BaseImportTool):
@@ -4049,8 +4066,14 @@ class ENERDATA(BaseImportTool):
         self.setup = setupStruct()
         self.setup.SOURCE_ID    = "ENERDATA_" + str(year)
         self.setup.SOURCE_PATH  = os.path.join(config.PATH_TO_DATASHELF,'rawdata', self.setup.SOURCE_ID)
-        self.setup.DATA_FILE    = os.path.join(self.setup.SOURCE_PATH, 'export_enerdata_1137124_112738.xlsx')
-        self.setup.MAPPING_FILE =  os.path.join(self.setup.SOURCE_PATH,'mapping.xlsx')
+        if year == 2019:
+            self.setup.DATA_FILE    = os.path.join(self.setup.SOURCE_PATH, 'enerdata_2019_G2G.xlsx')
+        elif year == 2020:
+            self.setup.DATA_FILE    = os.path.join(self.setup.SOURCE_PATH, 'export_enerdata_1137124_050510.xlsx')
+           
+        
+#        self.setup.DATA_FILE    = os.path.join(self.setup.SOURCE_PATH, 'export_enerdata_1137124_112738.xlsx')
+        self.setup.MAPPING_FILE =  os.path.join(self.setup.SOURCE_PATH,'mapping_' + str(year) + '.xlsx')
         self.setup.LICENCE = ' Restricted use in the Brown 2 Green project only'
         self.setup.URL     = 'https://www.enerdata.net/user/?destination=services.html'
         
@@ -4196,9 +4219,399 @@ class ENERDATA(BaseImportTool):
                     excludedTables['exists'].append(tableID)
                 else:
                     tablesToCommit.append(table)
+            else:
+                tablesToCommit.append(table)
         return tablesToCommit, excludedTables  
    
+    
 #%%
+class CAT_Paris_Sector_Rolllout(BaseImportTool):
+   
+    def __init__(self):
+        self.setup = setupStruct()
+        self.setup.SOURCE_ID    = "CAT_PSR_2019"
+        self.setup.SOURCE_PATH  = config.PATH_TO_DATASHELF + 'rawdata/CAT_PSR_2019/'
+        self.setup.DATA_FILE    = self.setup.SOURCE_PATH + 'portal_data_all_160620.csv'
+        self.setup.MAPPING_FILE = self.setup.SOURCE_PATH + 'mapping.xlsx'
+        self.setup.LICENCE = ' Creative Commons Attribution 3.0 License'
+        self.setup.URL     = 'https://climateactiontracker.org/data-portal/'
+        
+        
+        self.colums_to_process =  ['variable', 'scenario', 'region']
+        
+#        self.setup.MODEL_COLUMN_NAME = 'model'
+        self.setup.SCENARIO_COLUMN_NAME = 'variable'
+        self.setup.REGION_COLUMN_NAME   = 'country'
+        self.setup.VARIABLE_COLUMN_NAME   = 'old_var'
+        
+        self.setup.columnMapping = {'variable' : 'entity',
+                                   'region'   : 'region',
+                                   'scenario' : 'scenario'}
+        
+        if not(os.path.exists(self.setup.MAPPING_FILE)):
+            self.createVariableMapping()
+            print("no mapping file found")
+        else:
+            self.mapping = dict()
+            
+            
+            for var in self.colums_to_process:
+                df = pd.read_excel(self.setup.MAPPING_FILE, sheet_name=var +'_mapping', index_col=0)
+                df = df.loc[~df.loc[:,self.setup.columnMapping[var]].isna()]
+                self.mapping.update(df.to_dict())
+            
+        self.createSourceMeta()
+
+    def loadData(self):
+        self.data = pd.read_csv(self.setup.DATA_FILE,   index_col = None, header =0)
+        self.data.loc[:, 'old_var'] =  self.data.loc[:,['sector', 'indicator']].apply(lambda x: '_'.join(map(str, x)),axis=1)
+        self.data.loc[:, 'scenario'] =  self.data.loc[:,'variable']
+        self.data.loc[:, 'region'] =  self.data.loc[:,'country']
+        self.data.loc[:, 'model'] = ''
+        self.data.loc[:,'variable'] = self.data.loc[:,'old_var']
+    def createVariableMapping(self):        
+        
+        # loading data if necessary
+        if not hasattr(self, 'data'):        
+            self.loadData()
+        
+        
+        import numpy as np
+ 
+        writer = pd.ExcelWriter(self.setup.MAPPING_FILE,
+                    engine='xlsxwriter',
+                    datetime_format='mmm d yyyy hh:mm:ss',
+                    date_format='mmmm dd yyyy')       
+        
+        #variables
+        #index = self.data[self.setup.VARIABLE_COLUMN_NAME].unique()
+        self.availableSeries = self.data.drop_duplicates(self.setup.VARIABLE_COLUMN_NAME).set_index( self.setup.VARIABLE_COLUMN_NAME)['unit']
+        self.mapping = pd.DataFrame(index=self.availableSeries.index, columns =  [ 'enitty', 'category'])
+        self.mapping = pd.concat([self.mapping, self.availableSeries], axis=1)
+        self.mapping = self.mapping.sort_index()
+        self.mapping.to_excel(writer, engine='openpyxl', sheet_name=VAR_MAPPING_SHEET)
+        
+        #models
+#        index = np.unique(self.data[self.setup.MODEL_COLUMN_NAME].values)
+        
+#        self.availableSeries = pd.DataFrame(index=index)
+#        self.mapping = pd.DataFrame(index=index, columns = [self.setup.MODEL_COLUMN_NAME])
+#        self.mapping = pd.concat([self.mapping, self.availableSeries], axis=1)
+#        self.mapping = self.mapping.sort_index()
+#        
+#        self.mapping.to_excel(writer, engine='openpyxl', sheet_name='model_mapping')
+
+        #scenarios
+        index = np.unique(self.data[self.setup.SCENARIO_COLUMN_NAME].values)
+        
+        self.availableSeries = pd.DataFrame(index=index)
+        self.mapping = pd.DataFrame(index=index, columns = [self.setup.SCENARIO_COLUMN_NAME])
+        self.mapping = pd.concat([self.mapping, self.availableSeries], axis=1)
+        self.mapping = self.mapping.sort_index()
+        self.mapping.to_excel(writer, engine='openpyxl', sheet_name='scenario_mapping')
+        
+        #region
+        index = np.unique(self.data[self.setup.REGION_COLUMN_NAME].values)
+        
+        self.availableSeries = pd.DataFrame(index=index)
+        self.mapping = pd.DataFrame(index=index, columns = [self.setup.REGION_COLUMN_NAME])
+        self.mapping = pd.concat([self.mapping, self.availableSeries], axis=1)
+        self.mapping = self.mapping.sort_index()
+        
+        for idx in self.mapping.index:
+            iso = dt.util.identifyCountry(idx)
+            if iso is not None:
+                self.mapping.loc[idx,'region'] = iso
+        
+        self.mapping.to_excel(writer, engine='openpyxl', sheet_name='region_mapping')
+        writer.close()
+
+
+    def gatherMappedData(self, spatialSubSet = None, updateTables=False):
+        #%%
+        import tqdm
+        # loading data if necessary
+        if not hasattr(self, 'data'):
+            self.loadData()        
+      
+        tablesToCommit  = []
+        metaDict = dict()
+        metaDict['source'] = self.setup.SOURCE_ID
+        excludedTables = dict()
+        excludedTables['empty'] = list()
+        excludedTables['error'] = list()
+        excludedTables['exists'] = list()
+        
+#        self.data = self.data
+
+        for scenario in self.mapping['scenario'].keys():
+            tempMoSc = self.data.loc[self.data.scenario == scenario]
+            for variable in self.mapping['entity'].keys():
+                tempMoScVa = tempMoSc.loc[tempMoSc.variable == variable]    
+#                for category in self.mapping['category'].keys():
+#                tempMoScVa = tempMoScVa.loc[tempMoScVa.variable == category]
+                tempMoScVa = tempMoScVa.loc[:,['unit', 'model', 'scenario', 'year', 'region', 'value', 'variable']]
+                tempMoScVa.loc[:,'unit'] = self.mapping['unit'][variable]
+                tempMoScVa.loc[:,'scenario'] = self.mapping['scenario'][scenario]
+##                    dfg
+                tables = dt.interfaces.read_long_table(tempMoScVa, [variable])
+                for table in tables:
+                    table.meta['entity'] = self.mapping['entity'][variable]
+                    table.meta['category'] = self.mapping['category'][variable]
+                    table.meta['scenario'] = self.mapping['scenario'][scenario]
+                    table.meta['source'] = self.setup.SOURCE_ID
+                    table.index = table.index.map(self.mapping['region'])
+                    
+                    tableID = table.generateTableID()
+                    if not updateTables:
+                        if dt.core.DB.tableExist(tableID):
+                            excludedTables['exists'].append(tableID)
+                        else:
+                            tablesToCommit.append(table)
+        return tablesToCommit, excludedTables  
+
+     
+#%%
+def HDI_import(year=2020):
+    sourceMeta = {'SOURCE_ID': 'HDI_' + str(year),
+                  'collected_by' : 'AG',
+                  'date': dt.core.getDateString(),
+                  'source_url' : 'http://hdr.undp.org/en/data',
+                  'licence': 'open source' }
+    
+    SOURCE_PATH = os.path.join(dt.config.PATH_TO_DATASHELF, 'rawdata/', sourceMeta['SOURCE_ID'])
+    data = pd.read_csv(os.path.join(SOURCE_PATH, "Human Development Index (HDI).csv"), na_values='..')
+    
+    yearColumns = dt.util.yearsColumnsOnly(data)
+    
+    data = data.loc[:,yearColumns]
+    
+#    regionMapping = {x:y for x,y in zip(list(data.loc[:,'Country']), list(data.loc[:,'Country'].map(lambda x : dt.getCountryISO(str(x)))))}
+    regionMapping = {
+         ' Afghanistan': 'AFG',
+         ' Albania': 'ALB',
+         ' Algeria': 'DZA',
+         ' Andorra': 'AND',
+         ' Angola': 'AGO',
+         ' Antigua and Barbuda': 'ATG',
+         ' Argentina': 'ARG',
+         ' Armenia': 'ARM',
+         ' Australia': 'AUS',
+         ' Austria': 'AUT',
+         ' Azerbaijan': 'AZE',
+         ' Bahamas': 'BHS',
+         ' Bahrain': 'BHR',
+         ' Bangladesh': 'BGD',
+         ' Barbados': 'BRB',
+         ' Belarus': 'BLR',
+         ' Belgium': 'BEL',
+         ' Belize': 'BLZ',
+         ' Benin': 'BEN',
+         ' Bhutan': 'BTN',
+         ' Bolivia (Plurinational State of)': 'BOL',
+         ' Bosnia and Herzegovina': 'BIH',
+         ' Botswana': 'BWA',
+         ' Brazil': 'BRA',
+         ' Brunei Darussalam': 'BRN',
+         ' Bulgaria': 'BGR',
+         ' Burkina Faso': 'BFA',
+         ' Burundi': 'BDI',
+         ' Cabo Verde': 'CPV',
+         ' Cambodia': 'KHM',
+         ' Cameroon': 'CMR',
+         ' Canada': 'CAN',
+         ' Central African Republic': 'CAF',
+         ' Chad': 'TCD',
+         ' Chile': 'CHL',
+         ' China': 'CHN',
+         ' Colombia': 'COL',
+         ' Comoros': 'COM',
+         ' Congo': 'COG',
+         ' Congo (Democratic Republic of the)': 'COD',
+         ' Costa Rica': 'CRI',
+         ' Croatia': 'HRV',
+         ' Cuba': 'CUB',
+         ' Cyprus': 'CYP',
+         ' Czechia': 'CZE',
+         " Côte d'Ivoire": 'CIV',
+         ' Denmark': 'DNK',
+         ' Djibouti': 'DJI',
+         ' Dominica': 'DMA',
+         ' Dominican Republic': 'DOM',
+         ' Ecuador': 'ECU',
+         ' Egypt': 'EGY',
+         ' El Salvador': 'SLV',
+         ' Equatorial Guinea': 'GNQ',
+         ' Eritrea': 'ERI',
+         ' Estonia': 'EST',
+         ' Eswatini (Kingdom of)': 'SWZ',
+         ' Ethiopia': 'ETH',
+         ' Fiji': 'FJI',
+         ' Finland': 'FIN',
+         ' France': 'FRA',
+         ' Gabon': 'GAB',
+         ' Gambia': 'GMB',
+         ' Georgia': 'GEO',
+         ' Germany': 'DEU',
+         ' Ghana': 'GHA',
+         ' Greece': 'GRC',
+         ' Grenada': 'GRD',
+         ' Guatemala': 'GTM',
+         ' Guinea': 'GIN',
+         ' Guinea-Bissau': 'GNB',
+         ' Guyana': 'GUY',
+         ' Haiti': 'HTI',
+         ' Honduras': 'HND',
+         ' Hong Kong, China (SAR)': 'HKG',
+         ' Hungary': 'HUN',
+         ' Iceland': 'ISL',
+         ' India': 'IND',
+         ' Indonesia': 'IDN',
+         ' Iran (Islamic Republic of)': 'IRN',
+         ' Iraq': 'IRQ',
+         ' Ireland': 'IRL',
+         ' Israel': 'ISR',
+         ' Italy': 'ITA',
+         ' Jamaica': 'JAM',
+         ' Japan': 'JPN',
+         ' Jordan': 'JOR',
+         ' Kazakhstan': 'KAZ',
+         ' Kenya': 'KEN',
+         ' Kiribati': 'KIR',
+         ' Korea (Republic of)': 'KOR',
+         ' Kuwait': 'KWT',
+         ' Kyrgyzstan': 'KGZ',
+         " Lao People's Democratic Republic": 'LAO',
+         ' Latvia': 'LVA',
+         ' Lebanon': 'LBN',
+         ' Lesotho': 'LSO',
+         ' Liberia': 'LBR',
+         ' Libya': 'LBY',
+         ' Liechtenstein': 'LIE',
+         ' Lithuania': 'LTU',
+         ' Luxembourg': 'LUX',
+         ' Madagascar': 'MDG',
+         ' Malawi': 'MWI',
+         ' Malaysia': 'MYS',
+         ' Maldives': 'MDV',
+         ' Mali': 'MLI',
+         ' Malta': 'MLT',
+         ' Marshall Islands': 'MHL',
+         ' Mauritania': 'MRT',
+         ' Mauritius': 'MUS',
+         ' Mexico': 'MEX',
+         ' Micronesia (Federated States of)': 'FSM',
+         ' Moldova (Republic of)': 'MDA',
+         ' Mongolia': 'MNG',
+         ' Montenegro': 'MNE',
+         ' Morocco': 'MAR',
+         ' Mozambique': 'MOZ',
+         ' Myanmar': 'MMR',
+         ' Namibia': 'NAM',
+         ' Nepal': 'NPL',
+         ' Netherlands': 'NLD',
+         ' New Zealand': 'NZL',
+         ' Nicaragua': 'NIC',
+         ' Niger': 'NER',
+         ' Nigeria': 'NGA',
+         ' North Macedonia': 'MKD',
+         ' Norway': 'NOR',
+         ' Oman': 'OMN',
+         ' Pakistan': 'PAK',
+         ' Palau': 'PLW',
+         ' Palestine, State of': 'PSE',
+         ' Panama': 'PAN',
+         ' Papua New Guinea': 'PNG',
+         ' Paraguay': 'PRY',
+         ' Peru': 'PER',
+         ' Philippines': 'PHL',
+         ' Poland': 'POL',
+         ' Portugal': 'PRT',
+         ' Qatar': 'QAT',
+         ' Romania': 'ROU',
+         ' Russian Federation': 'RUS',
+         ' Rwanda': 'RWA',
+         ' Saint Kitts and Nevis': 'KNA',
+         ' Saint Lucia': 'LCA',
+         ' Saint Vincent and the Grenadines': 'VCT',
+         ' Samoa': 'WSM',
+         ' Sao Tome and Principe': 'STP',
+         ' Saudi Arabia': 'SAU',
+         ' Senegal': 'SEN',
+         ' Serbia': 'SRB',
+         ' Seychelles': 'SYC',
+         ' Sierra Leone': 'SLE',
+         ' Singapore': 'SGP',
+         ' Slovakia': 'SVK',
+         ' Slovenia': 'SVN',
+         ' Solomon Islands': 'SLB',
+         ' South Africa': 'ZAF',
+         ' South Sudan': 'SSD',
+         ' Spain': 'ESP',
+         ' Sri Lanka': 'LKA',
+         ' Sudan': 'SDN',
+         ' Suriname': 'SUR',
+         ' Sweden': 'SWE',
+         ' Switzerland': 'CHE',
+         ' Syrian Arab Republic': 'SYR',
+         ' Tajikistan': 'TJK',
+         ' Tanzania (United Republic of)': 'TZA',
+         ' Thailand': 'THA',
+         ' Timor-Leste': 'TLS',
+         ' Togo': 'TGO',
+         ' Tonga': 'TON',
+         ' Trinidad and Tobago': 'TTO',
+         ' Tunisia': 'TUN',
+         ' Turkey': 'TUR',
+         ' Turkmenistan': 'TKM',
+         ' Uganda': 'UGA',
+         ' Ukraine': 'UKR',
+         ' United Arab Emirates': 'ARE',
+         ' United Kingdom': 'GBR',
+         ' United States': 'USA',
+         ' Uruguay': 'URY',
+         ' Uzbekistan': 'UZB',
+         ' Vanuatu': 'VUT',
+         ' Venezuela (Bolivarian Republic of)': 'VEN',
+         ' Viet Nam': 'VNM',
+         ' Yemen': 'YEM',
+         ' Zambia': 'ZMB',
+         ' Zimbabwe': 'ZWE',
+         'Human Development': None,
+         'Very high human development': None,
+         'High human development': None,
+         'Medium human development': None,
+         'Low human development': None,
+         'Developing Countries': None,
+         'Regions': None,
+         'Arab States': None,
+         'East Asia and the Pacific': None,
+         'Europe and Central Asia': None,
+         'Latin America and the Caribbean': None,
+         'South Asia': None,
+         'Sub-Saharan Africa': None,
+         'Least Developed Countries': None,
+         'Small Island Developing States': None,
+         'Organization for Economic Co-operation and Development': None,
+         'World': 'World'}
+    
+    data.index = data.loc[:,'Country'].map(regionMapping)
+    data = data.loc[~data.index.isnull(),:].astype(float)
+    
+    data.index[data.index.duplicated()]
+    
+    meta =  {'entity'   : 'HDI_Human_development_index',
+             'scenario' : 'Historic', 
+             'unit'     : 'dimensionless',
+             'source'   : sourceMeta['SOURCE_ID']}
+    table = dt.Datatable(data, meta=meta)
+    table.generateTableID()
+    
+    dt.commitTables([table], 'UNWPP2017 data', sourceMeta)
+    
+    
+#    def 
+    #%%
 def UN_WPP_2019_import():
     sourceMeta = {'SOURCE_ID': 'UN_WPP2019',
                           'collected_by' : 'AG',
@@ -4209,7 +4622,7 @@ def UN_WPP_2019_import():
     mappingDict = {int(x) : y for x,y  in zip(dt.mapp.countries.codes.numISO, dt.mapp.countries.codes.index) if not(pd.np.isnan(x))}
     mappingDict[900] = 'World'
     SOURCE = "UN_WPP2019"
-    SOURCE_PATH = df.config.PATH_TO_DATASHELF + 'rawdata/UN_WPP2019/'
+    SOURCE_PATH = dt.config.PATH_TO_DATASHELF + 'rawdata/UN_WPP2019/'
     metaSetup = {'source'   : SOURCE,
                  'entity'   : 'population',
                  'unit'     : 'thousands',
@@ -4298,6 +4711,7 @@ if __name__ == '__main__':
     primap = PRIMAP_HIST(2019)
 #    tableList, excludedTables = primap.gatherMappedData()
 #    dt.commitTables(tableList, 'PRIMAP 2019 update', primap.meta)
+#    asdf1s
 #%% CRF data
     crf_data = CRF_DATA(2019)
     #iea = IEA2016()
@@ -4311,9 +4725,10 @@ if __name__ == '__main__':
 #    dt.commitTables(tableList, 'ADVANCE DB IAM data', advance.meta)
 #%%WDI data
     wdi = WDI_2020()    
-#    tableList = wdi.gatherMappedData(updateTables=True)
+    tableList = wdi.gatherMappedData(updateTables=True)
+    
 #    iea.openMappingFile()
-#    dt.commitTables(tableList, 'update WDI2019  data', wdi.meta, update=True)
+    dt.commitTables(tableList, 'Added WDI 2020  data', wdi.meta, update=True)
     
 #%%IEA data
     iea19 = IEA_WEB_2019_New()
@@ -4335,6 +4750,7 @@ if __name__ == '__main__':
     ieaEmissions = IEA_FUEL_2019()
 #    tableList, excludedTables = ieaEmissions.gatherMappedData(updateTables=True)
 #    dt.commitTables(tableList, 'IEA fuel emission data', ieaEmissions.meta, update=True)
+#    ddsa
 #%% IEA emissions detailed
     ieaEmissions_detailed = IEA_FUEL_DETAILED_2019()
 #    tableList, excludedTables = ieaEmissions_detailed.gatherMappedData(updateTables=True)
@@ -4390,9 +4806,9 @@ if __name__ == '__main__':
 #    dt.commitTables(tableList, 'WEO  data updated', weo.meta, update=True)  
     
 #%% FAO
-    fao = FAO(2019)
-    tableList, excludedTables = fao.gatherMappedData()
-    dt.commitTables(tableList, 'FAO  data added', fao.meta, update=False)  
+    fao = FAO(2020)
+    tableList, excludedTables = fao.gatherMappedData(updateTables=True)
+    dt.commitTables(tableList, 'FAO  data added', fao.meta, update=True)  
     
 #%% APEC
     apec = APEC(2019)
@@ -4409,8 +4825,25 @@ if __name__ == '__main__':
 #    dt.commitTables(tableList, 'vanmarle data updated', vanmarle.meta, update=False)  
 #%% Enerdata
     enerdata = ENERDATA(2019)
-    tableList, excludedTables = enerdata.gatherMappedData()
-    dt.commitTables(tableList, 'enerdata data updated', enerdata.meta, update=False)  
+#    tableList, excludedTables = enerdata.gatherMappedData(updateTables=True)
+#    dt.commitTables(tableList, 'enerdata data updated', enerdata.meta, update=True)  
+    #%%
+    enerdata = ENERDATA(2020)
+    tableList2020, excludedTables = enerdata.gatherMappedData(updateTables=True)
+    dt.commitTables(tableList2020, 'enerdata data updated', enerdata.meta, update=True)  
+    
+#%% CAT Paris sector Rollout
+    cat_psr = CAT_Paris_Sector_Rolllout()
+    tableList, excludedTables = cat_psr.gatherMappedData()
+    dt.commitTables(tableList, 'CAT PSR data', cat_psr.meta, update=False)  
+    #%%
+    i = 66
+    
+    table19 = tableList[i]
+    table20 = tableList2020[i]
+    print(table19.meta['variable'])
+    table19 -table20
+        
     #%%
 ##################################################################
 #    helper funtions

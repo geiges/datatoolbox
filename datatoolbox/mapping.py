@@ -121,7 +121,7 @@ class RegionContext():
         return self.groupingDf.columns
     
     def writeToCSV(self, folderPath):
-        self.groupingDf.to_csv(folderPath + 'mapping_' + self.name + '.csv')
+        self.groupingDf.to_csv(os.path.join(folderPath, 'mapping_' + self.name + '.csv'))
 
     def addRegions(self, mappingDict):
         for spatialID in mappingDict.keys():
