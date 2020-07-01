@@ -31,10 +31,10 @@ years  = list(range(2000,2101,10))
 
 # %% Data preparation
 #search for the specifice reported entity 'Emissions|CO2|Energy|Demand|Transportation' within the source
-searchResult = dt.find(entity =variable, source= source)
+searchResult = dt.find(variable =variable, source= source)
 
 # extract the list of scenarios that report this varibble
-scenarios = searchResult.scenario.unique()
+pathways = searchResult.pathway.unique()
 
 # dictionary to be used to save scenario/model combinations according to the temperarture response
 scenarioCategory = {'1.5':[],
@@ -51,10 +51,10 @@ categorizedData = {'1.5':pd.DataFrame(columns=list(range(2000,2101,10))) ,
               '>4':pd.DataFrame(columns=list(range(2000,2101,10)))}
 
 # looping over all scenarios that report the variable
-for scenario in scenarios:
+for pathway in pathways:
     
     # ID of the temperature data for the scenarios (median of the MAGICC output)
-    tableID ='|'.join(['Global_temp_MAGICC_p50', 'total', scenario, source])
+    tableID ='__'.join(['Global_temp_MAGICC_p50|total', pathway, source])
     
     
     if dt.isAvailable(tableID): # checking that the table is in the database
@@ -64,15 +64,15 @@ for scenario in scenarios:
         
         # dependen on the temperature in 2100, scenarios are put into different bins
         if table.loc['World',2100] < 1.5:
-            scenarioCategory['1.5'].append(scenario)
+            scenarioCategory['1.5'].append(pathway)
         elif table.loc['World',2100] < 2:
-            scenarioCategory['2'].append(scenario)
+            scenarioCategory['2'].append(pathway)
         elif table.loc['World',2100] < 3:
-            scenarioCategory['3'].append(scenario)
+            scenarioCategory['3'].append(pathway)
         elif table.loc['World',2100] < 4:
-            scenarioCategory['4'].append(scenario)
+            scenarioCategory['4'].append(pathway)
         else:
-            scenarioCategory['>4'].append(scenario)
+            scenarioCategory['>4'].append(pathway)
     else:
         pass
 
@@ -81,7 +81,7 @@ for scenario in scenarios:
 for category in scenarioCategory.keys():
     
     for scenario in scenarioCategory[category]:
-        tableID ='|'.join([variable, '', scenario, source])
+        tableID ='__'.join([variable, scenario, source])
         if dt.isAvailable(tableID):
             # loading the data
             table = dt.getTable(tableID) 
@@ -99,7 +99,7 @@ def plotSubplot(subplotData, temp, scenarioCategory, color):
     ax = plt.subplot(*subplotData)
     for scenario in scenarioCategory[temp]:
         # creating ID
-        tableID ='|'.join([variable, '', scenario, source])
+        tableID ='__'.join([variable,  scenario, source])
         if dt.isAvailable(tableID):
             # loading the data
             table = dt.getTable(tableID) 

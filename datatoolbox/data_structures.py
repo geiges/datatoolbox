@@ -467,17 +467,17 @@ class TableSet(dict):
     
     def to_excel(self, fileName, append=False):
        
-        if writer is None:
-            if append:
-                writer = pd.ExcelWriter(fileName, 
-                                        engine='openpyxl', mode='a',
-                                        datetime_format='mmm d yyyy hh:mm:ss',
-                                        date_format='mmmm dd yyyy')  
-            else:
-                writer = pd.ExcelWriter(fileName,
-                                        engine='xlsxwriter',
-                                        datetime_format='mmm d yyyy hh:mm:ss',
-                                        date_format='mmmm dd yyyy')  
+
+        if append:
+            writer = pd.ExcelWriter(fileName, 
+                                    engine='openpyxl', mode='a',
+                                    datetime_format='mmm d yyyy hh:mm:ss',
+                                    date_format='mmmm dd yyyy')  
+        else:
+            writer = pd.ExcelWriter(fileName,
+                                    engine='xlsxwriter',
+                                    datetime_format='mmm d yyyy hh:mm:ss',
+                                    date_format='mmmm dd yyyy')  
         
         for i,eKey in enumerate(self.keys()):
             table = self[eKey].dropna(how='all', axis=1).dropna(how='all', axis=0)

@@ -12,7 +12,7 @@ import datatoolbox as dt
 import os
 
 #%% Each source has its own folders  (see datashelf)
-path_to_data = dt.conf.PATH_TO_DATASHELF
+path_to_data = dt.config.PATH_TO_DATASHELF
 print(path_to_data)
 
 # containing the raw_data
@@ -20,7 +20,7 @@ print(os.listdir(os.path.join(path_to_data, 'rawdata')))
 
 
 # containing the processed data as csv files (e.g. for the WDI 2018)
-for file in (os.listdir(os.path.join(path_to_data, 'database/WDI2018'))):
+for file in (os.listdir(os.path.join(path_to_data, 'database/WDI_2019'))):
     print(file)
 
 #%% all sources (should) also be organized in dt.sources

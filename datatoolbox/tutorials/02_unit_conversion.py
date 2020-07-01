@@ -21,7 +21,7 @@ dt.conversionFactor('ktoe / yr', 'EJ / d')
 
 
 # conversion of tables
-finalEnergyCommercial = dt.getTable('Final_Energy|Comercial_and_public|Total||historic|IEA_WEB_2019')
+finalEnergyCommercial = dt.getTable('Final_Energy|Comercial_and_public|Total__Historic__IEA_WEB_2019')
 print("Final energy Commercial buildings")
 print("Germany: {:2.2f} {}".format(finalEnergyCommercial.loc['DEU',2015],finalEnergyCommercial.meta['unit']))
 
@@ -29,7 +29,7 @@ finalEnergyCommercial = finalEnergyCommercial.convert('TWh / d')
 print("Germany: {:2.2f} {}".format(finalEnergyCommercial.loc['DEU',2015],finalEnergyCommercial.meta['unit']))
 
 
-finalEnergyResidential = dt.getTable('Final_Energy|Residential|Total||historic|IEA_WEB_2019')
+finalEnergyResidential = dt.getTable('Final_Energy|Residential|Total__Historic__IEA_WEB_2019')
 print("Final energy Residential buildings")
 print("Germany: {:2.2f} {}".format(finalEnergyResidential.loc['DEU',2015],finalEnergyResidential.meta['unit']))
 
@@ -46,13 +46,13 @@ print("Germany: {:2.2f} {}".format(totalFinalEnergy.loc['DEU',2015],totalFinalEn
 
 
 #%% Green house warming potentail conversion
-table_N2O_Agri = dt.getTable('Emissions|N2O|Agriculture||Historic|FAO_2019')
+table_N2O_Agri = dt.getTable('Emissions|N2O|Agriculture__Historic__FAO_2019')
 
-table_N2O_Agri = table_N2O_Agri.loc[countryList,years]
+#table_N2O_Agri = table_N2O_Agri.loc[countryList,years]
 print(table_N2O_Agri)
 
 
-table_CH4_Agri = dt.getTable('Emissions|CH4|Agriculture||Historic|FAO_2019').loc[countryList,years]
+table_CH4_Agri = dt.getTable('Emissions|CH4|Agriculture__Historic__FAO_2019')#.loc[countryList,years]
 print(table_CH4_Agri)
 
 # not working

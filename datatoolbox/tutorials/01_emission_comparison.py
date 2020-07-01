@@ -21,11 +21,11 @@ res.index
 
 #%%load data
 data = dict()
-data['APAC']   = dt.getTable('Emissions|CO2|Energy|Total||Historic|APAC_2019')
-data['UNFCCC'] = dt.getTable('Emissions|CO2|IPC0||Historic|CR|UNFCCC_CRF_2019')
-data['WDI']    = dt.getTable('Emissions|CO2||historic|WDI_2019')
-data['PRIMAP'] = dt.getTable('Emissions_CO2|IPCM0EL|HISTCR|PRIMAP_2018').convert('Mt CO2')
-data['IEA']    = dt.getTable('Emissions|Fuel|CO2|Total||historic|IEA_CO2_FUEL_2019')
+data['APAC']   = dt.getTable('Emissions|CO2||Energy|Total__Historic__APAC_2019')
+data['UNFCCC'] = dt.getTable('Emissions|CO2||IPC0__Historic|CR__UNFCCC_CRF_2019')
+data['WDI']    = dt.getTable('Emissions|CO2__Historic__WDI_2019')
+data['PRIMAP'] = dt.getTable('Emissions|CO2|IPCM0EL__Historic|country_reported__PRIMAP_2019').convert('Mt CO2')
+data['IEA']    = dt.getTable('Emissions|CO2|combustion|Total__Historic__IEA_CO2_FUEL_2019')
 
 
 #%% plot data
