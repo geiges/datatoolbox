@@ -4069,7 +4069,7 @@ class ENERDATA(BaseImportTool):
         if year == 2019:
             self.setup.DATA_FILE    = os.path.join(self.setup.SOURCE_PATH, 'enerdata_2019_G2G.xlsx')
         elif year == 2020:
-            self.setup.DATA_FILE    = os.path.join(self.setup.SOURCE_PATH, 'export_enerdata_1137124_112738.xlsx')
+            self.setup.DATA_FILE    = os.path.join(self.setup.SOURCE_PATH, 'export_enerdata_1137124_050510.xlsx')
            
         
 #        self.setup.DATA_FILE    = os.path.join(self.setup.SOURCE_PATH, 'export_enerdata_1137124_112738.xlsx')
@@ -4807,8 +4807,8 @@ if __name__ == '__main__':
     
 #%% FAO
     fao = FAO(2020)
-#    tableList, excludedTables = fao.gatherMappedData(updateTables=True)
-#    dt.commitTables(tableList, 'FAO  data added', fao.meta, update=True)  
+    tableList, excludedTables = fao.gatherMappedData(updateTables=True)
+    dt.commitTables(tableList, 'FAO  data added', fao.meta, update=True)  
     
 #%% APEC
     apec = APEC(2019)
@@ -4825,8 +4825,8 @@ if __name__ == '__main__':
 #    dt.commitTables(tableList, 'vanmarle data updated', vanmarle.meta, update=False)  
 #%% Enerdata
     enerdata = ENERDATA(2019)
-    tableList, excludedTables = enerdata.gatherMappedData(updateTables=True)
-    dt.commitTables(tableList, 'enerdata data updated', enerdata.meta, update=True)  
+#    tableList, excludedTables = enerdata.gatherMappedData(updateTables=True)
+#    dt.commitTables(tableList, 'enerdata data updated', enerdata.meta, update=True)  
     #%%
     enerdata = ENERDATA(2020)
     tableList2020, excludedTables = enerdata.gatherMappedData(updateTables=True)

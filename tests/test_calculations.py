@@ -21,14 +21,14 @@ df1 = dt.Datatable([[10,20,30,],
                    index= ['DEU', 'IND'],
                    meta = metaDict)
 
-df2 = dt.Datatable([[50,50,50,],
+df2 = dt.Datatable([[50.,50,50,],
                    [40,40,40,]], 
                    columns = [2000, 2010, 2020],
                    index= ['DEU', 'IND'],
                    meta = metaDict)
 
-df3 = dt.Datatable([[50,50],
-                   [40,40]], 
+df3 = dt.Datatable([[50.,50],
+                   [40.,40]], 
                    columns = [2000, 2010],
                    index= ['DEU', 'IND'],
                     meta = metaDict2)
@@ -92,8 +92,8 @@ def test_addition():
     assert obs.meta['source'] == 'calculation'
 
 def test_sum():
-    obs = sum([df3 + df1])
-    exp = dt.Datatable([[10050,  20050, np.nan],
+    obs = sum([df3, df1])
+    exp = dt.Datatable([[10050.,  20050, np.nan],
                        [40040,  40040,  np.nan]], 
                        columns = [2000, 2010, 2020],
                        index= ['DEU', 'IND'],

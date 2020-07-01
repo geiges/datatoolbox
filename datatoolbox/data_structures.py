@@ -274,18 +274,20 @@ class Datatable(pd.DataFrame):
     
         
     def __add__(self, other):
-        #print('other in' + str(other))
+#        print(type(self))
+#        print(type(other))
         if isinstance(other,Datatable):
             
             factor = core.getUnit(other.meta['unit']).to(self.meta['unit']).m
-            #print('factor: ' + str(factor))
-            #print('other' + str(other))
-            #print(other * factor)
+#            print('factor: ' + str(factor))
+#            print('other' + str(other))
+#            print(other * factor)
             out = Datatable(super(Datatable, self).__add__(other * factor))
             out.meta['unit'] = self.meta['unit']
             out.meta['source'] = 'calculation'
         else:
-            
+#            import pdb
+#            pdb.set_trace()
             out = Datatable(super(Datatable, self).__add__(other))
             out.meta['unit'] = self.meta['unit']
             out.meta['source'] = 'calculation'
@@ -461,12 +463,19 @@ class TableSet(dict):
         
         return item
     
-    def to_excel(self, fileName):
-        writer = pd.ExcelWriter(fileName, 
-            engine='openpyxl', 
-            mode='a',
-            datetime_format='mmm d yyyy hh:mm:ss',
-            date_format='mmmm dd yyyy') 
+    def to_excel(self, fileName, append=False):
+       
+        if writer is None:
+            if append:
+                writer = pd.ExcelWriter(fileName, 
+                                        engine='openpyxl', mode='a',
+                                        datetime_format='mmm d yyyy hh:mm:ss',
+                                        date_format='mmmm dd yyyy')  
+            else:
+                writer = pd.ExcelWriter(fileName,
+                                        engine='xlsxwriter',
+                                        datetime_format='mmm d yyyy hh:mm:ss',
+                                        date_format='mmmm dd yyyy')  
         
         for i,eKey in enumerate(self.keys()):
             table = self[eKey].dropna(how='all', axis=1).dropna(how='all', axis=0)
@@ -535,10 +544,13 @@ class TableSet(dict):
             table.loc[:,'unit']   = table.meta['unit']
             table.loc[:,'variable']   = table.meta['variable']
             
-
-            table.loc[:,'scenario'] = table.meta['scenario']
+            try:
+                table.loc[:,'scenario'] = table.meta['scenario']
+            except:
+                print(table.meta)
+                raise(BaseException('meta key "scenario" not found'))
             if 'model' in table.meta.keys():
-                table.loc[:,'model'] = table.meta['scenario']
+                table.loc[:,'model'] = table.meta['model']
             else:
                 table.loc[:,'model']   = ''
                 
@@ -587,7 +599,7 @@ class TableSet(dict):
 
             table.loc[:,'scenario'] = table.meta['scenario']
             if 'model' in table.meta.keys():
-                table.loc[:,'model'] = table.meta['scenario']
+                table.loc[:,'model'] = table.meta['model']
             else:
                 table.loc[:,'model']   = ''
             tableNew = table.loc[:, ['variable','region', 'scenario',  'model', 'unit'] +  oldColumns]
