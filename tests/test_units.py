@@ -1,30 +1,33 @@
 import datatoolbox as dt
 
-def test_base_conversion():
+import numpy.testing as npt
+
+def test_base_conversion1():
     #testing compound units and addtional units (CO2eq)
+    hr_in_yr = dt.conversionFactor('yr', 'h')
+    npt.assert_almost_equal(hr_in_yr, 8765.812770749999) # were counting leap years now?
+    
     obs = dt.conversionFactor('Mt CO2eq / yr', 'kg CO2eq / hr')
-    exp = 114079.55270694658
-    
-    assert obs == exp
-    
-    
+    exp = 1e9 / hr_in_yr
+    npt.assert_almost_equal(obs, exp)
+
+def test_custom_base_conversion1():    
     obs = dt.conversionFactor('t oil_equivalent/capita', 'MJ/capita')
-    exp = 41868.00000000001
-    assert obs == exp
+    exp = 41868
+    npt.assert_almost_equal(obs, exp)
 
 
-def test_GWP_conversion():
-    
+def test_GWP_conversion_CO():    
     obs = dt.conversionFactor("Mt CO", "Gg CO2eq", context="GWPAR4")
     exp = 1000
-    assert obs == exp
-    
+    npt.assert_almost_equal(obs, exp)
+
+def test_GWP_conversion_CH4():        
     obs = dt.conversionFactor("Mt CH4", "Mt CO2eq", context="GWPAR4")
     exp = 25
-    assert obs == exp
+    npt.assert_almost_equal(obs, exp)
     
-def test_HFC_units():
-    
+def test_HFC_units():    
     dt.core.ur('HFC134aeq') 
     
 def test_function_getUnit():

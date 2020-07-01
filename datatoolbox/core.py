@@ -10,39 +10,29 @@ import time
 from . import config
 import numpy as np
 tt = time.time()
+import pint
 #%% unit handling
 gases = {"CO2eq":"carbon_dioxide_equivalent",
          "CO2e" : "CO2eq",
          "NO2" : "NO2"}
 
-#try:
-#    from openscm.units import unit_registry as ur
-#    from openscm.units import _add_gases_to_unit_registry
-#    _add_gases_to_unit_registry(ur, gases)
-#except:
-#    try:
-#        from openscm.units import _unit_registry as ur
-#    except:
-#        from openscm.core.units import _unit_registry as ur
-#    try:
-#        ur._add_gases(gases)
-#    except:
-#        pass
 from openscm_units import unit_registry as ur
+
+
 try:
     ur._add_gases(gases)
-
-#import openscm
     ur.define('fraction = [] = frac')
     ur.define('percent = 1e-2 frac = pct')
     ur.define('ppm = 1e-6 fraction')
     ur.define('sqkm = km * km')
     ur.define('none = dimensionless')
-    
+
+
     ur.load_definitions(config.PATH_PINT_DEFINITIONS)
-except:
-    print('Using old unit defintions')
-        
+except pint.errors.DefinitionSyntaxError:
+    # avoid double import of units defintions
+    pass
+    
 import pint
 
 c = pint.Context('GWP_AR5')
@@ -103,17 +93,23 @@ LOG['tableIDs'] = list()
 #print(c.funcs)
 ur.add_context(c)
 
+def _update_meta(metaDict):
+    
+    for key in list(metaDict.keys()):
+        if (metaDict[key] is np.nan) or metaDict[key] == '':
+            del metaDict[key]
+            
+    for id_field in config.ID_FIELDS:
+        fieldList = [ metaDict[key] for key in config.SUB_FIELDS[id_field] if key in  metaDict.keys()]
+        if len(fieldList)>0:
+            metaDict[id_field] =  config.SUB_SEP[id_field].join(fieldList).strip('|')
+    
+    return metaDict
+
+
 def _createDatabaseID(metaDict):
-    if 'category' in metaDict:
-        if (metaDict['category'] is np.nan) or metaDict['category'] == '':
-            del metaDict['category']
-#        print(metaDict)
-    metaDict['variable'] = '|'.join([ metaDict[key] for key in ['entity', 'category'] if key in  metaDict.keys()]).strip('|')
-    metaDict['pathway'] = '|'.join([ metaDict[key] for key in ['scenario', 'model'] if key in  metaDict.keys()]).strip('|')
-    if 'source' not in  metaDict.keys():
-        metaDict['pathway'] = '|'.join([ metaDict[key] for key in ['institution', 'year'] if key in  metaDict.keys()]).strip('|')    
-        
-    return '|'.join([metaDict[key] for key in config.ID_FIELDS])
+    
+    return config.ID_SEPARATOR.join([metaDict[key] for key in config.ID_FIELDS])
 
 
 def osIsWindows():

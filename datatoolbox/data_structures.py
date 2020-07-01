@@ -147,7 +147,14 @@ class Datatable(pd.DataFrame):
         dfNew.meta['modified'] = core.getTimeString()
         return dfNew
         
-    
+    def aggregate_to_region(self, mapping):
+        """ 
+        This functions added the aggregates to the table according to the provided
+        mapping.( See datatools.mapp.regions)
+        
+        Returns the result, but does not inplace add it.
+        """
+        return util.aggregate_table_to_region(self, mapping)
     
     def interpolate(self, method, newSource):
         
@@ -224,9 +231,12 @@ class Datatable(pd.DataFrame):
     #%%
     def generateTableID(self):
         # update meta data required for the ID
-        self.ID =  core._createDatabaseID(self.meta)
+        self.meta =  core._update_meta(self.meta)
+        self.ID   =  core._createDatabaseID(self.meta)
         self.meta['ID'] = self.ID
         return self.ID
+
+
     
     def source(self):
         return self.meta['source']
@@ -264,18 +274,21 @@ class Datatable(pd.DataFrame):
     
         
     def __add__(self, other):
-        #print('other in' + str(other))
         if isinstance(other,Datatable):
             
-            factor = core.getUnit(other.meta['unit']).to(self.meta['unit']).m
-            #print('factor: ' + str(factor))
-            #print('other' + str(other))
-            #print(other * factor)
-            out = Datatable(super(Datatable, self).__add__(other * factor))
+            if self.meta['unit'] == other.meta['unit']:
+                factor = 1
+            else:
+                factor = core.getUnit(other.meta['unit']).to(self.meta['unit']).m
+            
+            rhs = pd.DataFrame(other * factor)
+            out = Datatable(super(Datatable, self.copy()).__add__(rhs))
+
             out.meta['unit'] = self.meta['unit']
             out.meta['source'] = 'calculation'
         else:
-            
+#            import pdb
+#            pdb.set_trace()
             out = Datatable(super(Datatable, self).__add__(other))
             out.meta['unit'] = self.meta['unit']
             out.meta['source'] = 'calculation'
@@ -285,8 +298,12 @@ class Datatable(pd.DataFrame):
     
     def __sub__(self, other):
         if isinstance(other,Datatable):
-            factor = core.getUnit(other.meta['unit']).to(self.meta['unit']).m
-            out = Datatable(super(Datatable, self).__sub__(other * factor))
+            if self.meta['unit'] == other.meta['unit']:
+                factor = 1
+            else:
+                factor = core.getUnit(other.meta['unit']).to(self.meta['unit']).m
+            rhs = pd.DataFrame(other * factor)
+            out = Datatable(super(Datatable, self).__sub__(rhs))
             out.meta['unit'] = self.meta['unit']
             out.meta['source'] = 'calculation'
         else:
@@ -294,10 +311,13 @@ class Datatable(pd.DataFrame):
             out.meta['unit'] = self.meta['unit']
             out.meta['source'] = 'calculation'
         return out
-
+    
     def __rsub__(self, other):
         if isinstance(other,Datatable):
-            factor = core.getUnit(other.meta['unit']).to(self.meta['unit']).m
+            if self.meta['unit'] == other.meta['unit']:
+                factor = 1
+            else:
+                factor = core.getUnit(other.meta['unit']).to(self.meta['unit']).m
             out = Datatable(super(Datatable, self).__rsub__(other * factor))
             out.meta['unit'] = self.meta['unit']
             out.meta['source'] = 'calculation'
@@ -425,6 +445,16 @@ class TableSet(dict):
     def filter(self, ):
         pass
     
+    def aggregate_to_region(self, mapping):
+        """ 
+        This functions added the aggregates to the output according to the provided
+        mapping.( See datatools.mapp.regions)
+        
+        Returns the result, but does not inplace add it.
+        """
+        return util.aggregate_tableset_to_region(self, mapping)
+        
+        
     def __getitem__(self, key):
         item = super(TableSet, self).__getitem__(key)
         
@@ -435,12 +465,19 @@ class TableSet(dict):
         
         return item
     
-    def to_excel(self, fileName):
-        writer = pd.ExcelWriter(fileName, 
-            engine='openpyxl', 
-            mode='a',
-            datetime_format='mmm d yyyy hh:mm:ss',
-            date_format='mmmm dd yyyy') 
+    def to_excel(self, fileName, append=False):
+       
+        if writer is None:
+            if append:
+                writer = pd.ExcelWriter(fileName, 
+                                        engine='openpyxl', mode='a',
+                                        datetime_format='mmm d yyyy hh:mm:ss',
+                                        date_format='mmmm dd yyyy')  
+            else:
+                writer = pd.ExcelWriter(fileName,
+                                        engine='xlsxwriter',
+                                        datetime_format='mmm d yyyy hh:mm:ss',
+                                        date_format='mmmm dd yyyy')  
         
         for i,eKey in enumerate(self.keys()):
             table = self[eKey].dropna(how='all', axis=1).dropna(how='all', axis=0)
@@ -497,6 +534,8 @@ class TableSet(dict):
         for key in self.keys():
             table= copy.copy(self[key])
             #print(table.columns)
+            if (len(table.index)== 0) or (len(table.columns)== 0):
+                continue
             
             oldColumns = list(table.columns)
             minMax = (max(minMax[0], min(oldColumns)), min(minMax[1],max(oldColumns)))
@@ -505,15 +544,17 @@ class TableSet(dict):
             
             table.loc[:,'region'] = table.index
             table.loc[:,'unit']   = table.meta['unit']
-            table.loc[:,'variable']   = table.meta['entity']
+            table.loc[:,'variable']   = table.meta['variable']
             
-            scenModel = table.meta['scenario'].split('|')
-            if len(scenModel) == 2:
-                table.loc[:,'model'] = scenModel[1]
-                table.loc[:,'scenario']   =scenModel[0]
+            try:
+                table.loc[:,'scenario'] = table.meta['scenario']
+            except:
+                print(table.meta)
+                raise(BaseException('meta key "scenario" not found'))
+            if 'model' in table.meta.keys():
+                table.loc[:,'model'] = table.meta['model']
             else:
-                table.loc[:,'scenario']   = table.meta['scenario']
-                table.loc[:,'model']      = ''
+                table.loc[:,'model']   = ''
                 
             tableNew = table.loc[:, ['variable', 'region', 'scenario',  'model', 'unit'] +  oldColumns]
             tableNew.index= range(len(tableNew.index))
@@ -545,6 +586,8 @@ class TableSet(dict):
         for key in self.keys():
             table= copy.copy(self[key])
             #print(table.columns)
+            if (len(table.index)== 0) or (len(table.columns)== 0):
+                continue
             
             oldColumns = list(table.columns)
             minMax = (max(minMax[0], min(oldColumns)), min(minMax[1],max(oldColumns)))
@@ -553,15 +596,14 @@ class TableSet(dict):
             
             table.loc[:,'region'] = table.index
             table.loc[:,'unit']   = table.meta['unit']
-            table.loc[:,'variable']   = table.meta['entity']
+            table.loc[:,'variable']   = table.meta['variable']
             
-            scenModel = table.meta['scenario'].split('|')
-            if len(scenModel) == 2:
-                table.loc[:,'model'] = scenModel[1]
-                table.loc[:,'scenario']   =scenModel[0]
+
+            table.loc[:,'scenario'] = table.meta['scenario']
+            if 'model' in table.meta.keys():
+                table.loc[:,'model'] = table.meta['model']
             else:
-                table.loc[:,'model'] = table.meta['scenario']
-                table.loc[:,'scenario']   = ''
+                table.loc[:,'model']   = ''
             tableNew = table.loc[:, ['variable','region', 'scenario',  'model', 'unit'] +  oldColumns]
             tableNew.index= range(len(tableNew.index))
             tableList.append(tableNew)
@@ -819,7 +861,8 @@ def read_csv(fileName):
             break
         dataTuple = line.replace('\n','').split(',')
         meta[dataTuple[0]] = dataTuple[1].strip()
-
+        if "unit" not in meta.keys():
+            meta["unit"] = ""
     df = Datatable(pd.read_csv(fid, index_col=0), meta=meta)
     df.columns = df.columns.map(int)
 
