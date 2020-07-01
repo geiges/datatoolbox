@@ -34,6 +34,11 @@ cuPPP = [current_PPP]
 
 
 
+# climate context
+[AGWP] = [Power] * [time] / [area] / [mass]
+AGWP_CO2 =  9.17E-14 * W * yr /m**2 / kg
+#CO2eq = [CO2-equiv]
+#CO2eq = 1 * [GWP]
 
 # social dimension
 capita = [count]
@@ -43,9 +48,9 @@ thousands = 1000 * count
 millions = 1000000 * count
 
 # Transport
-[person_travelled] = [count * length]
+[person_travelled] = [count] * [length]
 pkm = person * km
-[mass_transported] = [mass * length]
+[mass_transported] = [mass] * [length]
 tkm = tonnes *km
 
 
@@ -53,11 +58,7 @@ tkm = tonnes *km
 oe = 41.868 * 1e6 * J / kg = oil_equivalent
 kg oil_equivalent =  41.868 *1e6* J
 
-# climate context
-[AGWP] = [Power] * [time] / [area] / [mass]
-AGWP_CO2 =  9.17E-14 * W * yr /m**2 / kg
-#CO2eq = [CO2-equiv]
-#CO2eq = 1 * [GWP]
+
  
 #NF3 = NF3
 #NO2 = 265 * CO2eq

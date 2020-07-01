@@ -278,10 +278,11 @@ class Datatable(pd.DataFrame):
 #        print(type(other))
         if isinstance(other,Datatable):
             
-            factor = core.getUnit(other.meta['unit']).to(self.meta['unit']).m
-#            print('factor: ' + str(factor))
-#            print('other' + str(other))
-#            print(other * factor)
+            if self.meta['unit'] == other.meta['unit']:
+                factor = 1
+            else:
+                factor = core.getUnit(other.meta['unit']).to(self.meta['unit']).m
+            
             out = Datatable(super(Datatable, self).__add__(other * factor))
             out.meta['unit'] = self.meta['unit']
             out.meta['source'] = 'calculation'
@@ -297,10 +298,10 @@ class Datatable(pd.DataFrame):
     
     def __sub__(self, other):
         if isinstance(other,Datatable):
-            if other.meta['unit'] == other.meta['unit']:
+            if self.meta['unit'] == other.meta['unit']:
                 factor = 1
             else:
-                factor = core.getUnit(other.meta['unit']).to(other.meta['unit']).m
+                factor = core.getUnit(other.meta['unit']).to(self.meta['unit']).m
             out = Datatable(super(Datatable, self).__sub__(other * factor))
             out.meta['unit'] = self.meta['unit']
             out.meta['source'] = 'calculation'
@@ -312,10 +313,10 @@ class Datatable(pd.DataFrame):
 
     def __rsub__(self, other):
         if isinstance(other,Datatable):
-            if other.meta['unit'] == other.meta['unit']:
+            if self.meta['unit'] == other.meta['unit']:
                 factor = 1
             else:
-                factor = core.getUnit(other.meta['unit']).to(other.meta['unit']).m
+                factor = core.getUnit(other.meta['unit']).to(self.meta['unit']).m
             out = Datatable(super(Datatable, self).__rsub__(other * factor))
             out.meta['unit'] = self.meta['unit']
             out.meta['source'] = 'calculation'

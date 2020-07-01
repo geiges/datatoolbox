@@ -1,6 +1,7 @@
 import datatoolbox as dt
 import pandas as pd
 import numpy as np
+import numpy.testing as npt
 #%%
 
 metaDict = {'entity':'Emissions|Candy',
@@ -27,8 +28,8 @@ df2 = dt.Datatable([[50.,50,50,],
                    index= ['DEU', 'IND'],
                    meta = metaDict)
 
-df3 = dt.Datatable([[50.,50],
-                   [40.,40]], 
+df3 = dt.Datatable([[50,50],
+                   [40,40]], 
                    columns = [2000, 2010],
                    index= ['DEU', 'IND'],
                     meta = metaDict2)
@@ -80,13 +81,13 @@ def test_addition():
     assert obs.meta['source'] == 'calculation'
     
     obs = df3 + df1
-    exp = dt.Datatable([[10050,  20050, np.nan],
+    exp = dt.Datatable([[10050.,  20050, np.nan],
                        [40040,  40040,  np.nan]], 
                        columns = [2000, 2010, 2020],
                        index= ['DEU', 'IND'],
                        meta = metaDict2)
     
-    assert (obs.loc[:,[2000,2010]].values == exp.loc[:,[2000,2010]].values).all()
+    npt.assert_array_almost_equal(obs, exp, decimal = 5)
     assert obs.loc[:,2020].isnull().all()
     assert obs.meta['unit']   == exp.meta['unit']
     assert obs.meta['source'] == 'calculation'
@@ -99,7 +100,7 @@ def test_sum():
                        index= ['DEU', 'IND'],
                        meta = metaDict2)
     
-    assert (obs.loc[:,[2000,2010]].values == exp.loc[:,[2000,2010]].values).all()
+    npt.assert_array_almost_equal(obs, exp, decimal = 5)
     assert obs.loc[:,2020].isnull().all()
     assert obs.meta['unit']   == exp.meta['unit']
     assert obs.meta['source'] == 'calculation'  
@@ -144,6 +145,7 @@ def test_substraction():
     assert obs.meta['source'] == 'calculation'
 
     # adding two datatables + conversion
+    print('aaa')
     obs = df1 - df3
     exp = dt.Datatable([[9.95,  19.95, np.nan],
                        [39.96,  39.96,  np.nan]], 
@@ -151,7 +153,7 @@ def test_substraction():
                        index= ['DEU', 'IND'],
                        meta = metaDict)
     
-    assert (obs.loc[:,[2000,2010]].values == exp.loc[:,[2000,2010]].values).all()
+    npt.assert_array_almost_equal(obs, exp, decimal = 5)
     assert obs.loc[:,2020].isnull().all()
     assert obs.meta['unit']   == exp.meta['unit']
     assert obs.meta['source'] == 'calculation'
@@ -163,7 +165,7 @@ def test_substraction():
                        index= ['DEU', 'IND'],
                        meta = metaDict2)
     
-    assert (obs.loc[:,[2000,2010]].values == exp.loc[:,[2000,2010]].values).all()
+    npt.assert_array_almost_equal(obs, exp, decimal = 5)
     assert obs.loc[:,2020].isnull().all()
     assert obs.meta['unit']   == exp.meta['unit']
     assert obs.meta['source'] == 'calculation'
