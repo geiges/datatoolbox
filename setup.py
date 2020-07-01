@@ -55,7 +55,7 @@ def main():
             "pandas",
             "gitpython",
             "openscm_units",
-            "pint==0.9",
+            "pint==0.11",
             "pycountry",
             "fuzzywuzzy",
             "tqdm",
