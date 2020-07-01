@@ -52,7 +52,8 @@ AR4GWPDict = {'F-Gases': 1,
               'CO2' : 1,
               'BC'  :1,
               'CO' : 1,
-              'OC' : 1}
+              'OC' : 1,
+              "SO2" : 1}
 
 
 LOG = dict()

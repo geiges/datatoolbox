@@ -122,7 +122,7 @@ class Datatable(pd.DataFrame):
         else:
             assert fileName[-4:]  == '.csv'
         
-        fid = open(fileName,'w')
+        fid = open(fileName,'w', encoding='utf-8')
         fid.write(config.META_DECLARATION)
         
         for key, value in sorted(self.meta.items()):
@@ -136,10 +136,13 @@ class Datatable(pd.DataFrame):
         
     def convert(self, newUnit, context=None):
         
+        if self.meta['unit'] == newUnit:
+            return self
+        
         dfNew = self.copy()
 #        oldUnit = core.getUnit(self.meta['unit'])
 #        factor = (1* oldUnit).to(newUnit).m
-
+        
         factor = core.conversionFactor(self.meta['unit'], newUnit, context)
         
         dfNew.loc[:] =self.values * factor
@@ -848,7 +851,7 @@ class Visualization():
                 
 def read_csv(fileName):
     
-    fid = open(fileName,'r')
+    fid = open(fileName,'r', encoding='utf-8')
     
     assert (fid.readline()) == config.META_DECLARATION
     #print(nMetaData)
