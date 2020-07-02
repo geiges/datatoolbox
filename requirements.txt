@@ -1,4 +1,4 @@
-pandas<=0.25.3
+pandas<=1.0.0
 numpy
 gitpython
 openscm-units
@@ -8,5 +8,5 @@ fuzzywuzzy
 tqdm
 matplotlib
 openpyxl
-pyam-iamc<=0.3.0
+pyam-iamc<=0.6.0
 hdx-python-country
