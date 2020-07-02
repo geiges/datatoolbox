@@ -35,6 +35,14 @@ except pint.errors.DefinitionSyntaxError:
     
 import pint
 
+#%% optional support
+try:
+    import xarray as xr
+    config.AVAILABLE_XARRAY = True
+except:
+    config.AVAILABLE_XARRAY = False   
+#%%
+
 c = pint.Context('GWP_AR5')
 
 CO2EQ_LIST = ['CO2eq', 'CO2e',]
@@ -53,45 +61,12 @@ AR4GWPDict = {'F-Gases': 1,
               'BC'  :1,
               'CO' : 1,
               'OC' : 1,
-              "SO2" : 1}
+              'SO2' : 1}
 
 
 LOG = dict()
 LOG['tableIDs'] = list()
 
-#from copy import copy
-#for gas in AR5GasDict.keys():
-#    c = pint.Context('GWP_AR5')
-#    GWP_factor = AR5GasDict[gas]
-#    ur.define('{} = [{}]'.format(gas,gas))
-#    definition = ("[{}]".format(gas) ,
-#                  "[GWP]",
-#                  copy(lambda ur, x: x * GWP_factor / ur[copy(gas)].u * ur.CO2eq ))
-#    print(definition)
-#    print(ur[copy(gas)].u)
-#    c.add_transformation(*copy(definition))
-#    definition = ("[mass] * [{}]".format(gas),
-#            "[mass] * [GWP]",
-#            lambda ur, x: x * GWP_factor / copy(ur[gas].u) * ur.CO2eq)
-#    c.add_transformation(*copy(definition))
-#    print(definition)
-#    c.add_transformation(
-#            "[GWP]" ,
-#            "[NO2]",
-#            lambda ur, x: x / 256 * ur.NO2 / ur.CO2eq)
-#c.add_transformation(
-#        "[NO2]" ,
-#        "[GWP]",
-#        lambda ur, x: x * 256 / ur.NO2 * ur.CO2eq)
-#c.add_transformation(
-#        "[CH4]" ,
-#        "[GWP]",
-#        lambda ur, x: x * 4 / ur.CH4 * ur.CO2eq)
-#c.add_transformation(
-#        "[NH3]" ,
-#        "[GWP]",
-#        lambda ur, x: x * 1 / ur.NH3 * ur.CO2eq)
-#print(c.funcs)
 ur.add_context(c)
 
 def _update_meta(metaDict):

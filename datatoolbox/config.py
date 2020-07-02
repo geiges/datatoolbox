@@ -10,6 +10,8 @@ import platform
 OS = platform.system() #'win32' , linux, #Darwin
 
 
+
+
 if OS == 'Darwin':
     import matplotlib
     matplotlib.use("TkAgg")
@@ -22,6 +24,9 @@ if not os.path.isfile(os.path.dirname(__file__) + '/settings/personal.py'):
 else:
     from .settings.personal import CRUNCHER, PATH_TO_DATASHELF, DB_READ_ONLY, DEBUG
   
+
+
+ 
 
 #%% general setup
 

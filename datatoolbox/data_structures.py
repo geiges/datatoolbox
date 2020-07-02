@@ -37,9 +37,15 @@ class Datatable(pd.DataFrame):
         except:
             self.ID = None
 
-        #compatibililty with v1
-#        if not 'model' in self.meta.keys():
-#            self.meta['model'] = ''
+    
+        if config.AVAILABLE_XARRAY:
+            self.to_xarray = self._to_xarray
+    
+    
+    
+    def _to_xarray(self):
+        
+        return core.xr.DataArray(self.values, coords=[self.index, self.columns], dims=['space','time'], attrs=self.meta)
     
     @property
     def _constructor(self):
@@ -407,11 +413,11 @@ class Datatable(pd.DataFrame):
                 outStr += key + ': ' + str(self.meta[key]) + ' \n'
         outStr += super(Datatable, self)._repr_html_()
         return outStr
-
+#%%
 class TableSet(dict):
     def __init__(self, IDList=None):
         super(dict, self).__init__()
-        self.inventory = pd.DataFrame(columns = config.INVENTORY_FIELDS)
+        self.inventory = pd.DataFrame(columns = ['key']+ config.INVENTORY_FIELDS)
         
         if IDList is not None:
             for tableID in IDList:
@@ -438,16 +444,41 @@ class TableSet(dict):
             if datatable.ID is None:
                 datatable.generateTableID()
             self[datatable.ID] = datatable
-            self.inventory.loc[datatable.ID] = [datatable.meta.get(x,None) for x in config.INVENTORY_FIELDS]
+            self.inventory.loc[datatable.ID, "key"] = datatable.ID
+            self.inventory.loc[datatable.ID, config.INVENTORY_FIELDS] = [datatable.meta.get(x,None) for x in config.INVENTORY_FIELDS]
     
     def remove(self, tableID):
         del self[tableID]
         self.inventory.drop(tableID, inplace=True)
         
     
-    def filter(self, ):
-        pass
-    
+    def filter(self,**kwargs):
+        
+        inv = self.inventory.copy()
+        for key in kwargs.keys():
+            #table = table.loc[self.inventory[key] == kwargs[key]]
+            mask = self.inventory[key].str.contains(kwargs[key], regex=False)
+            mask[pd.isna(mask)] = False
+            mask = mask.astype(bool)
+            inv = inv.loc[mask].copy()
+            
+        newTableSet = TableSet()
+        for key in inv.index:
+            newTableSet[key] = self[key]
+            
+        return newTableSet
+#        def getInventory(self, **kwargs):
+#        
+#        table = self.inventory.copy()
+#        for key in kwargs.keys():
+#            #table = table.loc[self.inventory[key] == kwargs[key]]
+#            mask = self.inventory[key].str.contains(kwargs[key], regex=False)
+#            mask[pd.isna(mask)] = False
+#            mask = mask.astype(bool)
+#            table = table.loc[mask].copy()
+#            
+#        
+#        return table
     def aggregate_to_region(self, mapping):
         """ 
         This functions added the aggregates to the output according to the provided
@@ -467,6 +498,16 @@ class TableSet(dict):
             self[key] = item
         
         return item
+
+    def __setitem__(self, key, datatable):
+        super(TableSet, self).__setitem__(key, datatable)
+        
+        if datatable.ID is None:
+            datatable.generateTableID()
+        self.inventory.loc[datatable.ID, "key"] = key
+        self.inventory.loc[datatable.ID, config.INVENTORY_FIELDS] = [datatable.meta.get(x,None) for x in config.INVENTORY_FIELDS]
+    
+
     
     def to_excel(self, fileName, append=False):
        
@@ -519,6 +560,12 @@ class TableSet(dict):
 
             
         return coTables
+
+    def variables(self):
+        return list(self.inventory.variable.unique())
+
+    def pathways(self):
+        return list(self.inventory.pathway.unique())
 
     def entities(self):
         return list(self.inventory.entity.unique())
@@ -580,7 +627,7 @@ class TableSet(dict):
         return fullDf.loc[:, columns]
     
     def to_IamDataFrame(self):
-        #%%
+        
         import pyam
         import copy
         #self = dt.getTables(res.index)
@@ -623,7 +670,7 @@ class TableSet(dict):
         return iaDf         
 
     def plotAvailibility(self, regionList= None, years = None):
-        #%%
+        
         avail= 0
         for table in self:
 #            print(table.ID)
@@ -647,7 +694,20 @@ class TableSet(dict):
         plt.colorbar()
         plt.yticks([x +.5 for x in range(len(avail.index))], avail.index)
         plt.xticks([x +.5 for x in range(len(avail.columns))], avail.columns, rotation=45)
-        #%%
+
+#table = dt.getTable(dt.inventory().index[0])
+#table2 = dt.getTable(dt.inventory().index[1])
+#tableset = TableSet()
+#tableset.add(table)
+#tableset['Table1'] = table
+#tableset['Table2'] = table2
+#    
+#print(tableset.pathways())
+#
+#cropsSet = tableset.filter(variable='Crop')
+#%%    
+    
+    
     
 class Visualization():
     """ 
