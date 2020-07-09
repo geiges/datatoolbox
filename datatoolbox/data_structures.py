@@ -165,37 +165,24 @@ class Datatable(pd.DataFrame):
         """
         return util.aggregate_table_to_region(self, mapping)
     
-    def interpolate(self, method, newSource):
-        
+    def interpolate(self, method="linear"):
         if method == 'linear':
             from scipy import interpolate
             import numpy as np
             xData = self.columns.values.astype(float)
             yData = self.values
-            
             for row in yData:
                 idxNan = np.isnan(row)
+                if (sum(~idxNan) < 2):
+                    continue
                 interpolator = interpolate.interp1d(xData[~idxNan], row[~idxNan], kind='linear')
-                row[idxNan] = interpolator(xData[idxNan])
+                col_idx = xData[idxNan].astype(int)
+                col_idx = col_idx[col_idx > xData[~idxNan].min()]
+                col_idx = col_idx[col_idx < xData[~idxNan].max()]
+                new_idx = idxNan & (xData > xData[~idxNan].min()) & (xData < xData[~idxNan].max())
+                row[new_idx] = interpolator(col_idx)
         else:
             raise(NotImplementedError())
-            
-        dfNew = self.copy()
-        dfNew.loc[:] = yData
-        
-        dfNew.meta['modified'] = core.getTimeString()
-        dfNew.meta['source'] = newSource
-        return dfNew
-
-#    def filter(self, context, regionID):
-#        """ 
-#        valid filter aguments are:
-#            "region"
-#        """
-#        members = mapp.getMembersOfRegion(context, regionID)
-#        mask = self.index.isin(members)
-#
-#        return self.iloc[mask,:]
     
     def clean(self):
 
