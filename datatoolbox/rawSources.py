@@ -3015,7 +3015,10 @@ class PRIMAP_HIST(BaseImportTool):
             'source': self.setup.SOURCE_ID,
             'scenario': meta['scenario'].replace(scenario_mapping),
             'category': meta['category'],
-            'unit': (meta['unit'] + ' ' +  meta['entity']).where(meta['unit'] != 'GgCO2eq', 'Gg CO2eq'),
+            'unit': (
+                (meta['unit'] + ' ' +  meta['entity'])
+                .where(meta['unit'] != 'GgCO2eq', 'Gg CO2eq') + '/yr'
+            ),
             'entity': 'Emissions|' + meta['entity']
         })
         self.mapping = (
