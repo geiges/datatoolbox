@@ -10,6 +10,7 @@ import datatoolbox as dt
 from datatoolbox import config
 from datatoolbox.data_structures import Datatable
 
+from collections import defaultdict
 import pandas as pd
 import os
 import time
@@ -2969,7 +2970,7 @@ class SSP_DATA(BaseImportTool):
 
 class PRIMAP_HIST(BaseImportTool):
     
-    def __init__(self, year=2019):
+    def __init__(self, version="v2.1_09-Nov-2019", year=2019):
 
         self.setup = setupStruct()
         
@@ -2977,17 +2978,17 @@ class PRIMAP_HIST(BaseImportTool):
         self.setup.SOURCE_NAME    = "PRIMAP"
         self.setup.SOURCE_YEAR    = str(year)
         self.setup.SOURCE_PATH  = config.PATH_TO_DATASHELF + 'rawdata/PRIMAP/'
-        self.setup.DATA_FILE    = self.setup.SOURCE_PATH +  str(year) + '/PRIMAP-hist_' + str(year) + '.csv'
+        self.setup.DATA_FILE    = self.setup.SOURCE_PATH +  str(year) + '/PRIMAP-hist_' + str(version) + '.csv'
         self.setup.MAPPING_FILE = self.setup.SOURCE_PATH + 'mapping.xlsx'
-        self.setup.LICENCE = 'open access'
-        self.setup.URL     = 'https://www.pik-potsdam.de/primap-live/primap-hist/'
+        self.setup.LICENCE = 'CC BY-4.0'
+        self.setup.URL     = 'https://dataservices.gfz-potsdam.de/pik/showshort.php?id=escidoc:4736895'
 
         
 #        self.setup.INDEX_COLUMN_NAME = 'SeriesCode'
 #        self.setup.SPATIAL_COLUM_NAME = 'GeoAreaCode'
 #        
 #        self.setup.COLUMNS_TO_DROP = ['Country Name', 'Indicator Name']
-        self.setup.COLUMNS_TO_DROP = ['scenario', 'category', 'entity', 'unit','primary_code']
+        self.setup.COLUMNS_TO_DROP = ['scenario', 'category', 'entity', 'unit', 'primary_code']
 
         
         self.createSourceMeta()
@@ -3006,22 +3007,26 @@ class PRIMAP_HIST(BaseImportTool):
         #%%
         
         if not hasattr(self, 'data'):
-#            self.data = pd.read_csv(self.setup.DATA_FILE, encoding='utf8', engine='python', index_col = None, header =0, na_values='..')
-#            self.data['combined'] = self.data[self.setup.INDEX_COLUMN_NAME].apply(lambda x: '_'.join(x), axis=1)
             self.loadData()
         
-        
-        #self.data[self.setup.INDEX_COLUMN_NAME].apply(lambda x: '_'.join(x), axis=1)
-        availableSeries = self.data.index.unique()
-#        availableSeries = self.data.drop_duplicates()
-#        descrDf = self.data['SeriesDescription'].drop_duplicates()
         meta = self.data.loc[~self.data.index.duplicated(keep='first')]
-        self.mapping = pd.DataFrame(index=availableSeries, columns = MAPPING_COLUMNS )
-        self.mapping.source = self.setup.SOURCE_ID
-        self.mapping.scenario = meta.loc[availableSeries,'scenario']
-        self.mapping.category = meta.loc[availableSeries,'category']
-        self.mapping.unit = meta.loc[availableSeries, 'unit'] + ' '+  meta.loc[availableSeries, 'entity']
-        self.mapping.loc[self.mapping.unit.str.contains('GgCO2eq'),'unit'] = 'Gg CO2eq'
+        scenario_mapping = {'HISTCR': 'Historic|country_reported', 'HISTTP': 'Historic|third_party'}
+        self.mapping = pd.DataFrame.from_dict({
+            'source': self.setup.SOURCE_ID,
+            'scenario': meta['scenario'].replace(scenario_mapping),
+            'category': meta['category'],
+            'unit': (meta['unit'] + ' ' +  meta['entity']).where(meta['unit'] != 'GgCO2eq', 'Gg CO2eq'),
+            'entity': 'Emissions|' + meta['entity']
+        })
+        self.mapping = (
+            self.mapping
+            .assign(
+                variable=self.mapping['entity'] + '|' + self.mapping['category'],
+                pathway=self.mapping['scenario'],
+                unitTo=self.mapping['unit'].str.replace('Gg', 'Mt')
+            )
+            .reindex(columns=pd.Index(MAPPING_COLUMNS).union(self.mapping.columns))
+        )
         self.mapping.to_excel(writer, sheet_name=VAR_MAPPING_SHEET)
         
 
@@ -3048,93 +3053,53 @@ class PRIMAP_HIST(BaseImportTool):
                         'IPC4':'Waste',
                         'IPC5':'Other'}
 
-        dataFrame = pd.DataFrame(data=[],columns = ['alternative'])
-        for key, item in sector_mapping.items():
-            dataFrame.loc[key] = item
+        dataFrame = pd.DataFrame.from_dict({'alternative': pd.Series(sector_mapping)})
         dataFrame.to_excel(writer, sheet_name='sector_mapping')
         
         writer.close()
         
     def loadData(self):
-         self.data = pd.read_csv(self.setup.DATA_FILE, header =0) 
+         self.data = pd.read_csv(self.setup.DATA_FILE, header=0) 
          self.data['primary_code'] = self.data.index
-#         modifierColumns = [self.setup.INDEX_COLUMN_NAME] + list(self.data.columns[14:-1])
-#         modifierColumns.remove('[Reporting Type]')
-         self.data.index = self.data[['entity', 'category', 'scenario']].apply(lambda x: '_'.join(x), axis=1)
-         #self.data[modifierColumns] = self.data[modifierColumns].fillna('NaN')
-         #self.data[modifierColumns].apply(lambda x: '_'.join(x), axis=1)
-         #self.data[modifierColumns].astype(str).apply(lambda x: x.str.cat(sep='_'), axis=1)
-#         self.data.index = self.data[modifierColumns].fillna('').astype(str).apply(lambda x: '_'.join(filter(None, x)), axis=1)
+         self.data.set_index(self.data['entity'] + '_' + self.data['category'] + '_' + self.data['scenario'], inplace=True)
          
     def gatherMappedData(self, spatialSubSet = None, updateTables = False):
-        excludedTables = dict()
-        excludedTables['empty'] = list()
-        excludedTables['erro'] = list()
-        excludedTables['exists'] = list()
+        excludedTables = defaultdict(list)
         
         # loading data if necessary
         if not hasattr(self, 'data'):
             self.loadData()        
         
-        indexDataToCollect = self.mapping.index[~pd.isnull(self.mapping['entity'])]
-        
         tablesToCommit  = []
-        for idx in indexDataToCollect:
-            metaDf = self.mapping.loc[idx]
+        for idx, metaDf in self.mapping.iterrows():
             print(idx)
             
-            #print(metaDf[config.REQUIRED_META_FIELDS].isnull().all() == False)
-            #print(metaData[self.setup.INDEX_COLUMN_NAME])
+            metaDict = metaDf.to_dict()
+            metaDict.update(
+                source_name=self.setup.SOURCE_NAME,
+                source_year=self.setup.SOURCE_YEAR,
+            )
             
-            metaDf['source_name'] = self.setup.SOURCE_NAME
-            metaDf['source_year'] = self.setup.SOURCE_YEAR
-            metaDict = {key : metaDf[key] for key in config.REQUIRED_META_FIELDS.union({'unitTo', 'category'})}           
-            metaDict['source'] = self.setup.SOURCE_ID
-            
-#            if pd.isna(metaDict['category']):
-#                metaDict['category'] = ''
             if not updateTables:
-                metaDict= dt.core._update_meta(metaDict)
+                metaDict = dt.core._update_meta(metaDict)
                 tableID = dt.core._createDatabaseID(metaDict)
-                if not updateTables:
-                    if dt.core.DB.tableExist(tableID):
-                        excludedTables['exists'].append(tableID)
-                        print('table exists')
-                        print(tableID)
-                        continue
+                if dt.core.DB.tableExist(tableID):
+                    excludedTables['exists'].append(tableID)
+                    print('table exists')
+                    print(tableID)
+                    continue
                     
             metaDict['original code'] = idx
-            #metaDict['original name'] = metaDf['Indicator Name']
-            
-#            seriesIdx = idx
 
-            dataframe = self.data.loc[idx,:].set_index('country').drop(self.setup.COLUMNS_TO_DROP, axis=1)
-#            dataframe = dataframe.pivot(index='GeoAreaCode', columns='TimePeriod', values='Value')
-            
-            dataframe = dataframe.astype(float)
-            
-#            newData= list()
-#            for iRow in range(len(dataframe)):
-#                ISO_ID = dt.mapp.getSpatialID(dataframe.index[iRow])
-#                if dataframe.index[iRow] == 1:
-#                    ISO_ID = "World"
-#                if ISO_ID:
-#                    newData.append(ISO_ID)
-#                else:
-#                    newData.append(pd.np.nan)
-#            dataframe.index = newData
-#           
-#            if spatialSubSet:
-#                spatIdx = dataframe.index.isin(spatialSubSet)
-#                dataframe = dataframe.loc[spatIdx]
-            
-            
-            
-            dataframe= dataframe.dropna(axis=1, how='all')
-            dataframe= dataframe.loc[~pd.isna(dataframe.index)]
+            dataframe = (
+                self.data.loc[idx,:].set_index('country').drop(self.setup.COLUMNS_TO_DROP, axis=1)
+                .astype(float)
+                .dropna(axis=1, how='all')
+            )
+
             dataTable = Datatable(dataframe, meta=metaDict)
             # possible required unit conversion
-            if not pd.isna(metaDict['unitTo']):
+            if not pd.isna(metaDict.get('unitTo')):
                 dataTable = dataTable.convert(metaDict['unitTo'])
             tablesToCommit.append(dataTable)
         
