@@ -405,12 +405,12 @@ class Datatable(pd.DataFrame):
     def _repr_html_(self):
         outStr = """"""
         if 'ID' in self.meta.keys():
-            outStr += '=== Datatable - ' + self.meta['ID'] + ' ===\n'
+            outStr += '=== Datatable - ' + self.meta['ID'] + ' ===<br/>\n'
         else:
-            outStr += '=== Datatable ===\n'
+            outStr += '=== Datatable ===<br/>\n'
         for key in self.meta.keys():
             if self.meta[key] is not None:
-                outStr += key + ': ' + str(self.meta[key]) + ' \n'
+                outStr += key + ': ' + str(self.meta[key]) + ' <br/>\n'
         outStr += super(Datatable, self)._repr_html_()
         return outStr
 #%%
