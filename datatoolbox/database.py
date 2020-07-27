@@ -27,8 +27,8 @@ class Database():
         tt = time.time()
         self.path = config.PATH_TO_DATASHELF
         self.gitManager = GitRepository_Manager(config)
-        self.INTVENTORY_PATH = os.path.join(self.path, 'inventory.csv')
-        self.inventory = pd.read_csv(self.INTVENTORY_PATH, index_col=0)
+        self.INVENTORY_PATH = os.path.join(self.path, 'inventory.csv')
+        self.inventory = pd.read_csv(self.INVENTORY_PATH, index_col=0, dtype={'source_year': str})
         self.sources   = self.gitManager.sources
         
         self.gitManager._validateRepository('main')
@@ -71,7 +71,7 @@ class Database():
 
 
     def _reloadInventory(self):
-        self.inventory = pd.read_csv(self.INTVENTORY_PATH, index_col=0)
+        self.inventory = pd.read_csv(self.INVENTORY_PATH, index_col=0, dtype={'source_year': str})
         
     def sourceExists(self, source):
         return source in self.gitManager.sources.index
@@ -442,9 +442,9 @@ class Database():
         self.gitManager.gitAddFile(source, os.path.join('tables', self._getTableFileName(datatable.ID)))
         
     def _gitCommit(self, message):
-        self.inventory.to_csv(self.INTVENTORY_PATH)
-#        self['main'].execute(["git", "add", self.INTVENTORY_PATH])
-        self.gitManager.gitAddFile('main',self.INTVENTORY_PATH)
+        self.inventory.to_csv(self.INVENTORY_PATH)
+#        self['main'].execute(["git", "add", self.INVENTORY_PATH])
+        self.gitManager.gitAddFile('main',self.INVENTORY_PATH)
 
         for sourceID in self.gitManager.updatedRepos:
             repoPath = os.path.join(config.PATH_TO_DATASHELF, 'database', sourceID)
@@ -543,7 +543,7 @@ class Database():
         self.sources.loc[remoteName,'git_commit_hash'] = self.gitManager[remoteName].execute(['git', 'rev-parse', 'HEAD'])
         self.sources.to_csv(config.SOURCE_FILE)
         self.gitManager.gitAddFile('main', config.SOURCE_FILE) 
-        sourceInventory = pd.read_csv(os.path.join(repoPath, 'source_inventory.csv'), index_col=0)
+        sourceInventory = pd.read_csv(os.path.join(repoPath, 'source_inventory.csv'), index_col=0, dtype={'source_year': str})
         for idx in sourceInventory.index:
             self.inventory.loc[idx,:] = sourceInventory.loc[idx,:]
         self._gitCommit('imported ' + remoteName)
