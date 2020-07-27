@@ -667,14 +667,15 @@ class IEA_FUEL_2019(BaseImportTool):
                          'Natural gas': 'Natural_gas',
                          'Other': 'Other'}
         
-        flowMapping = {'CO2 fuel combustion': 'Emissions|Fuel|CO2',
-                     'Electricity and heat production': 'Emissions|Fuel|CO2|Electricity_heat',
+        entity = "Emissions|CO2|Combustion"
+        flowMapping = {'CO2 fuel combustion': 'Total',
+                     'Electricity and heat production': 'Electricity&heat',
 #                     'Other energy industry own use': 'Other_energy_industry_own_use',
 #                     'Manufacturing industries and construction': 'Manufacturing_industries_and_construction',
-                      'Transport': 'Emissions|Fuel_CO2|Transport',
-                      ' of which: road': 'Emissions|Fuel_CO2|Transports|Road',
-                      'Residential': 'Emissions|Fuel_CO2|Residential',}
-#                      'Commercial and public services': 'Commercial_and_public_services',
+                      'Transport': 'Transport',
+                      ' of which: road': 'Transports|Road',
+                      'Residential': 'Residential',}
+#                      'Commercial and public services': 'Commercial&public_services',
 #                     ' Agriculture/forestry': 'Agriculture/forestry',
 #                     ' Fishing': '_Fishing',
 #                     'Memo: International marine bunkers': 'Memo:_International_marine_bunkers',
@@ -2214,6 +2215,7 @@ class IAMC15_2019(BaseImportTool):
                     if pd.isna(metaDict['category']):
                         metaDict['category'] = ''
                     #print(metaDict)
+                    metaDict = dt.core._update_meta(metaDict)
                     tableID = dt.core._createDatabaseID(metaDict)
                     #print(tableID)
                     if not updateTables:
@@ -2967,6 +2969,196 @@ class SSP_DATA(BaseImportTool):
 
         return tablesToCommit, excludedTables
 
+class PRIMAP_DOWNSCALE(BaseImportTool):
+    def __init__(self):
+        self.setup = setupStruct()
+        self.setup.SOURCE_ID    = "PRIMAP_DOWN_2020"
+        self.setup.SOURCE_YEAR  = "2020"
+        self.setup.SOURCE_NAME  = "PRIMAP_DOWN"
+        self.setup.SOURCE_PATH  = config.PATH_TO_DATASHELF + 'rawdata/PRIMAP_DOWNSCALE/'
+        
+        csvFiles  = os.listdir(self.setup.SOURCE_PATH)
+        csvFiles = [file for file in csvFiles if '.csv' in file]
+        self.setup.DATA_FILES    = [os.path.join(self.setup.SOURCE_PATH, x) for x in csvFiles]
+        self.setup.MAPPING_FILE = self.setup.SOURCE_PATH + 'mapping.xlsx'
+        
+        
+        self.setup.LICENCE = 'Creative Commons Attribution 4.0 International'
+        self.setup.URL     = 'https://zenodo.org/record/3638137#.XxcBWiFR0Wp'
+        
+        self.entryMapping = {
+                'entity' : ['entity','unit', 'unitTo'],
+                'source' : ['model', 'downscaling'],
+                'scenario': ['scenario'],
+                'category': ['category'],
+                }
+        
+        self.setup.SPATIAL_COLUM_NAME = ['country']
+        self.setup.COLUMNS_TO_DROP = ["entity","source","scenario","category"]
+        
+        if not(os.path.exists(self.setup.MAPPING_FILE)):
+            self.createVariableMapping()
+            print("no mapping file found")
+        else:
+            self.mapping = dict()
+            for var in self.entryMapping.keys():
+                df = pd.read_excel(self.setup.MAPPING_FILE, sheet_name=var , index_col=0)
+                df = df.loc[~df.loc[:,self.entryMapping[var][0]].isna()]
+                
+                self.mapping[var] = df.T.to_dict()
+         
+            
+        
+                
+    def createVariableMapping(self):
+        # loading data if necessary
+#        if not hasattr(self, 'data'):        
+#            self.loadData()
+        
+        
+        import numpy as np
+ 
+        writer = pd.ExcelWriter(self.setup.MAPPING_FILE,
+                    engine='xlsxwriter',
+                    datetime_format='mmm d yyyy hh:mm:ss',
+                    date_format='mmmm dd yyyy')       
+        self.mapping = dict()
+        for data in self.loadData():
+            for columnKey in self.entryMapping.keys():
+                if not isinstance(self.entryMapping[columnKey], list):
+                    self.entryMapping[columnKey] = [self.entryMapping[columnKey]]
+                availableSeries = data.drop_duplicates(columnKey).set_index(columnKey)    
+                
+                if columnKey not in self.mapping.keys():
+                    self.mapping[columnKey] = pd.DataFrame(index=availableSeries.index, columns = self.entryMapping[columnKey])
+    #                if "unit" in self.entryMapping[columnKey]:
+    #                    self.mapping.unit = availableSeries.unit
+                else:
+                    newEntries = pd.DataFrame(index=availableSeries.index, columns = self.entryMapping[columnKey])
+                    
+                    for idx in newEntries.index:
+                        if idx not in self.mapping[columnKey].index:
+                            self.mapping[columnKey].loc[idx,:] = newEntries.loc[idx,:]
+                            
+                if "unit" in self.entryMapping[columnKey]:
+                    self.mapping[columnKey].loc[availableSeries.index,"unit"] = availableSeries.unit
+            
+        for columnKey in self.entryMapping.keys():   
+            self.mapping[columnKey].to_excel(writer, engine='openpyxl', sheet_name=columnKey, index_label="original variable")
+        
+        writer.close()
+
+    def loadData(self):
+        for dataFile in self.setup.DATA_FILES[:]:
+            yield pd.read_csv(dataFile, index_col = None, header =0)
+        
+    def gatherMappedData(self, spatialSubSet = None, updateTables=False):
+    
+        # loading data if necessary
+        if not hasattr(self, 'data'):
+            self.loadData()        
+        self.createSourceMeta()
+#        # meta data
+#        self.loadMetaData()
+        
+        tablesToCommit  = []
+        metaDict = dict()
+        metaDict['source'] = self.setup.SOURCE_ID
+        excludedTables = dict()
+        excludedTables['empty'] = list()
+        excludedTables['erro'] = list()
+        excludedTables['exists'] = list()
+        #%%
+#        datafilter = list()
+#        datafilter.append(self.data)
+#        filterList = list(self.entryMapping.keys())
+#        tableList = list()
+#        metaDict = dict()
+#        metaDict['source_name'] = [self.setup.SOURCE_ID]
+#        metaDict['source_year'] = [self.setup.SOURCE_YEAR]
+        import copy
+        import numpy as np
+        def process_and_filter(self, datafilter, filterList, tableList,metaDict):
+            
+            if len(filterList) == 0:
+                yearColumns = dt.util.yearsColumnsOnly(datafilter[-1])
+                for key in metaDict.keys():
+                    metaDict[key] = '|'.join(metaDict[key])
+                dataTable = dt.Datatable(datafilter[-1].loc[:,yearColumns], meta=metaDict)
+                dataTable.index = datafilter[-1].loc[:,'country']
+                if 'unitTo' in dataTable.meta and (isinstance(dataTable.meta['unitTo'],str)) :
+                    # convert if required
+                    dataTable = dataTable.convert(metaDict['unitTo'])
+                    del dataTable.meta['unitTo']
+                    
+                tableList.append(dataTable)
+                del yearColumns
+                del dataTable
+                del key
+                del datafilter, filterList, metaDict
+                
+                return tableList
+            columnKey = filterList.pop()
+            print(columnKey)
+            for mappFrom, mappTo in self.mapping[columnKey].items():
+                print(mappFrom, mappTo)
+                mask = datafilter[-1].loc[:,columnKey] == mappFrom
+                datafilter.append(datafilter[-1].loc[mask,:])
+                for key in mappTo.keys():
+                    if not isinstance(mappTo[key],str):
+                        continue
+                    if key in metaDict.keys():
+                        print(metaDict[key])
+                        print(mappTo[key])
+                        metaDict[key].append(mappTo[key])
+
+                    else:
+                        metaDict[key] = [mappTo[key]]
+#                metaDict.update(mappTo)
+                if len(datafilter[-1]) == 0:
+                    # break loop if empty filtered set
+                    
+                    #clean
+                    _ = datafilter.pop()
+                    print('Meta: ' + str(metaDict))
+                    for key in mappTo.keys():
+                        if not isinstance(mappTo[key],str):
+                            continue
+                        metaDict[key].remove(mappTo[key])
+                    del _
+                    continue
+                
+#                sdf
+                tableList = process_and_filter(self, copy.copy(datafilter), copy.copy(filterList), tableList, copy.copy(metaDict))
+                
+                #clean
+                datafilter.pop()
+                print('Meta: ' + str(metaDict))
+                for key in mappTo.keys():
+                    if not isinstance(mappTo[key],str):
+                        continue
+                    metaDict[key].remove(mappTo[key])
+
+
+            del key
+            
+            del datafilter, filterList, metaDict
+            return tableList
+        
+        for data in self.loadData():
+            filterList = list(self.entryMapping.keys())
+            tableList = list()
+            metaDict = dict()
+            metaDict['source_name'] = [self.setup.SOURCE_NAME]
+            metaDict['source_year'] = [self.setup.SOURCE_YEAR]
+            datafilter = [data]
+            filteredData = process_and_filter(self, datafilter, filterList,tableList, metaDict)
+#            adsfr
+            tablesToCommit.extend(filteredData)
+            #%%
+        return tablesToCommit, excludedTables
+    
+    
 class PRIMAP_HIST(BaseImportTool):
     
     def __init__(self, year=2019):
@@ -3147,7 +3339,7 @@ class CRF_DATA(BaseImportTool):
         self.year  = str(reportingYear)
         
         self.setup.SOURCE_ID    = "UNFCCC_CRF_" + str(reportingYear)
-        self.setup.SOURCE_PATH  = config.PATH_TO_DATASHELF + 'rawdata/CRF_' + str(reportingYear) + '/'
+        self.setup.SOURCE_PATH  = config.PATH_TO_DATASHELF + 'rawdata/UNFCCC_CRF_' + str(reportingYear) + '/'
         self.setup.LICENCE = 'open access (UN)'
         self.setup.URL     = 'https://unfccc.int/process-and-meetings/transparency-and-reporting/reporting-and-review-under-the-convention/greenhouse-gas-inventories-annex-i-parties/national-inventory-submissions-' + str(reportingYear)
     
@@ -3182,7 +3374,24 @@ class CRF_DATA(BaseImportTool):
                                     'HFCs':  'E',
                                     'PFCs':  'F', 
                                     'SF6':   'G' }
+    
+    def prepareFolders(self):
+        import zipfile
+        import os
+        #%%
+        folder = self.setup.SOURCE_PATH
+        fileList = os.listdir(folder)
+        fileList = [file for file in fileList if '.zip' in file]
         
+        for file in fileList:
+            try:
+                with zipfile.ZipFile(os.path.join(folder,file), 'r') as zipObj:
+                   coISO = file.split('-')[0].upper()
+                   # Extract all the contents of zip file in different directory
+                   zipObj.extractall(os.path.join(folder,coISO))
+            except:
+                print('failed: {}'.format(file))
+    
     def gatherMappedData(self):
         #%%
         dataTables = dict()
@@ -3210,13 +3419,13 @@ class CRF_DATA(BaseImportTool):
                 
                 for sector in self.mappingDict['sectors']:
                     for gas in self.mappingDict['gases']:
-                        entity = 'Emissions|' + gas + '|' + sector
+                        entity = 'Emissions|' + gas 
                         
                         if entity not in dataTables.keys():
                             #create table
                             meta = dict()
-                            meta['entity'] = entity
-                            meta['category'] = ''
+                            meta['entity']   = entity
+                            meta['category'] = sector
                             meta['scenario'] = 'Historic|CR'
                             meta['source']   = self.setup.SOURCE_ID
                             meta['unit']     = 'MtCO2eq'
@@ -4070,7 +4279,7 @@ class ENERDATA(BaseImportTool):
             self.setup.DATA_FILE    = os.path.join(self.setup.SOURCE_PATH, 'enerdata_2019_G2G.xlsx')
         elif year == 2020:
             self.setup.DATA_FILE    = os.path.join(self.setup.SOURCE_PATH, 'export_enerdata_1137124_050510.xlsx')
-           
+            self.setup.DATA_FILE    = os.path.join(self.setup.SOURCE_PATH, 'export_enerdata_1137124_113516.xlsx')
         
 #        self.setup.DATA_FILE    = os.path.join(self.setup.SOURCE_PATH, 'export_enerdata_1137124_112738.xlsx')
         self.setup.MAPPING_FILE =  os.path.join(self.setup.SOURCE_PATH,'mapping_' + str(year) + '.xlsx')
@@ -4707,13 +4916,17 @@ if config.DEBUG:
 
 
 if __name__ == '__main__':
-#%% PRIMAP
+#%% PRIMAP HIST
     primap = PRIMAP_HIST(2019)
 #    tableList, excludedTables = primap.gatherMappedData()
 #    dt.commitTables(tableList, 'PRIMAP 2019 update', primap.meta)
-#    asdf1s
+#%% PRIMAP DOWNSCALE
+    primap_down = PRIMAP_DOWNSCALE()
+    tableList, excludedTables = primap_down.gatherMappedData()
+    dt.commitTables(tableList, 'PRIMAP DOWNSCALING 2020', primap_down.meta)
+    asdf1s
 #%% CRF data
-    crf_data = CRF_DATA(2019)
+    crf_data = CRF_DATA(2020)
     #iea = IEA2016()
 #    tableList = crf_data.gatherMappedData()
 #    crf_data.createSourceMeta()
@@ -4725,10 +4938,10 @@ if __name__ == '__main__':
 #    dt.commitTables(tableList, 'ADVANCE DB IAM data', advance.meta)
 #%%WDI data
     wdi = WDI_2020()    
-    tableList = wdi.gatherMappedData(updateTables=True)
+#    tableList = wdi.gatherMappedData(updateTables=True)
     
 #    iea.openMappingFile()
-    dt.commitTables(tableList, 'Added WDI 2020  data', wdi.meta, update=True)
+#    dt.commitTables(tableList, 'Added WDI 2020  data', wdi.meta, update=True)
     
 #%%IEA data
     iea19 = IEA_WEB_2019_New()
@@ -4807,8 +5020,8 @@ if __name__ == '__main__':
     
 #%% FAO
     fao = FAO(2020)
-    tableList, excludedTables = fao.gatherMappedData(updateTables=True)
-    dt.commitTables(tableList, 'FAO  data added', fao.meta, update=True)  
+#    tableList, excludedTables = fao.gatherMappedData(updateTables=True)
+#    dt.commitTables(tableList, 'FAO  data added', fao.meta, update=True)  
     
 #%% APEC
     apec = APEC(2019)
@@ -4829,13 +5042,13 @@ if __name__ == '__main__':
 #    dt.commitTables(tableList, 'enerdata data updated', enerdata.meta, update=True)  
     #%%
     enerdata = ENERDATA(2020)
-    tableList2020, excludedTables = enerdata.gatherMappedData(updateTables=True)
-    dt.commitTables(tableList2020, 'enerdata data updated', enerdata.meta, update=True)  
+#    tableList2020, excludedTables = enerdata.gatherMappedData(updateTables=True)
+#    dt.commitTables(tableList2020, 'enerdata data updated', enerdata.meta, update=True)  
     
 #%% CAT Paris sector Rollout
     cat_psr = CAT_Paris_Sector_Rolllout()
-    tableList, excludedTables = cat_psr.gatherMappedData()
-    dt.commitTables(tableList, 'CAT PSR data', cat_psr.meta, update=False)  
+#    tableList, excludedTables = cat_psr.gatherMappedData()
+#    dt.commitTables(tableList, 'CAT PSR data', cat_psr.meta, update=False)  
     #%%
     i = 66
     

@@ -340,6 +340,16 @@ def convertIndexToISO(table):
   
     return table
 
+def addCountryNames(table):
+    names = list()
+    for idx in table.index:
+        if idx in dt.mapp.countries.codes.index:
+            names.append(dt.mapp.countries.codes.loc[idx,'name'])
+        else:
+            names.append('')
+    table.loc[:,'country_name'] = names
+    return table
+
 def getCountryExtract(countryList, sourceList='all'):
     
     if sourceList == 'all':
@@ -878,6 +888,27 @@ def aggregate_tableset_to_region(tableSet, mapping):
                 tableSet[tableKey].loc[region,:] = tableSet[tableKey].loc[availableCountries,:].sum(axis=0, skipna=True)
 
     return tableSet, missingCountryDf
+
+
+import matplotlib.pylab as plt
+
+def plotTables(tableList, countryList):
+    fig = plt.figure(1)
+    plt.clf()
+    NUM_COLORS = len(countryList)
+    
+    cm = plt.get_cmap('gist_rainbow')
+    coList = [cm(1.*i/NUM_COLORS) for i in range(NUM_COLORS)]
+#    fig = plt.figure()
+#    ax = fig.add_subplot(111)
+#    ax.set_color_cycle([cm(1.*i/NUM_COLORS) for i in range(NUM_COLORS)])
+
+#    ax.set_color_cycle([cm(1.*i/NUM_COLORS) for i in range(NUM_COLORS)])
+    for table in tableList:
+        for i, coISO in enumerate(countryList):
+            plt.plot(table.columns, table.loc[coISO,:].T, color =coList[i] )
+    plt.legend(countryList)
+    plt.title(table.ID)
     
 #%%    
 if __name__ == '__main__':

@@ -279,7 +279,7 @@ class Database():
         #print(oldDataTable.meta)
         newID = newDataTable.generateTableID()
         
-        if oldID == newID:
+        if oldID == newID and (oldDataTable.meta['unit'] == newDataTable.meta['unit']):
             #only change data
             self._addTable( newDataTable)
         else:
@@ -405,6 +405,7 @@ class Database():
             raise(BaseException('Sorry, year index is not integer'))
 
         if sum(datatable.index.duplicated()) > 0:
+            print(datatable.meta)
             raise(BaseException('Sorry, region index is unique'))
         return True
     

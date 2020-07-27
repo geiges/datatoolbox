@@ -166,11 +166,12 @@ class Datatable(pd.DataFrame):
         return util.aggregate_table_to_region(self, mapping)
     
     def interpolate(self, method="linear"):
+        datatable = copy(self)
         if method == 'linear':
             from scipy import interpolate
             import numpy as np
-            xData = self.columns.values.astype(float)
-            yData = self.values
+            xData = datatable.columns.values.astype(float)
+            yData = datatable.values
             for row in yData:
                 idxNan = np.isnan(row)
                 if (sum(~idxNan) < 2):
@@ -181,6 +182,7 @@ class Datatable(pd.DataFrame):
                 col_idx = col_idx[col_idx < xData[~idxNan].max()]
                 new_idx = idxNan & (xData > xData[~idxNan].min()) & (xData < xData[~idxNan].max())
                 row[new_idx] = interpolator(col_idx)
+            return datatable
         else:
             raise(NotImplementedError())
     

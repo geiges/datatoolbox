@@ -13,6 +13,7 @@ Tr- = 1e12 = tr
 USD = [dollar_currency] = usd
 USD_2005 = USD2005 = [dollar_currency_2005]
 USD_2010 = USD2010 = [dollar_currency_2010]
+USD_2011 = [dollar_currency_2011]
 USD_2016 = USD2016 = [dollar_currency_2016]
 USD_2018 = USD2018 = [dollar_currency_2018]
 
