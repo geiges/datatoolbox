@@ -10,3 +10,4 @@ matplotlib
 openpyxl
 pyam-iamc<=0.6.0
 hdx-python-country
+networkx >=2.4.0
