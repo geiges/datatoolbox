@@ -95,6 +95,54 @@ def read_MAGICC6_BINOUT(filePath):
 
     return Datatable(data, meta=metaDict)
 
+def read_PRIMAP_csv(fileName):
+    
+    metaMapping = {
+            'entity': 'SHEET_ENTITY',
+            'unit':'SHEET_UNIT',
+            'category':'SHEET_NAME_CATEGORY',
+            'scenario': 'SHEET_SCENARIO',
+            'model' : 'SHEET_SOURCE'
+            }
+    
+    allDf = pd.read_csv(fileName, usecols=[0,1], index_col=0)
+    #print(os.path.basename(fileName))
+
+    firstDataRow = allDf.loc['SHEET_FIRSTDATAROW','Unnamed: 1']
+    
+    #bugfix of old wrong formated PRIMAP files
+    try:
+        int(firstDataRow)
+    except:
+        firstDataRow = pd.np.where(allDf.index == "Countries\Years")[0][0]+3
+   
+    firstMetaRow = pd.np.where(allDf.index == "&SHEET_SPECIFICATIONS")[0][0]+1
+    
+    metaPrimap = dict()
+    for row in range(firstMetaRow,firstDataRow):
+        key = allDf.index[row]
+        value = allDf.iloc[row,0]
+        if key =='/':
+            break
+        metaPrimap[key] = value
+    
+    data = pd.read_csv(fileName, header=firstDataRow-2, index_col=0)
+    
+    meta = dict()
+    for metaKey in metaMapping:
+        
+        if isinstance(metaMapping[metaKey], list):
+            value = '_'.join(metaPrimap[x] for x in metaMapping[metaKey])
+        else:
+            value = metaPrimap[metaMapping[metaKey]]
+        meta[metaKey] = value
+    
+    
+    
+    table = Datatable(data, meta=meta)
+    table = table.loc[:, util.yearsColumnsOnly(table)]
+    table.columns = table.columns.astype(int)
+    return table
 
 def read_PRIMAP_Excel(fileName, sheet_name= 0, xlsFile=None):
     if xlsFile is not None:
