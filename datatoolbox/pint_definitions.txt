@@ -3,6 +3,8 @@
 # Language: english
 # author: Andreas Geiges
 
+# Refer to https://pint.readthedocs.io/en/stable/defining.html for documentation
+
 # economical dimension
 
 Th = 1e3 = th-
@@ -10,12 +12,16 @@ Mi- = 1e6 = mi-
 Bi- = 1e9 = bi-
 Tr- = 1e12 = tr
 
+thousand = 1e3
+million = 1e6
+billion = 1e9
+
 USD = [dollar_currency] = usd
-USD_2005 = USD2005 = [dollar_currency_2005]
-USD_2010 = USD2010 = [dollar_currency_2010]
-USD_2011 = [dollar_currency_2011]
-USD_2016 = USD2016 = [dollar_currency_2016]
-USD_2018 = USD2018 = [dollar_currency_2018]
+USD_2005 = [dollar_currency_2005] = USD2005 
+USD_2010 = [dollar_currency_2010] = USD2010
+USD_2011 = [dollar_currency_2011] = USD2011
+USD_2016 = [dollar_currency_2016] = USD2016
+USD_2018 = [dollar_currency_2018] = USD2018
 
 billion_USD = 1e9 * USD
 billion_USD_2005 = 1e9 * USD_2005_ppp
