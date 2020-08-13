@@ -3,6 +3,8 @@
 # Language: english
 # author: Andreas Geiges
 
+# Refer to https://pint.readthedocs.io/en/stable/defining.html for documentation
+
 # economical dimension
 
 Th = 1e3 = th-
