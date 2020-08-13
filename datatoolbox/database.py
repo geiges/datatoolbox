@@ -6,13 +6,6 @@ Created on Fri Mar 22 14:55:32 2019
 @author: and
 """
 
-from . import config
-from .data_structures import Datatable, TableSet, read_csv
-from .utilities import plot_query_as_graph
-from . import mapping as mapp
-from . import io_tools as io
-from . import util
-from . import core
 import pandas as pd
 import os 
 import git
@@ -20,6 +13,16 @@ import tqdm
 import time
 import copy
 import types
+from collections import defaultdict
+from pathlib import Path
+
+from . import config
+from .data_structures import Datatable, TableSet, read_csv
+from .utilities import plot_query_as_graph
+from . import mapping as mapp
+from . import io_tools as io
+from . import util
+from . import core
 
 class Database():
     
@@ -42,20 +45,14 @@ class Database():
             print('Database loaded in {:2.4f} seconds'.format(time.time()-tt))
     
     def _validateRepository(self, repoID='main'):
-        if self.gitManager[repoID].diff() != '':
-            raise(Exception('database is inconsistent! - please check uncommitted modifications'))
-        else:
-            config.DB_READ_ONLY = False
-            print('databdase in write mode')
-            return True
+        return self.gitManager._validateRepository(repoID)
     
     def info(self):
         #%%
-        from pathlib import Path
         print('######## Database informations: #############')
         print('Number of tables: {}'.format(len(self.inventory)))  
         print('Number of data sources: {}'.format(len(self.gitManager.sources))) 
-        print('Number of commits: {}'.format(self.gitManager['main'].execute(["git", "rev-list", "--all", "--count"])))
+        print('Number of commits: {}'.format(self.gitManager['main'].git.rev_list("--all", "--count")))
 #        root_directory = Path(config.PATH_TO_DATASHELF)
 #        print('Size of datashelf: {:2.2f} MB'.format(sum(f.stat().st_size for f in root_directory.glob('**/*') if f.is_file() )/1e6))
 #        root_directory = Path(os.path.join(config.PATH_TO_DATASHELF, 'rawdata'))
@@ -126,7 +123,7 @@ class Database():
         return os.path.join(config.PATH_TO_DATASHELF, 'database/', source, 'tables', fileName)
 
     def _getTableFileName(self, ID):
-        return ID.replace('|','-') + '.csv'
+        return ID.replace('|','-').replace('/','-') + '.csv'
 
     
     def getTable(self, ID):
@@ -259,7 +256,7 @@ class Database():
                 sourcesToUpdate.append(sourceID)
         
         # check that all sources do exist
-        for source in sourcesToUpdate:
+        for sourceID in sourcesToUpdate:
             if not self.isSource(sourceID):
                 raise(BaseException('source  does not exist'))
         
@@ -402,7 +399,7 @@ class Database():
         for regionIdx in datatable.index:
             #print(regionIdx + '-')
             if not mapp.regions.exists(regionIdx) and not mapp.countries.exists(regionIdx):
-                raise(BaseException('Sorry, region in table {}: ' + regionIdx + ' does not exist'.format(datatable)))
+                raise(BaseException('Sorry, region in table {}: {} does not exist'.format(datatable, regionIdx)))
         
         # check that the time colmns are years
         from pandas.api.types import is_integer_dtype
@@ -449,10 +446,11 @@ class Database():
         
     def _gitCommit(self, message):
         self.inventory.to_csv(self.INVENTORY_PATH)
-#        self['main'].execute(["git", "add", self.INVENTORY_PATH])
         self.gitManager.gitAddFile('main',self.INVENTORY_PATH)
 
         for sourceID in self.gitManager.updatedRepos:
+            if sourceID == 'main':
+                continue
             repoPath = os.path.join(config.PATH_TO_DATASHELF, 'database', sourceID)
             sourceInventory = self.inventory.loc[self.inventory.source==sourceID,:]
             sourceInventory.to_csv(os.path.join(repoPath, 'source_inventory.csv'))
@@ -543,12 +541,7 @@ class Database():
         repoPath = os.path.join(config.PATH_TO_DATASHELF, 'database', remoteName)
         
         self.gitManager.clone_source_from_remote(remoteName, repoPath)
-        sourceMetaDict = util.csv_to_dict(os.path.join(repoPath, 'meta.csv'))
-        self.sources.loc[remoteName] = pd.Series(sourceMetaDict)   
-        self.gitManager.unvalidated_repos[remoteName] = git.Git(repoPath)
-        self.sources.loc[remoteName,'git_commit_hash'] = self.gitManager[remoteName].execute(['git', 'rev-parse', 'HEAD'])
-        self.sources.to_csv(config.SOURCE_FILE)
-        self.gitManager.gitAddFile('main', config.SOURCE_FILE) 
+
         sourceInventory = pd.read_csv(os.path.join(repoPath, 'source_inventory.csv'), index_col=0, dtype={'source_year': str})
         for idx in sourceInventory.index:
             self.inventory.loc[idx,:] = sourceInventory.loc[idx,:]
@@ -570,163 +563,160 @@ class Database():
 #    def updateSourceFromRemote(self, sourceID):
         
 #%%
-class GitRepository_Manager(dict):
+class GitRepository_Manager:
     """
     # Management of git repositories for fast access
     """
     def __init__(self, config):
         self.PATH_TO_DATASHELF = config.PATH_TO_DATASHELF
-        self.updatedRepos      = set()
-        self.sources   = pd.read_csv(config.SOURCE_FILE, index_col='SOURCE_ID')
+        self.sources = pd.read_csv(config.SOURCE_FILE, index_col='SOURCE_ID')
         
-        self.unvalidated_repos   = dict()
-        self.filesToAdd          = dict()
-        self.filesToAdd['main']  =list()
+        self.repositories = dict()
+        self.updatedRepos = set()
+        self.validatedRepos = set()
+        self.filesToAdd   = defaultdict(list)
+
         for sourceID in self.sources.index:
             repoPath = os.path.join(self.PATH_TO_DATASHELF,  'database', sourceID)
-#            self.filesToAdd[sourceID]  =list()
-            self.unvalidated_repos[sourceID] = git.Git(repoPath)
-            commitHash = self.unvalidated_repos[sourceID].execute(['git', 'rev-parse', 'HEAD'])
-            if commitHash != self.sources.loc[sourceID, 'git_commit_hash']:
-                raise(BaseException('Source {} is inconsistend with overall database'.format(sourceID)))
-            
-    def __getitem__(self, *args, **kwargs):
+            self.repositories[sourceID] = git.Repo(repoPath)
+            self.verifyGitHash(sourceID)
+        
+        self.repositories['main'] = git.Repo(self.PATH_TO_DATASHELF)
+        self._validateRepository('main')
+
+    def __getitem__(self, sourceID):
         """ 
-        Overwrites __getitem__ to automatically load git class of a 
-        repository and checks for uncommited changes
+        Retrieve `sourceID` from repositories dictionary and ensure cleanliness
         """
-        sourceID = args[0]
-        
-        
-        if hasattr(self, sourceID):
-            return super().__getattribute__(sourceID)
-        else:
-            if sourceID == 'main':
-                object.__setattr__(self,sourceID, git.Git(self.PATH_TO_DATASHELF))
-                if super().__getattribute__(sourceID).diff() != '':
-                    raise(Exception('Main database repository is inconsistent! - please check uncommitted modifications'))
-                
-            else:
-                object.__setattr__(self,sourceID , self.unvalidated_repos[sourceID])
-                if super().__getattribute__(sourceID).diff() != '':
-                    raise(Exception('Source repository: "' + sourceID + '" is inconsistent! - please check uncommitted modifications'))
-            return super().__getattribute__(sourceID)
-        
-    def _validateRepository(self, repoName):
-        if self[repoName].diff() != '':
-            raise(Exception('Git repository: "{}" is inconsistent! - please check uncommitted modifications'.format(repoName)))
-        else:
-            config.DB_READ_ONLY = False
-            if config.DEBUG:
-                print('Repo {} is clean'.format(repoName))
-            return True
+        repo = self.repositories[sourceID]
+        if sourceID not in self.validatedRepos:
+            self._validateRepository(sourceID)
+        return repo
+    
+    def _validateRepository(self, sourceID):
+        repo = self.repositories[sourceID]
+
+        if sourceID != 'main':
+            self.verifyGitHash(sourceID)
+
+        if repo.is_dirty():
+            raise RuntimeError('Git repo: "{}" is inconsistent! - please check uncommitted modifications'.format(sourceID))
+
+        config.DB_READ_ONLY = False
+        if config.DEBUG:
+            print('Repo {} is clean'.format(sourceID))
+        self.validatedRepos.add(sourceID)
+        return True
         
     def init_new_repo(self, repoPath, repoID, sourceMetaDict):
-        import pathlib as plib
-
         self.sources.loc[repoID] = pd.Series(sourceMetaDict)
         self.sources.to_csv(config.SOURCE_FILE)
         self.gitAddFile('main', config.SOURCE_FILE)
 
-#            self._gitCommit()
+        repoPath = Path(repoPath)
+        print(f'creating folder {repoPath}')
+        repoPath.mkdir(parents=True, exist_ok=True)
+        self.repositories[repoID] = git.Repo.init(repoPath)
 
-        print('creating folder ' + repoPath)
-        os.makedirs(repoPath, exist_ok=True)
-        git.Repo.init(repoPath)
-        self.unvalidated_repos[repoID] = git.Git(repoPath)
-        self.filesToAdd[repoID]        = list()
-        self[repoID] = git.Git(repoPath)  
         for subFolder in config.SOURCE_SUB_FOLDERS:
-            os.makedirs(os.path.join(repoPath, subFolder), exist_ok=True)
-            filePath = os.path.join(repoPath, subFolder, '.gitkeep')
-            plib.Path(filePath).touch()
+            subPath = repoPath / subFolder
+            subPath.mkdir(exist_ok=True)
+            filePath = subPath / '.gitkeep'
+            filePath.touch()
             self.gitAddFile(repoID, filePath)
-        metaFilePath = os.path.join(repoPath, 'meta.csv')
+
+        metaFilePath = repoPath / 'meta.csv'
         util.dict_to_csv(sourceMetaDict, metaFilePath)
         self.gitAddFile(repoID, metaFilePath)
+
         self.commit('added source: ' + repoID)
 
-       
-#                self.gitManager.commit('added source: ' + source_ID)
     def gitAddFile(self, repoName, filePath, addToGit=True):
-#        print(filePath)
         if config.DEBUG:
             print('Added file {} to repo: {}'.format(filePath,repoName))
         
-        # important to initial the existing repos
-        try:
-            self.filesToAdd[repoName].append(filePath)
-        except:
-            self[repoName].refresh()
-            self.filesToAdd[repoName] = [filePath]
-            
-#        self[repoName].execute(["git", "add", filePath])
-#        self[repoName].add(filePath)    
-        if repoName != 'main':
-            self.updatedRepos.add(repoName)
+        self.filesToAdd[repoName].append(str(filePath))
+        self.updatedRepos.add(repoName)
         
     def gitRemoveFile(self, repoName, filePath):
         if config.DEBUG:
             print('Removed file {} to repo: {}'.format(filePath,repoName))
-        self[repoName].execute(["git", "rm", filePath])
-        if repoName != 'main':
-            self.updatedRepos.add(repoName)
+        self[repoName].index.remove(filePath, working_tree=True)
+        self.updatedRepos.add(repoName)
     
     def _gitUpdateFile(self, repoName, filePath):
         pass
         
     def commit(self, message):
-        
         if 'main' in self.updatedRepos:
             self.updatedRepos.remove('main')
+
         for repoID in self.updatedRepos:
-#            try:
-            self[repoID].add(self.filesToAdd[repoID])
-            self[repoID].execute(["git", "commit", '-m' "" +  message + " by " + config.CRUNCHER])
-            self.sources.loc[repoID,'git_commit_hash'] = self[repoID].execute(['git', 'rev-parse', 'HEAD'])
-            self.filesToAdd[repoID]  = list()
-#            except:
-#                print('Commit of {} repository failed'.format(repoID))  
+            repo = self.repositories[repoID]
+            repo.index.add(self.filesToAdd[repoID])
+            commit = repo.index.commit(message + " by " + config.CRUNCHER)
+            self.sources.loc[repoID, 'git_commit_hash'] = commit.hexsha
+            del self.filesToAdd[repoID]
         
         # commit main repository
         self.sources.to_csv(config.SOURCE_FILE)
         self.gitAddFile('main', config.SOURCE_FILE)
-        self['main'].add(self.filesToAdd['main'])
-        self['main'].execute(["git", "commit", '-m ' " " + message + " by " + config.CRUNCHER])
-        self.filesToAdd['main']  = list()
+
+        main_repo = self['main']
+        main_repo.index.add(self.filesToAdd['main'])
+        main_repo.index.commit(message + " by " + config.CRUNCHER)
+        del self.filesToAdd['main']
+
         #reset updated repos to empty
         self.updatedRepos        = set()
         
         
     def create_remote_repo(self, repoName):
-        if self[repoName].execute(["git", "remote"]) == 'origin':
+        repo = self[repoName]
+        if 'origin' in repo.remotes:
             print('remote origin already exists, skip')
             return 
-        self[repoName].execute(["git", "remote", "add",  "origin",  config.DATASHELF_REMOTE + repoName + ".git"])
-        self[repoName].execute(["git","push", "--set-upstream","origin","master"])
-        #self[repoName].execute(["git","push"])
+
+        origin = repo.create_remote("origin", config.DATASHELF_REMOTE + repoName + ".git")
+        origin.fetch()
+
+        repo.heads.master.set_tracking_branch(origin.refs.master)
+        origin.push(repo.heads.master)
     
     def push_to_remote_datashelf(self, repoName):
-        self[repoName].execute(["git","push"])
+        self[repoName].remote('origin').push()
         
     def clone_source_from_remote(self, repoName, repoPath):
-        url = config.DATASHELF_REMOTE +  repoName + '.git'
-        git.repo.base.Repo.clone_from(url=url, to_path=repoPath)   
+        url = config.DATASHELF_REMOTE + repoName + '.git'
+        repo = git.Repo.clone_from(url=url, to_path=repoPath)  
+        self.repositories[repoName] = repo
+
+        # Update source file
+        sourceMetaDict = util.csv_to_dict(os.path.join(repoPath, 'meta.csv'))
+        sourceMetaDict['git_commit_hash'] = repo.commit().hexsha
+        self.sources.loc[repoName] = pd.Series(sourceMetaDict)   
+        self.sources.to_csv(config.SOURCE_FILE)
+        self.gitAddFile('main', config.SOURCE_FILE) 
+
+        return repo
         
     def pull_update_from_remote(self, repoName):
-        self[repoName].pull()
-        
+        self[repoName].remote('origin').pull()
+    
+    def verifyGitHash(self, repoName):
+        repo = self.repositories[repoName]
+        if repo.commit().hexsha != self.sources.loc[repoName, 'git_commit_hash']:
+            raise RuntimeError('Source {} is inconsistent with overall database'.format(repoName))
+
     def updateGitHash(self, repoName):
-        self.sources.loc[repoName,'git_commit_hash'] = self[repoName].execute(['git', 'rev-parse', 'HEAD'])
-        self.commit()
+        self.sources.loc[repoName,'git_commit_hash'] = self[repoName].commit().hexsha
         
     def setActive(self, repoName):
-        self[repoName].refresh()
+        self[repoName].git.refresh()
         
     def isSource(self, sourceID):
         if sourceID in self.sources.index:
-            self[sourceID].refresh()
+            self[sourceID].git.refresh()
             return True
         else:
             return False
-        
