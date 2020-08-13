@@ -114,7 +114,7 @@ def plotSubplot(subplotData, temp, scenarioCategory, color):
 
             
     plt.ylim([0,20000])
-    plt.xlim([2000,2050])
+    plt.xlim([2000,2100])
     if subplotData[-1] > 1:
         ax.set_yticklabels([])
     plt.legend([h[0]],[ temp + '°C'])
@@ -143,5 +143,11 @@ plt.tight_layout()
 plt.legend(['median ' + temp + '°C' for temp in ['>4','<4','<3','<2','<1.5']])
 plt.text(2015,1150,variable)
 
-
-    
+#%%
+plt.clf()
+plotSubplot((1,1,1), '>4', scenarioCategory, 'black')
+plotSubplot((1,1,1), '4', scenarioCategory, '#DF7358')
+plotSubplot((1,1,1), '3', scenarioCategory, '#E8B162')                        
+plotSubplot((1,1,1), '2', scenarioCategory, '#F0E67F')     
+plotSubplot((1,1,1), '1.5', scenarioCategory, '#B6CC79')     
+ 
