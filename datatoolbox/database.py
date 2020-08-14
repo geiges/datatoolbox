@@ -684,11 +684,11 @@ class GitRepository_Manager:
         origin.push(repo.heads.master)
     
     def push_to_remote_datashelf(self, repoName):
-        self[repoName].remote('origin').push()
+        self[repoName].remote('origin').push(progress=TqdmProgressPrinter())
         
     def clone_source_from_remote(self, repoName, repoPath):
         url = config.DATASHELF_REMOTE + repoName + '.git'
-        repo = git.Repo.clone_from(url=url, to_path=repoPath)  
+        repo = git.Repo.clone_from(url=url, to_path=repoPath, progress=TqdmProgressPrinter())  
         self.repositories[repoName] = repo
 
         # Update source file
@@ -701,7 +701,7 @@ class GitRepository_Manager:
         return repo
         
     def pull_update_from_remote(self, repoName):
-        self[repoName].remote('origin').pull()
+        self[repoName].remote('origin').pull(progress=TqdmProgressPrinter())
     
     def verifyGitHash(self, repoName):
         repo = self.repositories[repoName]
@@ -720,3 +720,29 @@ class GitRepository_Manager:
             return True
         else:
             return False
+        
+class TqdmProgressPrinter(git.RemoteProgress):
+    known_ops = {
+        git.RemoteProgress.COUNTING: "counting objects",
+        git.RemoteProgress.COMPRESSING: "compressing objects",
+        git.RemoteProgress.WRITING: "writing objects",
+        git.RemoteProgress.RECEIVING: "receiving objects",
+        git.RemoteProgress.RESOLVING: "resolving stuff",
+        git.RemoteProgress.FINDING_SOURCES: "finding sources",
+        git.RemoteProgress.CHECKING_OUT: "checking things out"
+    }
+
+    def __init__(self):
+        super().__init__()
+        self.progressbar = None
+
+    def update(self, op_code, cur_count, max_count=None, message=''):
+        if op_code & self.BEGIN:
+            desc = self.known_ops.get(op_code & self.OP_MASK)
+            self.progressbar = tqdm.tqdm(desc=desc, total=max_count)
+
+        self.progressbar.set_postfix_str(message, refresh=False)
+        self.progressbar.update(cur_count)
+
+        if op_code & self.END:
+            self.progressbar.close()
