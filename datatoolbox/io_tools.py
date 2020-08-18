@@ -142,7 +142,7 @@ def read_PRIMAP_csv(fileName):
     table = Datatable(data, meta=meta)
     table = table.loc[:, util.yearsColumnsOnly(table)]
     table.columns = table.columns.astype(int)
-    return table
+    return table#, data
 
 def read_PRIMAP_Excel(fileName, sheet_name= 0, xlsFile=None):
     if xlsFile is not None:

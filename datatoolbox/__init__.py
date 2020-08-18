@@ -83,8 +83,6 @@ import_new_source_from_remote = core.DB.importSourceFromRemote
 export_new_source_to_remote   = core.DB.exportSourceToRemote
 remove_source                 = core.DB.removeSource
 
-#from .tools.kaya_idendentiy_decomposition import kaya_decomposion
-
 
 if config.PATH_TO_DATASHELF == os.path.join(config.MODULE_PATH, 'data/SANDBOX_datashelf'):
     print("""
