@@ -3079,6 +3079,7 @@ class PRIMAP_DOWNSCALE(BaseImportTool):
 #        metaDict['source_year'] = [self.setup.SOURCE_YEAR]
         import copy
         import numpy as np
+        
         def process_and_filter(self, datafilter, filterList, tableList,metaDict):
             
             if len(filterList) == 0:
@@ -3387,21 +3388,31 @@ class CRF_DATA(BaseImportTool):
                 
                 for sector in self.mappingDict['sectors']:
                     for gas in self.mappingDict['gases']:
-                        entity = 'Emissions|' + gas 
+                        variable = 'Emissions|' + gas + '|' + sector
                         
-                        if entity not in dataTables.keys():
+                        if variable not in dataTables.keys():
                             #create table
                             meta = dict()
-                            meta['entity']   = entity
+                            meta['entity']   = 'Emissions|' + gas
                             meta['category'] = sector
-                            meta['scenario'] = 'Historic|CR'
+                            meta['scenario'] = 'Historic|country_reported'
                             meta['source']   = self.setup.SOURCE_ID
                             meta['unit']     = 'MtCO2eq'
-                            dataTables[entity] = dt.Datatable(columns=list(range(1990,2017)), meta=meta)
+                            dataTables[variable] = dt.Datatable(columns=list(range(1990,2017)), meta=meta)
                         try:    
-                            dataTables[entity].loc[coISO,year] = reader.gatherValue(self.mappingDict['gases'][gas] + self.mappingDict['sectors'][sector]) / 1000
+                            dataTables[variable].loc[coISO,year] = reader.gatherValue(self.mappingDict['gases'][gas] + self.mappingDict['sectors'][sector]) / 1000
                         except:
                             pass
+                
+        import copy
+        for gas in self.mappingDict['gases']:  
+            if   'Emissions|' + gas + '|LULUCF' in dataTables.keys():          
+                dataTables['Emissions|' + gas + '|IPCM0EL'] = dataTables['Emissions|' + gas + '|IPC0'] - dataTables['Emissions|' + gas + '|LULUCF'] # national total excluding lulucf
+                dataTables['Emissions|' + gas + '|IPCM0EL'].meta = copy.copy(dataTables['Emissions|' + gas + '|IPC0'].meta)
+                dataTables['Emissions|' + gas + '|IPCM0EL'].meta['category'] = "IPCM0EL"
+                dataTables['Emissions|' + gas + '|IPC3'] = dataTables['Emissions|' + gas + '|IPCMAG'] + dataTables['Emissions|' + gas + '|LULUCF'] #AFOLU
+                dataTables['Emissions|' + gas + '|IPC3'].meta = copy.copy(dataTables['Emissions|' + gas + '|IPC0'].meta)
+                dataTables['Emissions|' + gas + '|IPC3'].meta['category'] = "IPCM3"
         
         #%%
         tablesToCommit = list()
@@ -4890,15 +4901,15 @@ if __name__ == '__main__':
 #    dt.commitTables(tableList, 'PRIMAP 2019 update', primap.meta)
 #%% PRIMAP DOWNSCALE
     primap_down = PRIMAP_DOWNSCALE()
-    tableList, excludedTables = primap_down.gatherMappedData()
-    dt.commitTables(tableList, 'PRIMAP DOWNSCALING 2020', primap_down.meta)
-    asdf1s
+#    tableList, excludedTables = primap_down.gatherMappedData()
+#    dt.commitTables(tableList, 'PRIMAP DOWNSCALING 2020', primap_down.meta)
+#    asdf1s
 #%% CRF data
     crf_data = CRF_DATA(2020)
     #iea = IEA2016()
 #    tableList = crf_data.gatherMappedData()
 #    crf_data.createSourceMeta()
-#    dt.commitTables(tableList, 'CRF_data_2019', crf_data.meta, append_data=True)
+#    dt.commitTables(tableList, 'CRF_data_2020', crf_data.meta, update=True)
 #%% ADVANCE DB
     advance = ADVANCE_DB()
 #    iea = IEA2016()

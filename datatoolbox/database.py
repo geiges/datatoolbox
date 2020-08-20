@@ -8,7 +8,7 @@ Created on Fri Mar 22 14:55:32 2019
 
 from . import config
 from .data_structures import Datatable, TableSet, read_csv
-
+from .utilities import plot_query_as_graph
 from . import mapping as mapp
 from . import io_tools as io
 from . import util
@@ -19,7 +19,7 @@ import git
 import tqdm
 import time
 import copy
-
+import types
 
 class Database():
     
@@ -99,7 +99,9 @@ class Database():
             mask[pd.isna(mask)] = False
             mask = mask.astype(bool)
             table = table.loc[mask].copy()
-            
+        
+        # test to add function to a instance (does not require class)
+        table.graph = types.MethodType( plot_query_as_graph, table )
         
         return table
 
@@ -112,7 +114,9 @@ class Database():
             mask[pd.isna(mask)] = False
             mask = mask.astype(bool)
             table = table.loc[mask].copy()
-            
+        
+        # test to add function to a instance (does not require class)
+        table.graph = types.MethodType( plot_query_as_graph, table )
         
         return table
     

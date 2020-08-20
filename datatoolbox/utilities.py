@@ -3,28 +3,34 @@ import pandas as pd
 import matplotlib.pyplot as plt
 from . import core
 
-find = core.DB.getInventory
+#
 
 
 def get_data_trees(**kwargs):
+    find = core.DB.getInventory
+    results = find(**kwargs)
+    return _process_query(results)
+    
 
+def _process_query(results):
+    
     # Initialize graphs for different data heads
     heads, graphs = [], {}
-
-    scenario = ["__".join(ix[1:]) for ix in list(find(**kwargs).index.str.split("__"))]
-    if len(pd.Series(scenario).unique()) > 1:
+    
+    if len(results.scenario.unique()) > 1:
         raise ValueError(
             "Multiple scenarios were detected, ensure that the"
             + " scenario name/ model/ data source etc. specify a unique scenario"
         )
-    if len(pd.Series(scenario).unique()) == 0:
+    if len(results.scenario.unique()) == 0:
         raise ValueError(
             "Specified kwargs point to an empty list of scenarios. "
             + "Change kwargs or update your database."
         )
+    scenario = list(results.scenario.unique())[0]
 
     # Iterate through data inventory
-    for ix in find(**kwargs).index:
+    for ix in results.index:
 
         # Remove scenario and model name
         ix = ix.split("__")[0]
@@ -59,7 +65,7 @@ def get_data_trees(**kwargs):
             graph.add_edge(root, name_long)
             root = name_long
 
-    return graphs, scenario[0]
+    return graphs, scenario
 
 
 def get_positions(graph, x_offset=1):
@@ -218,8 +224,8 @@ def plot_tree(
         x_fig, y_fig = fig.get_size_inches() * fig.dpi
         fontsize = min(x_fig / (x_max / 1.5), y_fig / (y_max * 2.5))
     else:
-        x_fig = fontsize * (x_max / 1.5) / fig.dpi
-        y_fig = fontsize * y_max * 2.5 / fig.dpi
+        x_fig = 2 + (fontsize * (x_max / 1.5) / fig.dpi)
+        y_fig = 2 + (fontsize * y_max * 2.5 / fig.dpi)
         fig.set_size_inches(x_fig, y_fig, forward=True)
 
     # Add node labels
@@ -252,3 +258,14 @@ def plot_tree(
         plt.savefig(savefig_path, dpi=dpi)
 
     plt.show()
+
+def plot_query_as_graph(results, savefig_path=None):
+    
+   graphs, scenario =  _process_query(results)
+   for gKey in graphs.keys():
+       plot_tree(graphs[gKey], 
+                 scenario, 
+#                 figsize=[5,6],
+                 savefig_path=savefig_path)
+
+    

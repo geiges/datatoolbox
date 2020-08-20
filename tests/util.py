@@ -38,6 +38,6 @@ data2 = np.asarray([[1,22,3,4 ],
                    [13, 1e6, np.nan, 41],
                    [np.nan, 34, 27.4, 32]])
 
-
+df1 = df
 df2 = dt.Datatable(data2, meta=metaDict2, columns = [2008, 2012, 2013, 2015], index = ['TUN', 'DEU', 'FRA', 'GBR'])
     
