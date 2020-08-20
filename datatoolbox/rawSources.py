@@ -4898,8 +4898,8 @@ if __name__ == '__main__':
     crf_data = CRF_DATA(2020)
     #iea = IEA2016()
     tableList = crf_data.gatherMappedData()
-    crf_data.createSourceMeta()
-#    dt.commitTables(tableList, 'CRF_data_2020', crf_data.meta, append_data=True)
+#    crf_data.createSourceMeta()
+    dt.commitTables(tableList, 'CRF_data_2020', crf_data.meta, append_data=True)
 #%% ADVANCE DB
     advance = ADVANCE_DB()
 #    iea = IEA2016()

@@ -224,8 +224,8 @@ def plot_tree(
         x_fig, y_fig = fig.get_size_inches() * fig.dpi
         fontsize = min(x_fig / (x_max / 1.5), y_fig / (y_max * 2.5))
     else:
-        x_fig = fontsize * (x_max / 1.5) / fig.dpi
-        y_fig = fontsize * y_max * 2.5 / fig.dpi
+        x_fig = 2 + (fontsize * (x_max / 1.5) / fig.dpi)
+        y_fig = 2 + (fontsize * y_max * 2.5 / fig.dpi)
         fig.set_size_inches(x_fig, y_fig, forward=True)
 
     # Add node labels
@@ -259,10 +259,13 @@ def plot_tree(
 
     plt.show()
 
-def plot_query_as_graph(results):
+def plot_query_as_graph(results, savefig_path=None):
     
    graphs, scenario =  _process_query(results)
    for gKey in graphs.keys():
-       plot_tree(graphs[gKey], scenario, savefig_path=None)
+       plot_tree(graphs[gKey], 
+                 scenario, 
+#                 figsize=[5,6],
+                 savefig_path=savefig_path)
 
     
