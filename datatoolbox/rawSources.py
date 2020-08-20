@@ -3403,6 +3403,16 @@ class CRF_DATA(BaseImportTool):
                             dataTables[variable].loc[coISO,year] = reader.gatherValue(self.mappingDict['gases'][gas] + self.mappingDict['sectors'][sector]) / 1000
                         except:
                             pass
+                
+        import copy
+        for gas in self.mappingDict['gases']:  
+            if   'Emissions|' + gas + '|LULUCF' in dataTables.keys():          
+                dataTables['Emissions|' + gas + '|IPCM0EL'] = dataTables['Emissions|' + gas + '|IPC0'] - dataTables['Emissions|' + gas + '|LULUCF'] # national total excluding lulucf
+                dataTables['Emissions|' + gas + '|IPCM0EL'].meta = copy.copy(dataTables['Emissions|' + gas + '|IPC0'].meta)
+                dataTables['Emissions|' + gas + '|IPCM0EL'].meta['category'] = "IPCM0EL"
+                dataTables['Emissions|' + gas + '|IPC3'] = dataTables['Emissions|' + gas + '|IPCMAG'] + dataTables['Emissions|' + gas + '|LULUCF'] #AFOLU
+                dataTables['Emissions|' + gas + '|IPC3'].meta = copy.copy(dataTables['Emissions|' + gas + '|IPC0'].meta)
+                dataTables['Emissions|' + gas + '|IPC3'].meta['category'] = "IPCM3"
         
         #%%
         tablesToCommit = list()
@@ -4897,9 +4907,9 @@ if __name__ == '__main__':
 #%% CRF data
     crf_data = CRF_DATA(2020)
     #iea = IEA2016()
-    tableList = crf_data.gatherMappedData()
+#    tableList = crf_data.gatherMappedData()
 #    crf_data.createSourceMeta()
-    dt.commitTables(tableList, 'CRF_data_2020', crf_data.meta, append_data=True)
+#    dt.commitTables(tableList, 'CRF_data_2020', crf_data.meta, update=True)
 #%% ADVANCE DB
     advance = ADVANCE_DB()
 #    iea = IEA2016()
