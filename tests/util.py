@@ -13,6 +13,7 @@ data = np.asarray([[1,2.2,3,4 ],
                    [1.3, np.nan, np.nan, np.nan],
                    [np.nan, 3.4, 2.4, 3.2]])
 
+
 df = dt.Datatable(data, 
                   columns = [2010, 2012, 2013, 2015], 
                   index = ['ARG', 'DEU', 'FRA', 'GBR'],
@@ -37,7 +38,19 @@ data2 = np.asarray([[1,22,3,4 ],
                    [23, np.nan, 34, 15],
                    [13, 1e6, np.nan, 41],
                    [np.nan, 34, 27.4, 32]])
+data3 = np.asarray([[1,22,3,4 ],
+                   [23, np.nan, 34, 15],
+                   [13, 1e6, np.nan, 41],
+                   [np.nan, 34, 27.4, 32]])
 
 df1 = df
 df2 = dt.Datatable(data2, meta=metaDict2, columns = [2008, 2012, 2013, 2015], index = ['TUN', 'DEU', 'FRA', 'GBR'])
-    
+df3 = dt.Datatable(data3, meta=metaDict2, columns = [2008, 2012, 2013, 2015], index = ['TUN', 'DEU', 'FRA', 'GBR'])
+df3 =   df = dt.Datatable(data, 
+                  columns = [2010, 2012, 2013, 2015], 
+                  index = ['ARG', 'DEU', 'FRA', 'GBR'],
+                  meta={'entity' : 'Emissions|CO2',
+                       'scenario' : 'Historic',
+                       'source' : 'XYZ_2020',
+                       'unit' : 'm'}, )
+df3.loc['ARG', 2014] = 5

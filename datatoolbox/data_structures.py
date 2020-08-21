@@ -94,10 +94,18 @@ class Datatable(pd.DataFrame):
             data = data.copy(deep=True)
         return Datatable(data).__finalize__(self) 
 
+    def diff(self, periods=1, axis=0):
+        
+        out = super(Datatable, self).diff(periods=periods, axis=axis)
+        out.meta['unit'] = self.meta['unit']
+        
+        return out
     
 #with pd.ExcelWriter('the_file.xlsx', engine='openpyxl', mode='a') as writer: 
 #     data_filtered.to_excel(writer) 
-
+    x = pd.DataFrame()
+    x.diff()
+    
     def to_excel(self, fileName = None, sheetName = "Sheet0", writer = None, append=False):
         if writer is None:
             if append:

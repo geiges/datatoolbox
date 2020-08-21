@@ -10,7 +10,7 @@ import datatoolbox as dt
 import numpy.testing as npt
 import numpy as np
 
-from util import df1
+from util import df1, df3
 
 def test_interpolation():
     from datatoolbox.tools.for_datatables import interpolate
@@ -38,6 +38,23 @@ def test_aggregation():
     npt.assert_array_almost_equal(res.loc['GBR',:].values, 
                                   np.array([np.nan, 3.4, 2.4, 3.2]),
                                   decimal = 6)
+    
+    
+def test_growth_rates():
+    
+    from datatoolbox.tools.for_datatables import growth_rate
+    
+    res = growth_rate(df3)
+    
+    exp = np.array([[ 0.36363636,  0.66666667],
+                    [-0.29411765,      np.nan]])
+    
+    npt.assert_almost_equal(res.values, exp, decimal=8)
+    assert list(res.index) == ['ARG','GBR']
+    assert list(res.columns) == [2013, 2014]
+    assert res.meta['unit'] == 'm'
+    
 if __name__== '__main__':
     test_interpolation()
     test_aggregation()
+    test_growth_rates()

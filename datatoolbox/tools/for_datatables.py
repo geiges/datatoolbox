@@ -9,6 +9,7 @@ toolbox for datatables
 @author: ageiges
 """
 from copy import copy
+import numpy as np
 #from . import config
 
 
@@ -40,7 +41,7 @@ def interpolate(datatable, method="linear"):
         
 def aggregate_region(table, mapping):
     
-        
+    table = copy(table)
     missingCountryDict = dict()
     
     for region in mapping.keys():
@@ -54,3 +55,21 @@ def aggregate_region(table, mapping):
             table.loc[region,:] = table.loc[availableCountries,:].sum(axis=0, skipna=True)
 
     return table, missingCountryDict
+
+
+def growth_rate(datatable, periods = 1):
+    """
+    Computes the growth rates for the given datatable
+    """
+    tempTable = copy(datatable)
+    years = tempTable.columns
+    completeYears = list(range(years.min() - periods, years.max()))
+    for year in set(completeYears).difference(tempTable.columns):
+        tempTable.loc[:,year] = np.nan
+    tempTable =tempTable.loc[:,completeYears]
+    growth_rates = tempTable.diff(axis=1,periods=periods).iloc[:,periods+1:] / tempTable.iloc[:,periods:-1].values
+    growth_rates = growth_rates.loc[~growth_rates.isnull().all(axis=1),:]
+    growth_rates = growth_rates.loc[:,~growth_rates.isnull().all(axis=0)]
+    
+    return growth_rates
+    
