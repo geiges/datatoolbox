@@ -1,13 +1,8 @@
 import datatoolbox as dt
 import pandas as pd
 import numpy as np
-#<<<<<<< HEAD
-
-
-#from pandas._testing import assert_frame_equal
-#=======
 import numpy.testing as npt
-#>>>>>>> master
+
 #%%
 
 metaDict = {'entity':'Emissions|Candy',
