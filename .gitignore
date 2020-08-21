@@ -11,3 +11,4 @@ dist
 .DS_STORE
 .ipynb*
 *.html
+personal.py
