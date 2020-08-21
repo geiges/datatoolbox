@@ -9,6 +9,7 @@ toolbox for datatables
 @author: ageiges
 """
 from copy import copy
+#from . import config
 
 
 def interpolate(datatable, method="linear"):
@@ -38,15 +39,17 @@ def interpolate(datatable, method="linear"):
         
         
 def aggregate_region(table, mapping):
+    
+        
     missingCountryDict = dict()
     
-    for region in mapping.listAll():
+    for region in mapping.keys():
 
         
-        missingCountries = set(mapping.membersOf(region)) - set(table.index)
+        missingCountries = set(mapping[region]) - set(table.index)
 #                print('missing countries: {}'.format(missingCountries))
         missingCountryDict[region] = list(missingCountries)
-        availableCountries = set(mapping.membersOf(region)).intersection(table.index)
+        availableCountries = set(mapping[region]).intersection(table.index)
         if len(availableCountries) >0:
             table.loc[region,:] = table.loc[availableCountries,:].sum(axis=0, skipna=True)
 

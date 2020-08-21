@@ -102,7 +102,8 @@ class RegionContext():
         self.name = name
         self.groupingDf = mappingDataFrame 
         
-
+        self.keys = self.listAll
+        self.__getitem__ = self.membersOf
     
     def __call__(self):
         print('Regions:')
@@ -144,6 +145,14 @@ class RegionContext():
             
         return cls(name, mappingDataFrame)       
 
+    def toDict(self):
+        mappDict = dict()
+        
+        for key in self.listAll():
+            mappDict[key] = list(self.membersOf(key))
+        
+        return mappDict
+        
 class CountryMapping():
     
     def  __init__(self, dataTable = None):
