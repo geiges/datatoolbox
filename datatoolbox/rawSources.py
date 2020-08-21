@@ -17,7 +17,7 @@ import time
 
 tt = time.time()
 
-MAPPING_COLUMNS = list(config.ID_FIELDS) + ['unit','unitTo']
+MAPPING_COLUMNS = list(config.ID_FIELDS) + config.OPTIONAL_META_FIELDS + ['unit','unitTo']
 VAR_MAPPING_SHEET = 'variable_mapping'
 SPATIAL_MAPPING_SHEET = 'spatial_mapping'
 
@@ -2374,6 +2374,7 @@ class CDLINKS_2018(BaseImportTool):
                         metaDict[key] = metaDf[key]
                     if pd.isnull(metaDict['category']):
                         metaDict['category'] = ''
+                    metaDict = dt.core._update_meta(metaDict)
                     tableID = dt.core._createDatabaseID(metaDict)
                     print(tableID)
                     if not updateTables:
@@ -2407,8 +2408,186 @@ class CDLINKS_2018(BaseImportTool):
                         excludedTables['empty'].append(tableID)
 
         return tablesToCommit, excludedTables
+#%%
+class IAMC_CMIP6(BaseImportTool):
+    
+    def __init__(self):
+        self.setup = setupStruct()
+        self.setup.SOURCE_ID    = "IAMC_CMIP6_2020"
+        self.setup.SOURCE_PATH  = os.path.join(config.PATH_TO_DATASHELF, 'rawdata', self.setup.SOURCE_ID)
+        self.setup.DATA_FILE    = os.path.join(self.setup.SOURCE_PATH, 'SSP_CMIP6_201811.csv')
+#        self.setup.META_FILE    = self.setup.SOURCE_PATH + 'sr15_metadata_indicators_r2.0.xlsx'
+        self.setup.MAPPING_FILE = os.path.join(self.setup.SOURCE_PATH,'mapping.xlsx')
+        
+        
+        self.setup.LICENCE = ' CC-BY 4.0'
+        self.setup.URL     = '/media/sf_Documents/datashelf_v03/rawdata/IAM_CMIP6/SSP_CMIP6_201811.csv'
+        
+#        self.setup.VARIABLE_COLUMN_NAME = ['VARIABLE']
+#        self.setup.MODEL_COLUMN_NAME = ['MODEL']
+#        self.setup.SCENARIO_COLUMN_NAME = ['SCENARIO']
 
+        self.entryMapping = {
+                'VARIABLE' : ['entity', 'category', 'unit', 'unitTo'],
+                'MODEL' : ['model'],
+                'SCENARIO': ['scenario'],
+                }
+        self.setup.SPATIAL_COLUM_NAME = ['REGION']
+        self.setup.COLUMNS_TO_DROP = ["MODEL","SCENARIO","VARIABLE","UNIT"]
+        
+        if not(os.path.exists(self.setup.MAPPING_FILE)):
+            self.createVariableMapping()
+        else:
+            self.loadMapping()
 
+    def loadMapping(self,):
+        self.mappingEntity = pd.read_excel(self.setup.MAPPING_FILE, sheet_name=VAR_MAPPING_SHEET,index_col=0)
+        self.mappingEntity = self.mappingEntity.loc[self.mappingEntity.entity.notnull()]
+        
+        self.mappingModel = pd.read_excel(self.setup.MAPPING_FILE, sheet_name='model_mapping',index_col=0)
+        self.mappingModel = self.mappingModel.loc[self.mappingModel.index.notnull()]
+        
+        self.mappingScenario = pd.read_excel(self.setup.MAPPING_FILE, sheet_name='scenario_mapping',index_col=0)
+        self.mappingScenario = self.mappingScenario.loc[self.mappingScenario.index.notnull()]
+            
+    def createVariableMapping(self):
+        # loading data if necessary
+        if not hasattr(self, 'data'):        
+            self.loadData()
+        
+        
+        import numpy as np
+ 
+        writer = pd.ExcelWriter(self.setup.MAPPING_FILE,
+                    engine='xlsxwriter',
+                    datetime_format='mmm d yyyy hh:mm:ss',
+                    date_format='mmmm dd yyyy')       
+        
+        #variables
+        #index = self.data[self.setup.VARIABLE_COLUMN_NAME].unique()
+        entry ='VARIABLE'
+        self.availableSeries = self.data.drop_duplicates([entry]).set_index(entry)
+        self.mapping = pd.DataFrame(index=self.availableSeries.index, columns = self.entryMapping[entry])
+        self.mapping = pd.concat([self.mapping, self.availableSeries], axis=1)
+        self.mapping.source = self.setup.SOURCE_ID
+        self.mapping = self.mapping.sort_index()
+        self.mapping = self.mapping.loc[:,self.entryMapping[entry]]
+        
+        xx = self.mapping.index.map(lambda x: str(x).replace(' ','_').replace('CMIP6_',''))
+        self.mapping.entity = xx.map(lambda x : '|'.join(str(x).split('|')[:2]))
+        self.mapping.category = xx.map(lambda x : '|'.join(str(x).split('|')[2:]))
+        
+        self.mapping.unit = self.availableSeries.UNIT
+        self.mapping.to_excel(writer, engine='openpyxl', sheet_name=VAR_MAPPING_SHEET, index_label="original variable")
+        
+        #models
+        entry ='MODEL'
+        self.availableSeries = self.data.drop_duplicates([entry]).set_index(entry)
+        self.mapping = pd.DataFrame(index=self.availableSeries.index, columns = self.entryMapping[entry])
+        self.mapping = pd.concat([self.mapping, self.availableSeries], axis=1)
+        self.mapping.source = self.setup.SOURCE_ID
+        self.mapping = self.mapping.sort_index()
+        self.mapping = self.mapping.loc[:,self.entryMapping[entry]]
+        
+        xx = self.mapping.index.map(lambda x: str(x).replace(' ','_').replace('/','_'))
+        self.mapping.model = xx
+#        self.mapping.category = xx.map(lambda x : '|'.join(str(x).split('|')[2:]))
+        
+        
+#        self.mapping.unit = self.availableSeries.UNIT
+        self.mapping.to_excel(writer, engine='openpyxl', sheet_name='model_mapping', index_label="original model")
+        
+        # scenarios
+        entry ='SCENARIO'
+        self.availableSeries = self.data.drop_duplicates([entry]).set_index(entry)
+        self.mapping = pd.DataFrame(index=self.availableSeries.index, columns = self.entryMapping[entry])
+        self.mapping = pd.concat([self.mapping, self.availableSeries], axis=1)
+        self.mapping.source = self.setup.SOURCE_ID
+        self.mapping = self.mapping.sort_index()
+        self.mapping = self.mapping.loc[:,self.entryMapping[entry]]
+        xx = self.mapping.index.map(lambda x: str(x).replace(' ','_').replace('/','_').replace('(','').replace(')',''))
+        self.mapping.scenario = xx
+        
+        self.mapping.to_excel(writer, engine='openpyxl', sheet_name='scenario_mapping', index_label="original scenario")
+        
+        writer.close()
+
+    def loadData(self):
+        self.data = pd.read_csv(self.setup.DATA_FILE, index_col = None, header =0)
+        
+    def gatherMappedData(self, spatialSubSet = None, updateTables=False):
+    
+        # loading data if necessary
+        if not hasattr(self, 'data'):
+            self.loadData()        
+        self.createSourceMeta()
+#        # meta data
+#        self.loadMetaData()
+        
+        tablesToCommit  = []
+        metaDict = dict()
+        metaDict['source'] = self.setup.SOURCE_ID
+        excludedTables = dict()
+        excludedTables['empty'] = list()
+        excludedTables['erro'] = list()
+        excludedTables['exists'] = list()
+        
+        metaDict =  dict()
+        metaDict['source'] = self.setup.SOURCE_ID
+        for model in self.mappingModel.index:
+            mask = self.data['MODEL'] == model
+            metaDict['model'] = self.mappingModel.loc[model,'model']
+            tempDataMo = self.data.loc[mask]
+            
+            for scenario in self.mappingScenario.index:
+                metaDict['scenario'] = self.mappingScenario.loc[scenario,'scenario']
+                mask = tempDataMo['SCENARIO'] == scenario
+                tempDataMoSc = tempDataMo.loc[mask]
+                
+                
+                for entity in self.mappingEntity.index:
+                    
+                    for key in ['entity', 'category', 'unit', 'unitTo']:
+                        metaDict[key] = self.mappingEntity.loc[entity,key]
+
+                    if pd.isnull(metaDict['category']):
+                        metaDict['category'] = ''
+                    metaDict = dt.core._update_meta(metaDict)
+                    tableID = dt.core._createDatabaseID(metaDict)
+                    print(tableID)
+                    if not updateTables:
+                        if dt.core.DB.tableExist(tableID):
+                            excludedTables['exists'].append(tableID)
+                            continue
+
+                    mask = tempDataMoSc['VARIABLE'] == entity
+                    tempDataMoScEn = tempDataMoSc.loc[mask]
+
+                    if len(tempDataMoScEn.index) > 0:
+
+                        dataframe = tempDataMoScEn.set_index(self.setup.SPATIAL_COLUM_NAME)
+                        if spatialSubSet:
+                            spatIdx = dataframe[self.setup.SPATIAL_COLUM_NAME].isin(spatialSubSet)
+                            dataframe = tempDataMoScEn.loc[spatIdx]
+                        
+                        dataframe = dataframe.drop(self.setup.COLUMNS_TO_DROP, axis=1)
+                        dataframe = dataframe.dropna(axis=1, how='all').astype(float)
+            
+                        
+                        dataTable = Datatable(dataframe, meta=metaDict)
+                            
+                    
+                        # possible required unit conversion
+                        if not pd.isna(metaDict['unitTo']):
+                            dataTable = dataTable.convert(metaDict['unitTo'])
+                            
+                        if 'unitTo' in dataTable.meta.keys():
+                            del dataTable.meta['unitTo']
+                        tablesToCommit.append(dataTable)
+                    else:
+                        excludedTables['empty'].append(tableID)
+
+        return tablesToCommit, excludedTables
 #%%
 class AIM_SSP_DATA_2019(BaseImportTool):
     
@@ -4977,6 +5156,14 @@ if __name__ == '__main__':
 #    tableList, excludedTables = cdlinks.gatherMappedData(updateTables=False)
 #    cdlinks.createSourceMeta()
 #    dt.commitTables(tableList, 'update CD Linksdata ', cdlinks.meta, update=False)
+
+#%% IAMC CMPI6
+
+    cmip6 = IAMC_CMIP6()    
+    tableList, excludedTables = cmip6.gatherMappedData(updateTables=False)
+    cmip6.createSourceMeta()
+    dt.commitTables(tableList, 'added CMIP6 dataset', cmip6.meta, update=False)
+    sadf
 #%% SSPDB 2013
     
     ssp2013 = SSP_DATA()

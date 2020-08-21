@@ -6,7 +6,7 @@ Created on Tue Mar 19 09:58:27 2019
 @author: Andreas Geiges
 """
 import numpy as np
-
+from .data_structures import Datatable, TableSet
 class MAGGIC6():
     def read_MAGICC6_ScenFile(fileName, **kwargs):
         VALID_MASS_UNITS= {
@@ -188,6 +188,21 @@ class primap():
             print('warning: Columns could not be converted to int')
         return table
 
+    def write_PRIMAP_Excel(data, fileName):
+        
+        if ~isinstance(data, TableSet):
+            
+            if isinstance(data, list):
+                tableSet = TableSet(data)
+                
+            elif isinstance(data, (Datatable, pd.DataFrame)):
+                tableSet = TableSet([data])
+                
+            else:
+                raise(BaseException('Could not identifiy compatible data'))
+                
+            
+            
 
 class matlab():
     def load_mat_file_as_dict(file_path):

@@ -9,7 +9,7 @@ import numpy as np
 import datatoolbox as dt 
 
 data = np.asarray([[1,2.2,3,4 ],
-                   [2.3, np.nan, 3.4, np.nan],
+                   [1, np.nan, 4, np.nan],
                    [1.3, np.nan, np.nan, np.nan],
                    [np.nan, 3.4, 2.4, 3.2]])
 
