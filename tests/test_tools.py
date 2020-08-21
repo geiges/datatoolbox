@@ -21,5 +21,9 @@ def test_interpolation():
     assert np.isnan(resTable.loc['GBR',2010])
     assert np.isnan(resTable.loc['DEU',2015])
     assert np.isnan(resTable.loc['FRA',2013])
+    
+    # test of linked method
+    df1.interpolate()
+    
 if __name__== '__main__':
     test_interpolation()

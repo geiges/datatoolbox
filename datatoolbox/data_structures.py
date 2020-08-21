@@ -163,28 +163,13 @@ class Datatable(pd.DataFrame):
         
         Returns the result, but does not inplace add it.
         """
-        return util.aggregate_table_to_region(self, mapping)
+        from datatoolbox.tools.for_datatables import aggregate_region
+        return aggregate_region(self, mapping)
     
     def interpolate(self, method="linear"):
-        datatable = copy(self)
-        if method == 'linear':
-            from scipy import interpolate
-            import numpy as np
-            xData = datatable.columns.values.astype(float)
-            yData = datatable.values
-            for row in yData:
-                idxNan = np.isnan(row)
-                if (sum(~idxNan) < 2):
-                    continue
-                interpolator = interpolate.interp1d(xData[~idxNan], row[~idxNan], kind='linear')
-                col_idx = xData[idxNan].astype(int)
-                col_idx = col_idx[col_idx > xData[~idxNan].min()]
-                col_idx = col_idx[col_idx < xData[~idxNan].max()]
-                new_idx = idxNan & (xData > xData[~idxNan].min()) & (xData < xData[~idxNan].max())
-                row[new_idx] = interpolator(col_idx)
-            return datatable
-        else:
-            raise(NotImplementedError())
+        from datatoolbox.tools.for_datatables import interpolate
+        
+        return interpolate(self, method)
     
     def clean(self):
 

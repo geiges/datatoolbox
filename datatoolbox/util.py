@@ -858,6 +858,9 @@ def csv_to_dict(filePath):
     return mydict
 
 def aggregate_table_to_region(table, mapping):
+    #TODO remove soon
+    raise(Warning('Depricated soon. Please use new implementaion in datatoolbox.tools.for_datatables'))
+    
     missingCountryDict = dict()
     
     for region in mapping.listAll():
