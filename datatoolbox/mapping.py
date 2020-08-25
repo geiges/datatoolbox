@@ -7,9 +7,11 @@ Created on Fri Mar 29 10:16:36 2019
 """
 
 import os 
-#import pycountry
+import re
 import numpy as np
 import pandas as pd
+from dataclasses import dataclass, field
+
 from . import config as conf
 #from hdx.location.country import Country
 #from datatools import core
@@ -23,136 +25,133 @@ if not os.path.exists(os.path.join(conf.PATH_TO_DATASHELF, 'mappings')):
 
 
 
+
+@dataclass
 class RegionMapping:
-    
-    def __init__(self, mappingFolder = None):
-        
-        self.countries = [x for x in conf.COUNTRY_LIST]
-        self.contextList   = list()
-        self.validIDs  = list()
-        #self.validIDs.extend(self.countries)
-        
-        if mappingFolder is None:
-            self.grouping = pd.DataFrame([], index = self.countries)
-            print('creating empty grouping table')
-            
-        else:
-            fileList = os.listdir(mappingFolder)
-            for file in fileList:
-                if file.endswith(".csv"):
-                    self.loadContext(mappingFolder, file)
-                        
-            self.grouping = pd.read_csv(conf.PATH_TO_REGION_FILE, index_col=0)
-            for contextCol in self.grouping.columns:
-                self.createNewContext(contextCol, self.grouping[contextCol])
-            
-#    
-#
-#    def exists(self, regionString):
-#        for context in self.contextList:
-#            if (self.grouping[context] == (regionString)).any():
-#                return True, context
-#        #nothing found    
-#        return False, None
-#
-#    def allExist(self, iterable):
-#        testSet = set(iterable)           
-#        
-#        for context in self.contextList:
-#            if testSet.issubset(set(self.grouping[context])):
-#                return True, context                   
-#        #nothing found    
-#        return False, None            
+    mapping: pd.DataFrame = field(
+        default_factory=lambda: pd.DataFrame(index=[], columns=[], dtype=str)
+    )
 
-    def exists(self, regionString):
-        return regionString in self.validIDs
-    
-    def allExist(self, iterable):
-        testSet = set(iterable)
-        return testSet.issubset(set(self.validIDs))
-    
-    def loadContext(self, folderPath, fileName):
-        name = fileName.replace('mapping_','').replace('.csv','')
-        mappingDataFrame =  pd.read_csv(os.path.join(folderPath, fileName), index_col=0)
-        context = RegionContext(name, mappingDataFrame)
-        
-        # assure no regionID is duplicated
-#        for regionID in context.listAll():
-#            if regionID in self.valid_IDs:
-#                raise(Exception(regionID + 'found as duplicate'))
-        #add new regionIDs to valid IDs
-        self.validIDs.extend(context.listAll())
-        
-        self.__setattr__(name, context)
-        self.contextList.append(context)
-        
-    def createNewContext(self, name, mappingDict):
-        context = RegionContext.fromDict(name, mappingDict, self.countries)
-        self.validIDs.extend(context.listAll())
-        self.__setattr__(name, context)
-        self.contextList.append(context)
+    @classmethod
+    def fromFile(cls, path=conf.MAPPING_FILE_PATH):
+        mapping = pd.read_csv(path, index_col=0)
+        return cls(mapping)
 
-    def addRegionToContext(self, name, mappingDict):
-        context = self.__getattribute__(name)
-        context.addRegions(mappingDict)
-        
-        
-    def save(self):
-        for context in self.contextList:
-            
-            context.writeToCSV(conf.PATH_TO_MAPPING)    
-            
+    @classmethod
+    def fromMappingPath(cls, path=conf.PATH_TO_MAPPING):
+        regions = cls()
+        for fn in os.listdir(path):
+            if fn.startswith("mapping_"):
+                try:
+                    context = RegionContext.fromMappingFile(os.path.join(path, fn))
+                except (ValueError, IndexError):
+                    print("Skipping", fn)
+                regions.addContext(context)
+
+        return regions
+
+    def save(self, path=conf.MAPPING_FILE_PATH):
+        self.mapping.to_csv(path)
+
+    @property
+    def countries(self):
+        return list(self.mapping.index)
+
+    @property
+    def contextList(self):
+        return list(self.mapping.columns)
+
+    @property
+    def validIDs(self):
+        # regions and countries
+        return self.countries + list(self.mapping.stack().dropna().unique())
+
     def listAll(self):
         return self.validIDs            
+    
+    def exists(self, regionString):
+        return (not self.mapping.empty) and (regionString in self.mapping.values)
 
-class RegionContext():
+    def allExist(self, iterable):
+        testSet = set(iterable)
+        return testSet.issubset(set(self.mapping.values.ravel()))
+
+    def addContext(self, context):
+        self.mapping[context.name] = context.map
+
+    def __getattr__(self, name):
+        try:
+            return self[name]
+        except KeyError as e:
+            raise AttributeError(e.args[0])
     
-    def __init__(self, name, mappingDataFrame):
-        self.name = name
-        self.groupingDf = mappingDataFrame 
-        
-        self.keys = self.listAll
-        self.__getitem__ = self.membersOf
+    def __getitem__(self, name):
+        return RegionContext(name, self.mapping[name])
+
+    _re_pattern = re.compile('[a-zA-Z_][a-zA-Z0-9_]*')
+
+    def __dir__(self):
+        context_keys = []
+        for k in self.mapping.columns:
+            if isinstance(k, str):
+                m = self._re_pattern.match(k)
+                if m:
+                    context_keys.append(m.string)
+
+        obj_attrs = list(dir(RegionMapping))
+
+        return context_keys + obj_attrs
+
+@dataclass
+class RegionContext:
+    name: str
+    map: pd.Series
     
-    def __call__(self):
-        print('Regions:')
-        print()
+    @classmethod        
+    def fromDict(cls, name, mappingDict, countries=None):
+        map = []
+        for region, countries in mappingDict.items():
+            map.append(pd.Series(region, index=countries))
+        map = pd.concat(map).rename(name)
+        if countries is not None:
+            map = map.reindex(countries)
+            
+        return cls(name, map)
+    
+    @classmethod
+    def fromMappingFile(cls, path, name=None):
+        if name is None:
+            m = re.match(r"mapping_(.+)\.csv", os.path.basename(path))
+            if m is None:
+                raise ValueError(
+                    "If filename is not of the form mapping_<name>.csv,"
+                    " a valid name must be provided"
+                )
+            name = m.group(1)
         
+        map = pd.read_csv(path, index_col=0)
+        if (map.sum(axis=1) > 1).any():
+            raise ValueError(
+                f"{path} contains countries which are in multiple regions "
+                f"(Check for World regions)."
+            )
+
+        map = map.rename_axis(columns=name).stack().loc[lambda s: s].reset_index(level=name)[name]
+
+        return cls(name, map)
+
     def regionOf(self, countryID):
         """ 
         Returns the membership in this context
         """
-        return self.groupingDf.columns[self.groupingDf.loc[countryID]]
+        return self.map.loc[countryID]
     
     def membersOf(self, regionName):
-        return self.groupingDf.index[self.groupingDf[regionName]]
+        return self.map.index[self.map == regionName]
     
     def listAll(self):
-        return self.groupingDf.columns
-    
-    def writeToCSV(self, folderPath):
-        self.groupingDf.to_csv(os.path.join(folderPath, 'mapping_' + self.name + '.csv'))
+        return pd.Index(self.map).unique()
 
-    def addRegions(self, mappingDict):
-        for spatialID in mappingDict.keys():
-            idList = mappingDict[spatialID]
-            idList = [id for id in idList if id in conf.COUNTRY_LIST]
-            self.groupingDf.loc[:,spatialID] = False
-            self.groupingDf.loc[idList,spatialID] = True
-        
-    @classmethod        
-    def fromDict(cls, name, mappingDict, countries):
-        if np.nan in mappingDict.keys():
-            del mappingDict[np.nan]
-        mappingDataFrame = pd.DataFrame(index=countries)
-        
-        for spatialID in mappingDict.keys():
-            idList = mappingDict[spatialID]
-            idList = [id for id in idList if id in countries]
-            mappingDataFrame.loc[:,spatialID] = False
-            mappingDataFrame.loc[idList,spatialID] = True
-            
-        return cls(name, mappingDataFrame)       
 
     def toDict(self):
         mappDict = dict()
@@ -234,17 +233,17 @@ class CountryContext():
         Returns the membership in this context
         """
         return self.codesFromISO.loc[country, 'index']
-        
-regions = RegionMapping(conf.PATH_TO_MAPPING)
+
+# MAPPING_FILE_PATH has been generated from 
+regions = RegionMapping.fromFile(conf.MAPPING_FILE_PATH)
+
+# Mostly backwards compatible:
+#regions = RegionMapping.fromMappingPath(conf.PATH_TO_MAPPING)
 countries = CountryMapping(conf.PATH_TO_MAPPING)
-#groupings = Groupings()
-        
             
 def initializeCountriesFromData():
     from hdx.location.country import Country
     
-
-     
     mappingDf = pd.read_csv(conf.MAPPING_FILE_PATH, index_col=0)   
     continentDf = pd.read_csv(conf.CONTINENT_FILE_PATH, index_col=0)
     continentDf = continentDf.set_index('alpha-3')
@@ -270,49 +269,8 @@ def initializeCountriesFromData():
     return countryCodes
 
 
-def mappingSeries2Dict(mappingSeries):
-    outDict = dict()
-    for spatialID in mappingSeries.unique():
-        outDict[spatialID] = list(mappingSeries.index[(mappingSeries==spatialID)])
-        
-    return outDict
-    
-def initializeRegionsFromData():
-    #%% SETUP
-
-    if  not os.path.exists(conf.PATH_TO_MAPPING):
-        os.makedirs(conf.PATH_TO_MAPPING)
-    
- 
-    mappingDf = pd.read_csv(conf.MAPPING_FILE_PATH, index_col=0)
-    continentDf = pd.read_csv(conf.CONTINENT_FILE_PATH, index_col=0)
-    continentDf = continentDf.set_index('alpha-3')    
-    #CONTINENTS
-    
-    regions = RegionMapping()
-    
-    continentDict = mappingSeries2Dict(continentDf['region'])
-    continentDict['World'] = list(continentDf.index)
-    regions.createNewContext('continent', continentDict)
-    regions.createNewContext('AR5', mappingSeries2Dict(mappingDf['ar5']))
-    regions.createNewContext('IEA', mappingSeries2Dict(mappingDf['IEA_region_short']))
-    regions.createNewContext('IEA_long', mappingSeries2Dict(mappingDf['IEA_region_long']))
-    regions.createNewContext('IAM_MESSAGE', mappingSeries2Dict(mappingDf['MESSAGE']))
-    regions.createNewContext('EU28', mappingSeries2Dict(mappingDf['eu28']))
-    return regions
-
-
-
-
 def getMembersOfRegion(context, regionID):
-    
-    if context not in regions.contextList:
-        raise Exception('Context ' + context + ' not defined')
-
-    if regionID not in regions.__getattribute__(context).listAll():
-        raise Exception('RegionID ' + regionID + ' not in context')            
-            
-    return regions.__getattribute__(context).membersOf(regionID)
+    return regions[context].membersOf(regionID)
 
 def getValidSpatialIDs():
     return regions.validIDs + countries.countries + special_regions
@@ -362,7 +320,7 @@ def add_new_special_regions(regionList):
 if __name__ == '__main__':
 
     #loc = Mapping()        
-    regions = initializeRegionsFromData()
+    regions = RegionMapping.fromMappingPath()
     regions.save()
     
     countries = initializeCountriesFromData()
