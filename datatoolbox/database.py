@@ -538,6 +538,12 @@ class Database():
             copyfile(pathToFile, folder + '/' + os.path.basename(pathToFile))
             
     def importSourceFromRemote(self, remoteName):
+        """
+        This functions imports (git clone) a remote dataset and creates a local
+        copy of it.
+        
+        Input is an existing sourceID. 
+        """
         repoPath = os.path.join(config.PATH_TO_DATASHELF, 'database', remoteName)
         
         self.gitManager.clone_source_from_remote(remoteName, repoPath)
@@ -548,20 +554,16 @@ class Database():
         self._gitCommit('imported ' + remoteName)
 
     def exportSourceToRemote(self, sourceID):
-#        repoPath = os.path.join(config.PATH_TO_DATASHELF, 'database', sourceID)
+        """
+        This function exports a new local dataset to the defind remote database.
         
-        
+        Input is a local sourceID as a str.
+        """
         self.gitManager.create_remote_repo(sourceID)
-#        sourceInventory = self.inventory.loc[self.inventory.source==sourceID,:]
-#        sourceInventory.to_csv(os.path.join(repoPath, 'source_inventory.csv'))
-#        self.gitManager.gitAddFile(sourceID, os.path.join(repoPath, 'source_inventory.csv')) 
-        
-#        self.gitManager.commit('added export inventory')
         self.gitManager.push_to_remote_datashelf(sourceID)
         print('export successful: ({})'.format( config.DATASHELF_REMOTE +  sourceID))
         
-#    def updateSourceFromRemote(self, sourceID):
-        
+
 #%%
 class GitRepository_Manager:
     """
@@ -684,6 +686,16 @@ class GitRepository_Manager:
         origin.push(repo.heads.master)
     
     def push_to_remote_datashelf(self, repoName):
+        """
+        This function used git push to update the remote database with an updated
+        source dataset. 
+        
+        Input is the source ID as a str.
+        
+        Currently conflicts beyond auto-conflict management are not caught by this
+        function. TODO
+
+        """
         self[repoName].remote('origin').push(progress=TqdmProgressPrinter())
         
     def clone_source_from_remote(self, repoName, repoPath):
@@ -701,6 +713,16 @@ class GitRepository_Manager:
         return repo
         
     def pull_update_from_remote(self, repoName):
+        """
+        This function used git pull an updated remote source dataset to the local
+        database.
+        
+        Input is the source ID as a str.
+        
+        Currently conflicts beyond auto-conflict management are not caught by this
+        function. TODO
+
+        """
         self[repoName].remote('origin').pull(progress=TqdmProgressPrinter())
     
     def verifyGitHash(self, repoName):
