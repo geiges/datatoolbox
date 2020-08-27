@@ -46,12 +46,12 @@ def test_growth_rates():
     
     res = growth_rate(df3)
     
-    exp = np.array([[ 0.36363636,  0.66666667],
-                    [-0.29411765,      np.nan]])
+    exp = np.array([[np.nan,  1.2 ,  0.36363636,  0.33333333,  0.25      ],
+                    [np.nan, np.nan, np.nan, np.nan, np.nan],
+                    [np.nan, np.nan, np.nan, np.nan, np.nan],
+                    [np.nan, np.nan, -0.29411765,  0.33333333, np.nan]])
     
     npt.assert_almost_equal(res.values, exp, decimal=8)
-    assert list(res.index) == ['ARG','GBR']
-    assert list(res.columns) == [2013, 2014]
     assert res.meta['unit'] == 'm'
     
 if __name__== '__main__':

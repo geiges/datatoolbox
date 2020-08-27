@@ -7,7 +7,11 @@ Created on Tue Mar 19 09:58:27 2019
 """
 import numpy as np
 from .data_structures import Datatable, TableSet
-class MAGGIC6():
+from . import config
+import os
+import pandas as pd
+
+class _MAGGIC6():
     def read_MAGICC6_ScenFile(fileName, **kwargs):
         VALID_MASS_UNITS= {
                 'Pt': 1e18,
@@ -93,7 +97,7 @@ class MAGGIC6():
     
         return Datatable(data, meta=metaDict)
 
-class primap():
+class _primap():
     def read_PRIMAP_csv(fileName):
         
         metaMapping = {
@@ -204,7 +208,7 @@ class primap():
             
             
 
-class matlab():
+class _matlab():
     def load_mat_file_as_dict(file_path):
         """
         Function to load a complex mat file as a dictionary
@@ -271,6 +275,78 @@ class matlab():
         data = loadmat(file_path, struct_as_record=False, squeeze_me=True)
         return _check_vars(data)
 
+class _EmissionModulePIK():
+    
+    
+    N_ROWS_TO_ADD = 1
+    ID_PARTS = ['SHEET_ENTITY', 
+                'SHEET_CATEGORY', 
+                'SHEET_CLASS', 
+                'SHEET_TYPE', 
+                'SHEET_SCENARIO', 
+                'SHEET_SOURCE']
+    metaDict = {'&SHEET_SPECIFICATIONS': '',
+                'SHEET_CODE': '',
+                'SHEET_CATEGORY': '',
+                'SHEET_NAME_CATEGORY': '',
+                'SHEET_ENTITY': '',
+                'SHEET_TYPE': 'NET',
+                'SHEET_CLASS': 'TOTAL',
+                'SHEET_DESCR': '',
+                'SHEET_NOTE': '',
+                'SHEET_SOURCE': '',
+                'SHEET_SCENARIO': '',
+                'SHEET_FIRSTDATAROW': '',
+                'SHEET_UNIT': '',
+                'SHEET_DATATYPE': '',
+                'SHEET_SUBSOURCE':''}
+    
+    categoryNameMapping = {'CATM1A' : 'Aviation',
+                           'CATM1B' : 'Marine'}
+            
+    def write_tables(self, tables, sheet_names, filePath):
+        #%%
+        
+        if not isinstance(tables, list):
+            tables = list(tables)
+            sheet_names = list(sheet_names)
+        
+        
+        def _validLettersAndNumbers(string):
+            return string.isalpha() or string.isnumeric()
+        def validStrings(input):
+            return  ''.join(filter(_validLettersAndNumbers, input))
+    #%%
+        writer = pd.ExcelWriter(filePath, engine='xlsxwriter')
+        
+        for table, sheet_name in zip(tables, sheet_names):
+            header = pd.DataFrame(data=list(self.metaDict.values()), index= self.metaDict.keys(), columns=['values'])
+            
+            header.loc['SHEET_ENTITY'] = validStrings(table.meta['entity']).upper().replace('EMISSIONS','')
+            header.loc['SHEET_CATEGORY'] = validStrings(table.meta['category']).upper()
+            header.loc['SHEET_NAME_CATEGORY'] = self.categoryNameMapping[validStrings(table.meta['category']).upper()]
+            header.loc['SHEET_SCENARIO'] = validStrings(table.meta['pathway']).upper()
+            header.loc['SHEET_UNIT'] = table.meta['unit']
+            header.loc['SHEET_SOURCE'] = validStrings(table.meta['source']).upper()
+            firstDataRow = len(header) + self.N_ROWS_TO_ADD
+            header.loc['SHEET_FIRSTDATAROW'] = firstDataRow +2
+            header.loc['SHEET_CODE']   = '_'.join([header.loc[x,'values'] for x in self.ID_PARTS])
+            
+        
+#            sheet_name = header.loc['SHEET_CODE'][0][:31]
+            header.to_excel(writer, header=None, sheet_name= sheet_name)
+            pd.DataFrame(table).to_excel(writer, startrow=firstDataRow, sheet_name= sheet_name)
+        writer.close()
+#        Excel.open('pandas_positioning.xlsx')
+       #%%
+class Excel():
+    
+    def open(filePath):
+        if config.OS == 'Linux':
+            os.system('libreoffice ' + filePath )
+        elif config.OS == 'Darwin':
+            os.system('open -a "Microsoft Excel" ' + filePath )
+        #%%
 
 def read_IAMC_table(iamcData, relationList):
     import datatoolbox as dt
@@ -363,6 +439,9 @@ def read_long_table(longDf, relationList):
         outTables.append(dt.Datatable(dataExtract, meta= meta))
     
     return outTables
+
+matlab = _matlab()
+emission_module = _EmissionModulePIK()
 
 
 if __name__ == '__main__':

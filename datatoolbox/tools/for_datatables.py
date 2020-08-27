@@ -57,19 +57,34 @@ def aggregate_region(table, mapping):
     return table, missingCountryDict
 
 
-def growth_rate(datatable, periods = 1):
+def growth_rate(datatable):
     """
     Computes the growth rates for the given datatable
     """
+#    tempTable = copy(datatable)
+#    years = tempTable.columns
+#    completeYears = list(range(years.min() - periods, years.max()))
+#    for year in set(completeYears).difference(tempTable.columns):
+#        tempTable.loc[:,year] = np.nan
+#    tempTable =tempTable.loc[:,completeYears]
+#    growth_rates = tempTable.diff(axis=1,periods=periods).iloc[:,periods+1:] / tempTable.iloc[:,periods:-1].values
+#    growth_rates = growth_rates.loc[~growth_rates.isnull().all(axis=1),:]
+#    growth_rates = growth_rates.loc[:,~growth_rates.isnull().all(axis=0)]
+#    
+#    return growth_rates
+    
+
+#%%
+    
+#t0 = tempTable.loc[:,years[1:]]
+#t1 = tempTable.loc[:,[x-period for x in years if x-period in tempTable.columns]]
     tempTable = copy(datatable)
-    years = tempTable.columns
-    completeYears = list(range(years.min() - periods, years.max()))
-    for year in set(completeYears).difference(tempTable.columns):
-        tempTable.loc[:,year] = np.nan
-    tempTable =tempTable.loc[:,completeYears]
-    growth_rates = tempTable.diff(axis=1,periods=periods).iloc[:,periods+1:] / tempTable.iloc[:,periods:-1].values
-    growth_rates = growth_rates.loc[~growth_rates.isnull().all(axis=1),:]
-    growth_rates = growth_rates.loc[:,~growth_rates.isnull().all(axis=0)]
-    
+    growth_rates = tempTable.loc[:,tempTable.columns] * np.nan
+    for i_year in range(1,len(tempTable.columns)):
+        t0 = tempTable.columns[i_year-1]
+        t1 = tempTable.columns[i_year]
+        
+        diff = tempTable.loc[:,t1].values - tempTable.loc[:,t0].values
+        growth_rate = diff / tempTable.loc[:,t0]
+        growth_rates.loc[:,t1] = growth_rate
     return growth_rates
-    
