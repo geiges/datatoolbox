@@ -2421,7 +2421,7 @@ class IAMC_CMIP6(BaseImportTool):
         
         
         self.setup.LICENCE = ' CC-BY 4.0'
-        self.setup.URL     = '/media/sf_Documents/datashelf_v03/rawdata/IAM_CMIP6/SSP_CMIP6_201811.csv'
+        self.setup.URL     = 'https://tntcat.iiasa.ac.at/SspDb/dsd?Action=htmlpage&page=50'
         
 #        self.setup.VARIABLE_COLUMN_NAME = ['VARIABLE']
 #        self.setup.MODEL_COLUMN_NAME = ['MODEL']
@@ -3496,9 +3496,16 @@ class CRF_DATA(BaseImportTool):
         self.mappingDict['sectors'] ={'IPC0': '7',   #total
                                  'IPC1': '8',   #energy 
                                  'IPC1|Fuel_combustion':'9',
-                                 'IPC1|Fungitive_emissions':'15',
-                                 'IPC1|Transport_and_storage':'18',
-                                 'IPC2|mineral_industry': '20',  #industry and product use
+                                 'IPC1|Fuel_combustion|Energy_industries' : '10',
+                                 'IPC1|Fuel_combustion|Manufacturing&construction':'11',
+                                 'IPC1|Fuel_combustion|Transport':'12',
+                                 'IPC1|Fuel_combustion|Other_sectors': '13',
+                                 'IPC1|Fuel_combustion|Other': '14',
+                                 'IPC1|Fugitive_emissions':'15',
+                                 'IPC1|Fugitive_emissions|Solid':'16',
+                                 'IPC1|Fugitive_emissions|Fluid&gaseous':'17',
+                                 'IPC2': '19',
+                                 'IPC2|Mineral_industry': '20',  #industry and product use
                                  'IPC2|Chemical_industry': '21',  #industry and product use
                                  'IPC2|Metal_industry': '22',  #industry and product use
                                  'IPC4': '48',  #waste
@@ -3509,7 +3516,7 @@ class CRF_DATA(BaseImportTool):
                                  'LULUCF|Cropland': '42',#LULUCF
                                  'LULUCF|Wetlands': '43',#LULUCF
                                  'LULUCF|Settlements': '44',#LULUCF
-                                 'LULUCF|Harversted_wood_products': '46',#LULUCF
+                                 'LULUCF|Harvested_wood_products': '46',#LULUCF
                                  'IPC5': '54' , #Other
                                  'Aviation': '58', #international
                                  'Marine': '59'} #international
@@ -5086,9 +5093,10 @@ if __name__ == '__main__':
 #%% CRF data
     crf_data = CRF_DATA(2020)
     #iea = IEA2016()
-#    tableList = crf_data.gatherMappedData()
-#    crf_data.createSourceMeta()
-#    dt.commitTables(tableList, 'CRF_data_2020', crf_data.meta, update=True)
+    tableList = crf_data.gatherMappedData()
+    crf_data.createSourceMeta()
+    dt.commitTables(tableList, 'CRF_data_2020', crf_data.meta, update=True)
+    sdf
 #%% ADVANCE DB
     advance = ADVANCE_DB()
 #    iea = IEA2016()

@@ -407,7 +407,7 @@ def _res2Excel(resFull, countryList):
                 i = i+1
         
         outDf = outDf.loc[:,~outDf.isnull().all(axis=0)]
-        outDf.to_excel(config.MODULE_PATH + 'extracts/' + coISO + '.xlsx')
+        outDf.to_excel('extract_'+  coISO + '.xlsx')
         
         
     #%%
