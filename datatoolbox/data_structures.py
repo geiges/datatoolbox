@@ -164,7 +164,7 @@ class Datatable(pd.DataFrame):
         dfNew.meta['modified'] = core.getTimeString()
         return dfNew
         
-    def aggregate_to_region(self, mapping):
+    def aggregate_region(self, mapping):
         """ 
         This functions added the aggregates to the table according to the provided
         mapping.( See datatools.mapp.regions)
