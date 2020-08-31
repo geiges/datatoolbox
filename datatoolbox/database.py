@@ -395,22 +395,23 @@ class Database():
     def isConsistentTable(self, datatable):
         
         if not pd.np.issubdtype(datatable.values.dtype, pd.np.number):
-            raise(BaseException('Sorry, data is needed to be numeric'))            
+            
+            raise(BaseException('Sorry, data of table {} is needed to be numeric'.format(datatable)))            
             
         # check that spatial index is consistend with defined countries or regions
         for regionIdx in datatable.index:
             #print(regionIdx + '-')
             if not mapp.regions.exists(regionIdx) and not mapp.countries.exists(regionIdx):
-                raise(BaseException('Sorry, region: ' + regionIdx + ' does not exist'))
+                raise(BaseException('Sorry, region in table {}: ' + regionIdx + ' does not exist'.format(datatable)))
         
         # check that the time colmns are years
         from pandas.api.types import is_integer_dtype
         if not is_integer_dtype(datatable.columns):
-            raise(BaseException('Sorry, year index is not integer'))
+            raise(BaseException('Sorry, year index in table {} is not integer'.format(datatable)))
 
         if sum(datatable.index.duplicated()) > 0:
             print(datatable.meta)
-            raise(BaseException('Sorry, region index is unique'))
+            raise(BaseException('Sorry, region index in table {} is not  unique'.format(datatable)))
         return True
     
 

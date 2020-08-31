@@ -184,7 +184,9 @@ def read_PRIMAP_Excel(fileName, sheet_name= 0, xlsFile=None):
     
     table = Datatable(data, meta=meta)
     try:
+        table = table.loc[:,util.yearsColumnsOnly(table)]
         table.columns = table.columns.astype(int)
+#        table = table.loc[:,util.yearsColumnsOnly(table)]
     except:
         print('warning: Columns could not be converted to int')
     return table
@@ -351,7 +353,7 @@ class ExcelReader():
         if len(self.timeIdxList) >1:
             timeIdx = self.df.iloc[self.timeIdxList[0][0],self.timeIdxList[0][1]:self.timeIdxList[1][1]+1]
             columns = self.df.columns[self.timeIdxList[0][1]:self.timeIdxList[1][1]+1]
-            print(timeIdx)
+#            print(timeIdx)
         else:
             timeIdx = self.df.iloc[self.timeIdxList[0][0],[self.timeIdxList[0][1]]]
             columns = self.df.columns[[self.timeIdxList[0][1]]]
