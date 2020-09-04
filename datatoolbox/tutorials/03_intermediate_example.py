@@ -87,10 +87,12 @@ for category in scenarioCategory.keys():
             table = dt.getTable(tableID) 
             
             # extracting the data for the the region "world" and selected years
-            values = table.loc['World',years] 
+            if 'World' in table.index:
+                avail_years = table.columns.intersection(years)
+                values = table.loc['World',avail_years] 
 
-            #storing the values of the time series in the temporal data set
-            categorizedData[category].loc[scenario] = values
+                #storing the values of the time series in the temporal data set
+                categorizedData[category].loc[scenario] = values
 
           
 #%% Defintion of a plotting function
@@ -105,10 +107,12 @@ def plotSubplot(subplotData, temp, scenarioCategory, color):
             table = dt.getTable(tableID) 
             
             # extracting the data for the the region "world" and selected years
-            values = table.loc['World',years] 
-            
-            # pltting the data using matplotlib
-            h = plt.plot(years, values,color, linewidth=1)
+            if 'World' in table.index:
+                avail_years = table.columns.intersection(years)
+                values = table.loc['World',avail_years] 
+                
+                # pltting the data using matplotlib
+                h = plt.plot(avail_years, values,color, linewidth=1)
         else:
             print(scenario + ' IS NOT AVAILABLE')
 
@@ -144,10 +148,10 @@ plt.legend(['median ' + temp + '°C' for temp in ['>4','<4','<3','<2','<1.5']])
 plt.text(2015,1150,variable)
 
 #%%
-plt.clf()
-plotSubplot((1,1,1), '>4', scenarioCategory, 'black')
-plotSubplot((1,1,1), '4', scenarioCategory, '#DF7358')
-plotSubplot((1,1,1), '3', scenarioCategory, '#E8B162')                        
-plotSubplot((1,1,1), '2', scenarioCategory, '#F0E67F')     
-plotSubplot((1,1,1), '1.5', scenarioCategory, '#B6CC79')     
+#plt.clf()
+#plotSubplot((1,1,1), '>4', scenarioCategory, 'black')
+#plotSubplot((1,1,1), '4', scenarioCategory, '#DF7358')
+#plotSubplot((1,1,1), '3', scenarioCategory, '#E8B162')                        
+#plotSubplot((1,1,1), '2', scenarioCategory, '#F0E67F')     
+#plotSubplot((1,1,1), '1.5', scenarioCategory, '#B6CC79')     
  
