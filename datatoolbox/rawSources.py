@@ -3200,12 +3200,25 @@ class LED_2019(BaseImportTool):
                 ~self.data.index.duplicated(keep='first'),
                 ['model', 'scenario', 'variable', 'unit']
             ]
-            variable_components = meta['variable'].str.split('|')
+
+            variable = (
+                meta['variable']
+                .str.replace(" ", "_")
+                .replace({
+                    "Emissions|Kyoto Gases": "Emissions|KYOTOGHG"
+                })
+            )
+            variable_components = variable.str.split('|')
+            two_component_entity = variable_components.str[0].isin(["Emissions", "GDP"])
+            entity = variable_components.str[:2].str.join('|').where(two_component_entity, variable_components.str[0])
+            category = variable_components.str[2:].str.join('|').where(two_component_entity, variable_components.str[1:].str.join('|'))
+
             self.mapping = (
                 meta.assign(
                     source=self.setup.SOURCE_ID,
-                    entity=variable_components.str[:2].str.join('|'),
-                    category=variable_components.str[2:].str.join('|'),
+                    variable=variable,
+                    entity=entity,
+                    category=category,
                     unit=(
                         # units ['million t DM/yr', 'GW', 'US$2010/kW', 'Mt CO2/yr',
                         #        'billion US$2010/yr', '%', 'Mt BC/yr', 'kt CF4/yr', 'Mt CH4/yr',
