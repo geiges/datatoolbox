@@ -246,8 +246,11 @@ def read_MAGICC6_ScenFile(fileName, **kwargs):
     # TODO: CHange to a results list of datatables
     return entityFrame
 
-def insertDataIntoExcelFile(fileName, overwrite = False, setupSheet = 'INPUT'):
-    ins = ExcelWriter(fileName=fileName, overwrite = overwrite, setupSheet = setupSheet)
+def insertDataIntoExcelFile(fileName, 
+                            overwrite = False, 
+                            setupSheet = 'INPUT',
+                            interpolate = False):
+    ins = ExcelWriter(fileName=fileName, overwrite = overwrite, setupSheet = setupSheet, interpolate=interpolate)
     ins.insert_data()
     ins.close()
     return ins
@@ -645,7 +648,11 @@ class ExcelWriter():
     More complex excel interface
     Author: Andreas Geiges
     """
-    def __init__(self, setup=None, fileName=None, overwrite=False, setupSheet = 'INPUT'):
+    def __init__(self, setup=None, 
+                 fileName=None, 
+                 overwrite=False, 
+                 setupSheet = 'INPUT',
+                 interpolate=False):
         self.overwrite = overwrite # overwriting values
         self.setupSheet= setupSheet
         if setup:
@@ -656,7 +663,7 @@ class ExcelWriter():
             self.setup['fileName'] = fileName
             fileSetup = False
     
-
+        self.interpolate = interpolate
     
     def close(self):
         self.wb.close()
@@ -765,7 +772,14 @@ class ExcelWriter():
                  for tableKey in tables.keys():
                      table = tables[tableKey]
                      tables[tableKey]= table.convert(setup['unit'])
-            
+                     
+            if self.interpolate:
+                 for tableKey in tables.keys():
+                     for col in list(range(tables[tableKey].columns.min(),tables[tableKey].columns.max()+1)):
+                         if col not in tables[tableKey].columns:
+                             tables[tableKey].loc[:,col] = np.nan
+                     tables[tableKey] = tables[tableKey].interpolate()    
+                     
 #            wksSheet = load_workbook(setup['fileName'], data_only=True)[setup['sheetName']]
             
             args =  [None, None, None, None, None]
