@@ -10,7 +10,20 @@ import datatoolbox as dt
 import numpy.testing as npt
 import numpy as np
 
-from util import df1, df3
+from util import df1
+
+
+data = np.asarray([[1,2.2,3,4,5 ],
+                   [1, np.nan, 4, np.nan, np.nan],
+                   [1.3, np.nan, np.nan, np.nan, np.nan],
+                   [np.nan, 3.4, 2.4, 3.2, np.nan]])
+df3 =   df = dt.Datatable(data, 
+                  columns = [2010, 2012, 2013, 2015, 2014], 
+                  index = ['ARG', 'DEU', 'FRA', 'GBR'],
+                  meta={'entity' : 'Emissions|CO2',
+                       'scenario' : 'Historic',
+                       'source' : 'XYZ_2020',
+                       'unit' : 'm'}, )
 
 def test_interpolation():
     from datatoolbox.tools.for_datatables import interpolate
