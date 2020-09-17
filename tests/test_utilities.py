@@ -26,7 +26,7 @@ import os
 #def test_graph_integration():
 #    dt.find(entity = 'Area', source='WDI').graph()
 
-if __name__ == '__main__':
-    test_create_graph_basic()
-    test_graph_from_search()
-    test_graph_integration()
+#if __name__ == '__main__':
+#    test_create_graph_basic()
+#    test_graph_from_search()
+#    test_graph_integration()
