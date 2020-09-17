@@ -52,7 +52,8 @@ def main():
             "fuzzywuzzy",
             "tqdm",
             "pyam-iamc",
-            "openpyxl"],
+            "openpyxl",
+	    "xarray"],
         }
     rtn = setup(**setup_kwargs)
 
