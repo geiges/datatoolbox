@@ -11,7 +11,7 @@ toolbox for datatables
 from copy import copy
 import numpy as np
 #from . import config
-
+import datatoolbox as dt
 
 def interpolate(datatable, method="linear"):
     
@@ -74,6 +74,32 @@ def growth_rate(datatable):
 #    return growth_rates
     
 
+def composite_dataframe(tablePrioryList):
+    
+    newColumns = set()
+    newIndex   = set()
+    for table in tablePrioryList:
+        newColumns = newColumns.union(table.columns)
+        newIndex = newIndex.union(table.index)
+        
+    newTable = dt.Datatable(data=None, columns = newColumns, index = newIndex)
+    
+    metaCollection = dict()
+    for table in tablePrioryList:
+        newTable= newTable.combine_first(table)
+        
+        for key in table.meta.keys():
+            if key not in metaCollection.keys():
+                metaCollection[key] = set()
+                
+            metaCollection[key] = metaCollection[key].union([table.meta[key]])
+    
+    for key in metaCollection.keys():
+        if len(metaCollection[key]) ==1:
+            newTable.meta[key] = list(metaCollection[key])[0]
+        else:
+            newTable.meta[key] = 'merged - meta quantity'
+    return newTable
 #%%
     
 #t0 = tempTable.loc[:,years[1:]]
