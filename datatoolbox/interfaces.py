@@ -10,7 +10,7 @@ from .data_structures import Datatable, TableSet
 from . import config
 import os
 import pandas as pd
-from .tools import xarray
+from . import core
 
 class _MAGGIC6():
     def read_MAGICC6_ScenFile(fileName, **kwargs):
@@ -350,7 +350,7 @@ class Excel():
             #%%
 class _Xarray():
 
-    to_Xarray = xarray.to_XDataArray
+    to_Xarray = core.to_XDataArray
         
     
     

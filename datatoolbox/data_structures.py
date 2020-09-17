@@ -16,7 +16,7 @@ from . import config
 from . import mapping as mapp
 from . import util
 #from . import io_tools
-from .tools import xarray
+#from .tools import xarray
             
 class Datatable(pd.DataFrame):
     
