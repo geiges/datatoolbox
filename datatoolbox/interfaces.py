@@ -10,6 +10,7 @@ from .data_structures import Datatable, TableSet
 from . import config
 import os
 import pandas as pd
+from .tools import xarray
 
 class _MAGGIC6():
     def read_MAGICC6_ScenFile(fileName, **kwargs):
@@ -346,8 +347,13 @@ class Excel():
             os.system('libreoffice ' + filePath )
         elif config.OS == 'Darwin':
             os.system('open -a "Microsoft Excel" ' + filePath )
-        #%%
+            #%%
+class _Xarray():
 
+    to_Xarray = xarray.to_XDataArray
+        
+    
+    
 def read_IAMC_table(iamcData, relationList):
     import datatoolbox as dt
     import pandas as pd
@@ -442,6 +448,11 @@ def read_long_table(longDf, relationList):
 
 matlab = _matlab()
 emission_module = _EmissionModulePIK()
+if config.AVAILABLE_XARRAY:
+    xarray = _Xarray()
+
+
+
 
 
 if __name__ == '__main__':

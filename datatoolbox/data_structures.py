@@ -16,6 +16,7 @@ from . import config
 from . import mapping as mapp
 from . import util
 #from . import io_tools
+from .tools import xarray
             
 class Datatable(pd.DataFrame):
     
@@ -174,9 +175,14 @@ class Datatable(pd.DataFrame):
         from datatoolbox.tools.for_datatables import aggregate_region
         return aggregate_region(self, mapping)
     
-    def interpolate(self, method="linear"):
+    def interpolate(self, method="linear", add_missing_years=False):
         from datatoolbox.tools.for_datatables import interpolate
         
+        if add_missing_years:
+            for col in list(range(self.columns.min(),self.columns.max()+1)):
+                if col not in self.columns:
+                    self.loc[:,col] = np.nan
+            self = self.loc[:,list(range(self.columns.min(),self.columns.max()+1))]
         return interpolate(self, method)
     
     def clean(self):
@@ -404,7 +410,16 @@ class TableSet(dict):
         if IDList is not None:
             for tableID in IDList:
                 self.add(core.DB.getTable(tableID))
-    
+        
+        
+#        if config.AVAILABLE_XARRAY:
+#           self.to_Xarray = self._to_Xarray         
+            
+    def to_xarray(self, dimensions):
+        if not config.AVAILABLE_XARRAY:
+            raise(BaseException('xarray not available'))
+        return xarray.to_XDataArray(self, dimensions)
+        
     def __iter__(self):
         return iter(self.values())
     
@@ -677,6 +692,9 @@ class TableSet(dict):
         plt.yticks([x +.5 for x in range(len(avail.index))], avail.index)
         plt.xticks([x +.5 for x in range(len(avail.columns))], avail.columns, rotation=45)
 
+
+
+
 #table = dt.getTable(dt.inventory().index[0])
 #table2 = dt.getTable(dt.inventory().index[1])
 #tableset = TableSet()
@@ -916,17 +934,39 @@ def read_csv(fileName):
 
 def read_excel(fileName, sheetNames = None):
  
-    out = TableSet()
+    
     if sheetNames is None:
         xlFile = pd.ExcelFile(fileName)
         sheetNames = xlFile.sheet_names
         xlFile.close()
 
+    if len(sheetNames) > 1:
+        out = TableSet()
+        for sheet in sheetNames:
+            fileContent = pd.read_excel(fileName, sheet_name=sheet, header=None)
+            metaDict = dict()
+            try:
+                for idx in fileContent.index:
+                    key, value = fileContent.loc[idx, [0,1]]
+                    if key == '###DATA###':
+                        break
+                    
+                    metaDict[key] = value
+                columnIdx = idx +1
+                dataTable = Datatable(data    = fileContent.loc[columnIdx+1:, 1:].astype(float).values, 
+                                      index   = fileContent.loc[columnIdx+1:, 0], 
+                                      columns = [int(x) for x in fileContent.loc[columnIdx, 1:]], 
+                                      meta    = metaDict)
+                dataTable.generateTableID()
+                out.add(dataTable)
+            except:
+                print('Failed to read the sheet: {}'.format(sheet))
         
-    for sheet in sheetNames:
+    else:
+        sheet = sheetNames[0]
         fileContent = pd.read_excel(fileName, sheet_name=sheet, header=None)
         metaDict = dict()
-        try:
+        if True:
             for idx in fileContent.index:
                 key, value = fileContent.loc[idx, [0,1]]
                 if key == '###DATA###':
@@ -939,9 +979,9 @@ def read_excel(fileName, sheetNames = None):
                                   columns = [int(x) for x in fileContent.loc[columnIdx, 1:]], 
                                   meta    = metaDict)
             dataTable.generateTableID()
-            out.add(dataTable)
-        except:
-            print('Failed to read the sheet: {}'.format(sheet))
+            out = dataTable
+#        except:
+#                print('Failed to read the sheet: {}'.format(sheet))
         
     return out
 #%%
