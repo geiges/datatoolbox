@@ -212,6 +212,14 @@ def convertToCO2eq(dataTable, context = 'GWP100_AR5'):
     
     return outTable
 
+def isUnit(unit):
+    try:
+        core.getUnit(unit)
+    except:
+        return False
+    else:
+        return True
+
 def scatterIndicatorComparison(tableX, tableY):
     timeCol = list(set(tableY.columns).intersection(set(tableX.columns)))
     for ISOcode in tableX.index:
