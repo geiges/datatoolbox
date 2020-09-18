@@ -418,7 +418,7 @@ class TableSet(dict):
     def to_xarray(self, dimensions):
         if not config.AVAILABLE_XARRAY:
             raise(BaseException('xarray not available'))
-        return xarray.to_XDataArray(self, dimensions)
+        return core.to_XDataArray(self, dimensions)
         
     def __iter__(self):
         return iter(self.values())

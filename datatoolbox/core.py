@@ -46,51 +46,52 @@ def to_XDataArray(tableSet, dimensions = ['region', 'year', 'pathway']):
     #%%
 #    dimensions = ['region', 'year', 'scenario', 'model']
     
-        fullIdx = dict()
+    fullIdx = dict()
+    for dim in dimensions:
+        fullIdx[dim] = set()
+
+    for table in tableSet:
+        
         for dim in dimensions:
-            fullIdx[dim] = set()
+            if dim == 'region':
+                fullIdx[dim] = fullIdx[dim].union(table.index)
+            elif dim == 'year':
+                fullIdx[dim] = fullIdx[dim].union(table.columns)
+            elif dim in table.meta.keys():
+                fullIdx[dim].add(table.meta[dim])
+            else:
+                raise(BaseException('Dimension not available'))
+
+    dimSize = [len(fullIdx[x]) for x in dimensions]
+    dimList = [sorted(list(fullIdx[x])) for x in dimensions]
+    xData =  xr.DataArray(np.zeros(dimSize)*np.nan, coords=dimList, dims=dimensions)
     
-        for table in tableSet:
-            
-            for dim in dimensions:
-                if dim == 'region':
-                    fullIdx[dim] = fullIdx[dim].union(table.index)
-                elif dim == 'year':
-                    fullIdx[dim] = fullIdx[dim].union(table.columns)
-                elif dim in table.meta.keys():
-                    fullIdx[dim].add(table.meta[dim])
-                else:
-                    raise(BaseException('Dimension not available'))
     
-        dimSize = [len(fullIdx[x]) for x in dimensions]
-        dimList = [sorted(list(fullIdx[x])) for x in dimensions]
-        xData =  xr.DataArray(np.zeros(dimSize)*np.nan, coords=dimList, dims=dimensions)
+    metaCollection = dict()
+    for table in tableSet:
         
+        indexTuple = list()
+        for dim in dimensions:
+            if dim == 'region':
+                indexTuple.append(list(table.index))
+            elif dim == 'year':
+                indexTuple.append(list(table.columns))
+            else:
+                indexTuple.append(table.meta[dim])
+                
+#        xx = (table.index,table.columns,table.meta['pathway'])
+        xData.loc[tuple(indexTuple)] = table.values
         
-        metaCollection = dict()
-        for table in tableSet:
-            
-            indexTuple = list()
-            for dim in dimensions:
-                if dim == 'region':
-                    indexTuple.append(list(table.index))
-                elif dim == 'year':
-                    indexTuple.append(list(table.columns))
-                else:
-                    indexTuple.append(table.meta[dim])
-                    
-    #        xx = (table.index,table.columns,table.meta['pathway'])
-            xData.loc[tuple(indexTuple)] = table.values
-            
-            for key in table.meta.keys():
-                if key not in metaCollection.keys():
-                    metaCollection[key] = set()
-                    
-                metaCollection[key] = metaCollection[key].union([table.meta[key]])
-        
-        # only implemented for homgeneous physical units
-        assert len(metaCollection['unit']) == 1
-        xData.attrs['unit'] = list(metaCollection['unit'])[0]    
+        for key in table.meta.keys():
+            if key not in metaCollection.keys():
+                metaCollection[key] = set()
+                
+            metaCollection[key] = metaCollection[key].union([table.meta[key]])
+    
+    # only implemented for homgeneous physical units
+    assert len(metaCollection['unit']) == 1
+    xData.attrs['unit'] = list(metaCollection['unit'])[0]   
+    return xData
 #%%
 
 c = pint.Context('GWP_AR5')
