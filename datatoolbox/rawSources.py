@@ -184,9 +184,9 @@ class WDI_2020(BaseImportTool):
 
         self.setup = setupStruct()
         
-        self.setup.SOURCE_ID    = "WDI_2020"
+        self.setup.SOURCE_ID    = "WDI_2020b"
         self.setup.SOURCE_NAME    = "WDI"
-        self.setup.SOURCE_YEAR    = "2020"
+        self.setup.SOURCE_YEAR    = "2020b"
         self.setup.SOURCE_PATH  = os.path.join(config.PATH_TO_DATASHELF, 'rawdata', self.setup.SOURCE_ID)
         self.setup.DATA_FILE    = 'WDIData.csv'
         self.setup.MAPPING_FILE = os.path.join(self.setup.SOURCE_PATH, 'mapping.xlsx')
@@ -5401,10 +5401,10 @@ if __name__ == '__main__':
 #%% CRF data
     crf_data = CRF_DATA(2020)
     #iea = IEA2016()
-    tableList = crf_data.gatherMappedData()
-    crf_data.createSourceMeta()
-    dt.commitTables(tableList, 'CRF_data_2020', crf_data.meta, update=True)
-    sdf
+#    tableList = crf_data.gatherMappedData()
+#    crf_data.createSourceMeta()
+#    dt.commitTables(tableList, 'CRF_data_2020', crf_data.meta, update=True)
+#    sdf
 #%% ADVANCE DB
     advance = ADVANCE_DB()
 #    iea = IEA2016()
@@ -5413,10 +5413,10 @@ if __name__ == '__main__':
 #%%WDI data
     wdi = WDI_2020()    
 #    tableList = wdi.gatherMappedData(updateTables=True)
-    
-#    iea.openMappingFile()
+#    
+##    iea.openMappingFile()
 #    dt.commitTables(tableList, 'Added WDI 2020  data', wdi.meta, update=True)
-    
+#    sdf
 #%%IEA data
     iea19 = IEA_WEB_2019_New()
 #    iea19.createVariableMapping()
