@@ -7,7 +7,7 @@ Created on Fri Mar 22 14:55:32 2019
 """
 
 import pandas as pd
-import os 
+import os
 import git
 import tqdm
 import time
@@ -15,6 +15,8 @@ import copy
 import types
 from collections import defaultdict
 from pathlib import Path
+from dataclasses import dataclass
+from typing import Dict, Optional, Mapping, Union
 
 from . import config
 from .data_structures import Datatable, TableSet, read_csv
@@ -23,6 +25,107 @@ from . import mapping as mapp
 from . import io_tools as io
 from . import util
 from . import core
+
+
+class DatatoolboxException(Exception):
+    pass
+
+
+class Source:
+    pass
+
+
+@dataclass
+class Inventory:
+    data: pd.DataFrame
+    sources: Dict[str, Source]
+
+    @classmethod
+    def from_datashelf(cls, path: Union[str, os.PathLike, None] = None) -> Inventory:
+        datashelf = DatashelfRepository(path)
+        return cls.from_sources(datashelf.sources())
+
+        path = Path(path)
+
+        return cls.from_sources(sources)
+
+    @classmethod
+    def from_sources(cls, sources: Mapping[Source]) -> Inventory:
+        data = pd.concat(
+            (
+                source.inventory.assign(source=name)
+                for name, source in sources.items()
+            ),
+            sort=False
+        )
+
+        return cls(data, dict(sources))
+
+    def reload_inventory(self) -> None:
+        self.data = pd.concat(
+            (
+                source.inventory.assign(source=name)
+                for name, source in sources.items()
+            ),
+            sort=False
+        )
+
+    def update_sources(self, *sources: Union[str, Source]) -> None:
+        if len(sources) == 0:
+            sources = list(self.sources.values())
+
+        source_names = []
+        source_objs = []
+        for source in sources:
+            if isinstance(source, str):
+                source = self.sources[source]
+
+            source.update()
+            source_objs.append(source)
+            source_names.append(source.name)
+
+        self.data = pd.concat(
+            [self.data.loc[~self.data.source.isin(source_names)]] +
+            [source.inventory for source in source_objs],
+            sort=False
+        )
+
+    def add_source(self, source: Source) -> None:
+        self.sources[source.name] = source
+        self.data.append(
+            source.inventory.assign(source=source.name),
+            inplace=True, sort=False
+        )
+
+    def remove_source(self, source: Union[str, Source]) -> None:
+        if isinstance(source, Source):
+            source = source.name
+
+        source.remove()
+
+        self.data = self.data.loc[self.data.source != source]
+        del self.sources[source]
+
+    def info(self):
+        print('######## Database informations: #############')
+        print('Number of tables: {}'.format(len(self.data)))
+        print('Number of data sources: {}'.format(len(self.sources)))
+        print('#############################################')
+
+    def source_info(self):
+        return pd.DataFrame([s.meta for s in self.sources]).sort_index()
+
+    def filter(self, /, regex: bool = False, **filters) -> Inventory:
+
+        data = self.data
+        # ...
+
+        # create shallow copies
+        return Inventory(
+            pd.DataFrame(data),
+            dict(self.sources)
+        )
+
 
 class Database():
     
@@ -47,21 +150,6 @@ class Database():
     def _validateRepository(self, repoID='main'):
         return self.gitManager._validateRepository(repoID)
     
-    def info(self):
-        #%%
-        print('######## Database informations: #############')
-        print('Number of tables: {}'.format(len(self.inventory)))  
-        print('Number of data sources: {}'.format(len(self.gitManager.sources))) 
-        print('Number of commits: {}'.format(self.gitManager['main'].git.rev_list("--all", "--count")))
-#        root_directory = Path(config.PATH_TO_DATASHELF)
-#        print('Size of datashelf: {:2.2f} MB'.format(sum(f.stat().st_size for f in root_directory.glob('**/*') if f.is_file() )/1e6))
-#        root_directory = Path(os.path.join(config.PATH_TO_DATASHELF, 'rawdata'))
-#        print('Size of raw_data: {:2.2f} MB'.format(sum(f.stat().st_size for f in root_directory.glob('**/*') if f.is_file() )/1e6))
-        print('#############################################')
-        #%%
-    def sourceInfo(self):
-        sources = copy.copy(self.gitManager.sources)
-        return sources.sort_index()
 
     def returnInventory(self):
         return copy.copy(self.inventory)
@@ -562,29 +650,72 @@ class Database():
         self.gitManager.create_remote_repo(sourceID)
         self.gitManager.push_to_remote_datashelf(sourceID)
         print('export successful: ({})'.format( config.DATASHELF_REMOTE +  sourceID))
-        
+
+
 
 #%%
-class GitRepository_Manager:
+@dataclass
+class GitRepositorySource(Source):
     """
     # Management of git repositories for fast access
     """
-    def __init__(self, config):
-        self.PATH_TO_DATASHELF = config.PATH_TO_DATASHELF
-        self.sources = pd.read_csv(config.SOURCE_FILE, index_col='SOURCE_ID')
-        
-        self.repositories = dict()
-        self.updatedRepos = set()
-        self.validatedRepos = set()
-        self.filesToAdd   = defaultdict(list)
+    repo: git.Repo
+    inventory: pd.DataFrame
+    is_clean: bool = False
 
-        for sourceID in self.sources.index:
-            repoPath = os.path.join(self.PATH_TO_DATASHELF,  'database', sourceID)
-            self.repositories[sourceID] = git.Repo(repoPath)
-            self.verifyGitHash(sourceID)
-        
-        self.repositories['main'] = git.Repo(self.PATH_TO_DATASHELF)
-        self._validateRepository('main')
+    @classmethod
+    def from_repo(cls, repo: git.Repo) -> GitRepositorySource:
+        inventory = pd.read_csv(str(Path(path) / "source_inventory.csv"), index_col=0, dtype={'source_year': str})
+        return cls(repo, inventory)
+
+    @classmethod
+    def from_path(cls, path: Union[str, os.PathLike]) -> GitRepositorySource:
+        return cls.from_repo(git.Repo(path))
+    
+    @classmethod
+    def clone_from_remote(cls, name: str, path: Union[str, os.PathLike, None] = None) -> GitRepositorySource:
+        if path is None:
+            path = Path(config.PATH_TO_DATASHELF) / 'database' / name
+
+        url = config.DATASHELF_REMOTE + name + '.git'
+        repo = git.Repo.clone_from(url=url, to_path=path, progress=TqdmProgressPrinter())  
+
+        return cls.from_repo(repo)
+
+    @classmethod
+    def init(cls, name: str, meta: Mapping[str, str], path: Union[str, os.PathLike, None] = None) -> GitRepositorySource:
+        if path is None:
+            path = Path(config.PATH_TO_DATASHELF) / 'database' / name
+        else:
+            path = Path(path)
+
+        print(f'creating folder {path}')
+        path.mkdir(parents=True, exist_ok=True)
+        repo = git.Repo.init(path)
+
+        for folder in config.SOURCE_SUB_FOLDERS:
+            sub_path = path / folder
+            sub_path.mkdir(exist_ok=True)
+            gitkeep = sub_path / '.gitkeep'
+            gitkeep.touch()
+            repo.index.add(gitkeep)
+
+        meta_path = path / 'meta.csv'
+        util.dict_to_csv(meta, meta_path)
+        repo.index.add(meta_path)
+
+        inventory_path = path / "source_inventory.csv"
+        inventory = pd.DataFrame(columns=config.INVENTORY_FIELDS)
+        inventory.to_csv(inventory_path)
+        repo.index.add(inventory_path)
+
+        repo.index.commit('added source: ' + name)
+
+        return cls(repo, inventory)
+
+    def check_clean(self) -> bool:
+        is_clean = self.is_clean = not self.repo.is_dirty()
+        return is_clean
 
     def __getitem__(self, sourceID):
         """ 
@@ -610,29 +741,6 @@ class GitRepository_Manager:
         self.validatedRepos.add(sourceID)
         return True
         
-    def init_new_repo(self, repoPath, repoID, sourceMetaDict):
-        self.sources.loc[repoID] = pd.Series(sourceMetaDict)
-        self.sources.to_csv(config.SOURCE_FILE)
-        self.gitAddFile('main', config.SOURCE_FILE)
-
-        repoPath = Path(repoPath)
-        print(f'creating folder {repoPath}')
-        repoPath.mkdir(parents=True, exist_ok=True)
-        self.repositories[repoID] = git.Repo.init(repoPath)
-
-        for subFolder in config.SOURCE_SUB_FOLDERS:
-            subPath = repoPath / subFolder
-            subPath.mkdir(exist_ok=True)
-            filePath = subPath / '.gitkeep'
-            filePath.touch()
-            self.gitAddFile(repoID, filePath)
-
-        metaFilePath = repoPath / 'meta.csv'
-        util.dict_to_csv(sourceMetaDict, metaFilePath)
-        self.gitAddFile(repoID, metaFilePath)
-
-        self.commit('added source: ' + repoID)
-
     def gitAddFile(self, repoName, filePath, addToGit=True):
         if config.DEBUG:
             print('Added file {} to repo: {}'.format(filePath,repoName))
@@ -683,7 +791,7 @@ class GitRepository_Manager:
         origin.fetch()
 
         repo.heads.master.set_tracking_branch(origin.refs.master)
-        origin.push(repo.heads.master)
+        origin.push(repo.heads.master, progress=TqdmProgressPrinter())
     
     def push_to_remote_datashelf(self, repoName):
         """
