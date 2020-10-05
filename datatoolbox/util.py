@@ -987,5 +987,40 @@ if __name__ == '__main__':
         return table
 
     outputTables, success = forAll(calculateTotalBiomass, "scenario")
+
+
+def pattern_match(data: pd.Series, values, level=None, regexp=False, has_nan=False):
+    """Return list where data matches values
+
+    The function matches model/scenario names, variables, regions
+    and meta columns to pseudo-regex (if not `regexp`)
+    for filtering (str, int, bool)
+    """
+    matches = np.zeros(len(data), dtype=bool)
+
+    if not isinstance(values, Iterable) or isinstance(values, str):
+        values = [values]
+
+    for s in values:
+        if isinstance(s, str):
+            depth = True if level is None else data.str.count(r"\|") == level
+            pattern = _escape_regexp(s) + '$' if not regexp else s
+            matches |= data.str.match(pattern, na=False) & depth
+        else:
+            matches |= data == s
+
+    return matches
     
-    
+def _escape_regexp(s):
+    """Escape characters with specific regexp use"""
+    return (
+        str(s)
+        .replace('|', r'\|')
+        .replace('.', r'\.')  # `.` has to be replaced before `*`
+        .replace('**', r'.*')
+        .replace('*', r'[^|]*')
+        .replace('+', r'\+')
+        .replace('(', r'\(')
+        .replace(')', r'\)')
+        .replace('$', r'\$')
+    )

@@ -7,6 +7,7 @@ Created on Fri Mar 22 14:55:32 2019
 """
 
 import pandas as pd
+import numpy as np
 import os
 import git
 import tqdm
@@ -36,75 +37,69 @@ class Source:
 
 
 @dataclass
-class Inventory:
-    data: pd.DataFrame
-    sources: Dict[str, Source]
+class Database(Inventory):
+    """Mutable inventory
+    """
+    datashelf: DatashelfRepository
 
     @classmethod
-    def from_datashelf(cls, path: Union[str, os.PathLike, None] = None) -> Inventory:
+    def from_datashelf(cls, path: Union[str, os.PathLike, None] = None) -> Database:
         datashelf = DatashelfRepository(path)
-        return cls.from_sources(datashelf.sources())
+        return cls.from_sources(datashelf.sources(), datashelf=datashelf)
 
-        path = Path(path)
-
-        return cls.from_sources(sources)
-
-    @classmethod
-    def from_sources(cls, sources: Mapping[Source]) -> Inventory:
-        data = pd.concat(
-            (
-                source.inventory.assign(source=name)
-                for name, source in sources.items()
-            ),
-            sort=False
-        )
-
-        return cls(data, dict(sources))
-
-    def reload_inventory(self) -> None:
-        self.data = pd.concat(
-            (
-                source.inventory.assign(source=name)
-                for name, source in sources.items()
-            ),
-            sort=False
-        )
+    def reload_inventory(self, recurse=False) -> None:
+        if recurse:
+            for source in self.sources.values():
+                source.reload_inventory()
+        self.data = self.collect_inventory(self.sources)
 
     def update_sources(self, *sources: Union[str, Source]) -> None:
         if len(sources) == 0:
             sources = list(self.sources.values())
 
-        source_names = []
-        source_objs = []
         for source in sources:
             if isinstance(source, str):
                 source = self.sources[source]
-
             source.update()
-            source_objs.append(source)
-            source_names.append(source.name)
 
-        self.data = pd.concat(
-            [self.data.loc[~self.data.source.isin(source_names)]] +
-            [source.inventory for source in source_objs],
-            sort=False
-        )
+        self.reload_inventory()
 
     def add_source(self, source: Source) -> None:
         self.sources[source.name] = source
-        self.data.append(
-            source.inventory.assign(source=source.name),
-            inplace=True, sort=False
-        )
+        self.reload_inventory()
 
     def remove_source(self, source: Union[str, Source]) -> None:
-        if isinstance(source, Source):
-            source = source.name
+        if isinstance(source, str):
+            source = self.sources[source]
 
         source.remove()
 
-        self.data = self.data.loc[self.data.source != source]
-        del self.sources[source]
+        del self.sources[source.name]
+        self.reload_inventory()
+
+
+@dataclass
+class Inventory:
+    data: pd.DataFrame
+    sources: Dict[str, Source]
+
+    @classmethod
+    def from_sources(cls, sources: Mapping[str, Source], **fields) -> Inventory:
+        return cls(
+            data=cls.collect_inventory(sources),
+            sources=dict(sources),
+            **fields
+        )
+
+    @staticmethod
+    def collect_inventory(sources: Mapping[str, Source]) -> pd.DataFrame:
+        return pd.concat(
+            (
+                source.inventory.assign(source=name)
+                for name, source in sources.items()
+            ),
+            sort=False
+        )
 
     def info(self):
         print('######## Database informations: #############')
@@ -115,15 +110,49 @@ class Inventory:
     def source_info(self):
         return pd.DataFrame([s.meta for s in self.sources]).sort_index()
 
-    def filter(self, /, regex: bool = False, **filters) -> Inventory:
-
+    def filter(
+        self, /, regex: bool = False, level: Optional[int] = None, **filters
+    ) -> Inventory:
         data = self.data
-        # ...
+
+        matches = np.zeros(len(data), dtype=bool)
+        for field, pattern in filters.items():
+            if field == 'variable':
+                matches &= util.pattern_match(
+                    data['variable'], pattern, level=level, regex=regex
+                )
+            else:
+                matches &= util.pattern_match(data[field], pattern, regex=regex)
+
+        if level is not None and 'variable' not in filters:
+            matches &= data['variable'].str.count(r"\|") == level
 
         # create shallow copies
-        return Inventory(
-            pd.DataFrame(data),
-            dict(self.sources)
+        return Inventory(pd.DataFrame(data.loc[matches]), dict(self.sources))
+
+    def plot(self, savefig_path=None):
+        return plot_query_as_graph(self.data, savefig_path=savefig_path)
+
+    def __str__(self):
+        return (
+            "=== Datashelf inventory ===\n" +
+            (
+                self.data
+                .reset_index(drop=True)
+                [["model", "scenario", "variable", "unit", "source"]]
+                .__str__()
+            )
+        )
+
+    def _repr_html_(self):
+        return (
+            "=== Datashelf inventory ===<br/>\n" +
+            (
+                self.data
+                .reset_index(drop=True)
+                [["model", "scenario", "variable", "unit", "source"]]
+                ._repr_html_()
+            )
         )
 
 
@@ -741,30 +770,11 @@ class GitRepositorySource(Source):
         self.validatedRepos.add(sourceID)
         return True
         
-    def gitAddFile(self, repoName, filePath, addToGit=True):
-        if config.DEBUG:
-            print('Added file {} to repo: {}'.format(filePath,repoName))
-        
-        self.filesToAdd[repoName].append(str(filePath))
-        self.updatedRepos.add(repoName)
-        
-    def gitRemoveFile(self, repoName, filePath):
-        if config.DEBUG:
-            print('Removed file {} to repo: {}'.format(filePath,repoName))
-        self[repoName].index.remove(filePath, working_tree=True)
-        self.updatedRepos.add(repoName)
-    
-    def _gitUpdateFile(self, repoName, filePath):
-        pass
-        
     def commit(self, message):
-        if 'main' in self.updatedRepos:
-            self.updatedRepos.remove('main')
+        repo = self.repo
+        repo.index.add(self.filesToAdd[repoID])
+        commit = repo.index.commit(message + " by " + config.CRUNCHER)
 
-        for repoID in self.updatedRepos:
-            repo = self.repositories[repoID]
-            repo.index.add(self.filesToAdd[repoID])
-            commit = repo.index.commit(message + " by " + config.CRUNCHER)
             self.sources.loc[repoID, 'git_commit_hash'] = commit.hexsha
             del self.filesToAdd[repoID]
         
