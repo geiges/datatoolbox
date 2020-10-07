@@ -6,7 +6,9 @@ Created on Wed May  8 11:25:15 2019
 @author: Andreas Geiges
 """
 import pandas as pd
-import numpy  as np
+import numpy as np
+from typing import Union, Iterable, Optional
+
 import datatoolbox as dt
 from datatoolbox import mapping as mapp
 from datatoolbox import core
@@ -953,7 +955,63 @@ def plotTables(tableList, countryList):
             plt.plot(table.columns, table.loc[coISO,:].T, color =coList[i] )
     plt.legend(countryList)
     plt.title(table.ID)
+
+
+def pattern_match(
+    data: pd.Series,
+    patterns: Union[str, Iterable[str]],
+    regex : bool = False
+):
+    """Find matches in `data` for a list of shell-style `patterns`
+
+    Arguments
+    ---------
+    data : pd.Series
+        Series of data to match against
+    patterns : Union[str, Iterable[str]]
+        One or multiple patterns, which are OR'd together
+    regex : bool, optional
+        Accept plain regex syntax instead of shell-style, default: False
     
+    Returns
+    -------
+    matches : pd.Series
+        Mask for selecting matched rows
+    """
+
+    if not isinstance(patterns, Iterable) or isinstance(patterns, str):
+        patterns = [patterns]
+    elif not patterns:
+        raise ValueError("pattern list may not be empty")
+
+    matches = False
+    for pat in patterns:
+        if isinstance(pat, str):
+            if not regex:
+                pat = shell_pattern_to_regex(pat) + '$'
+            matches |= data.str.match(pat, na=False)
+        else:
+            matches |= data == pat
+
+    return matches
+
+
+def shell_pattern_to_regex(s):
+    """Escape characters with specific regexp use"""
+    return (
+        str(s)
+        .replace('|', r'\|')
+        .replace('.', r'\.')  # `.` has to be replaced before `*`
+        .replace('**', '__starstar__') # temporarily __starstar__
+        .replace('*', r'[^|]*')
+        .replace('__starstar__', r'.*')
+        .replace('+', r'\+')
+        .replace('(', r'\(')
+        .replace(')', r'\)')
+        .replace('$', r'\$')
+    )
+
+
 #%%    
 if __name__ == '__main__':
     #%%
