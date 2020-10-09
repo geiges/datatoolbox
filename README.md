@@ -9,6 +9,7 @@ This is a python tool box project for handling global datasets. It contains the 
 
 Authors:
 Andreas Geiges  
+Jonas Hörsch
 Gaurav Ganti
 
 Dependencies
