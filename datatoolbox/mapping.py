@@ -336,6 +336,13 @@ def nameOfCountry(coISO):
         return coISO
 
 def add_new_special_regions(regionList):
+    """
+    This function allows to add special regions to the  list of valid regions 
+    to allows for special exceptions if needed. 
+    
+    If needed, adding this new regions must be done after each new import of 
+    datatoolbox since the changes are not permanent.
+    """
     for region in regionList:
         if region not in special_regions:
             special_regions.append(region)
