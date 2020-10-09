@@ -13,7 +13,10 @@ import pandas as pd
 from . import config as conf
 #from hdx.location.country import Country
 #from datatools import core
-   
+
+
+special_regions = list()   
+
 class RegionMapping:
     
     def __init__(self, mappingFolder = None):
@@ -306,7 +309,7 @@ def getMembersOfRegion(context, regionID):
     return regions.__getattribute__(context).membersOf(regionID)
 
 def getValidSpatialIDs():
-    return regions.validIDs + countries.countries
+    return regions.validIDs + countries.countries + special_regions
     
 def getSpatialID(descriptor):
     """
@@ -331,6 +334,11 @@ def nameOfCountry(coISO):
         return countries.codes.loc[coISO,'name']
     except:
         return coISO
+
+def add_new_special_regions(regionList):
+    for region in regionList:
+        if region not in special_regions:
+            special_regions.append(region)
     
 if __name__ == '__main__':
 
