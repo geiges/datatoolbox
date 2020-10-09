@@ -25,7 +25,7 @@ def main():
             'data/SANDBOX_datashelf/*',
             'data/SANDBOX_datashelf/mappings/*',
             'tools/*',
-            'tutorials/*',
+            'tutorials/*.py',
             'pint_definitions.txt']}
     with open('README.md', encoding='utf-8') as f:
         long_description = f.read()
