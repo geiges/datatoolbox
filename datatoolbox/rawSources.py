@@ -2010,7 +2010,7 @@ class AR5_DATABASE(BaseImportTool):
                     
                     for key in [ 'category', 'unit']:
                         metaDict[key] = metaDf[key]
-
+                    metaDict = dt.core._update_meta(metaDict)
                     tableID = dt.core._createDatabaseID(metaDict)
                     print(tableID)
                     if not updateTables:
@@ -5476,10 +5476,10 @@ if __name__ == '__main__':
 #%% IAMC CMPI6
 
     cmip6 = IAMC_CMIP6()    
-    tableList, excludedTables = cmip6.gatherMappedData(updateTables=False)
-    cmip6.createSourceMeta()
-    dt.commitTables(tableList, 'added CMIP6 dataset', cmip6.meta, update=False)
-    sadf
+#    tableList, excludedTables = cmip6.gatherMappedData(updateTables=False)
+#    cmip6.createSourceMeta()
+#    dt.commitTables(tableList, 'added CMIP6 dataset', cmip6.meta, update=False)
+#    sadf
 #%% SSPDB 2013
     
     ssp2013 = SSP_DATA()
@@ -5493,7 +5493,7 @@ if __name__ == '__main__':
 #            print(countryCode + ' not found')
 #%% AR5
     ar5_db = AR5_DATABASE()
-#    tableList, excludedTables = ar5_db.gatherMappedData()
+    tableList, excludedTables = ar5_db.gatherMappedData()
 #    dt.commitTables(tableList, 'AR5  data added', ar5_db.meta)
 #%% WEO
     weo = WEO(2019)
