@@ -42,8 +42,42 @@ class Datatable(pd.DataFrame):
         if config.AVAILABLE_XARRAY:
             self.to_xarray = self._to_xarray
     
-    
-    
+    @classmethod
+    def from_pyam(cls, idf, **kwargs):
+        import pyam
+
+        if kwargs:
+            idf = idf.filter(**kwargs)
+
+        assert len(idf.variables()) == 1, (
+            f"Datatables cannot represent more than one variable, "
+            f"but there are {', '.join(idf.variables())}"
+        )
+
+        def extract_unique_values(df, fields, ignore):
+            meta = {}
+            for fld in set(fields).difference(ignore):
+                values = df[fld].unique()
+                assert len(values) == 1, (
+                    f"Datatables can only represent unique meta entries, "
+                    f"but {fld} has {', '.join(values)}"
+                )
+                meta[fld] = values[0]
+            return meta
+
+        meta = {
+            **extract_unique_values(idf.data, pyam.IAMC_IDX, ['region']),
+            **extract_unique_values(idf.meta, idf.meta.columns, ['exclude'])
+        }
+
+        data = (
+            idf.data.pivot_table(index=['region'], columns=idf.time_col)
+            .value  # column name
+            .rename_axis(columns=None)
+        )
+
+        return cls(data, meta=meta)
+
     def _to_xarray(self):
         
         return core.xr.DataArray(self.values, coords=[self.index, self.columns], dims=['space','time'], attrs=self.meta)
@@ -148,6 +182,32 @@ class Datatable(pd.DataFrame):
         fid.write(config.DATA_DECLARATION)
         super(Datatable, self).to_csv(fid)
         fid.close()
+
+    def to_pyam(self, **kwargs):
+        from pyam import IamDataFrame
+
+        meta = {
+            **self.meta,
+            **kwargs
+        }
+
+        try:
+            idf = IamDataFrame(
+                pd.DataFrame(self).rename_axis(index="region").reset_index(),
+                model=meta.get('model', ''),
+                scenario=meta["scenario"],
+                variable=meta['variable'],
+                unit=meta['unit']
+            )
+        except KeyError as exc:
+            raise AssertionError(f"meta does not contain {exc.args[0]}")
+
+        # Add model, scenario meta fields
+        for field in ('pathway', 'source', 'source_name', 'source_year'):
+            if field in meta:
+                idf.set_meta(meta[field], field)
+ 
+        return idf
         
     def convert(self, newUnit, context=None):
         
@@ -574,97 +634,60 @@ class TableSet(dict):
         return list(self.inventory.source.unique())
 
     def to_LongTable(self):
-        import copy
-        #self = dt.getTables(res.index)
-        tableList= list()
-        minMax = (-np.inf, np.inf)
-        for key in self.keys():
-            table= copy.copy(self[key])
-            #print(table.columns)
-            if (len(table.index)== 0) or (len(table.columns)== 0):
+        tables = []
+
+        for variable, df in self.items():
+            if df.empty:
                 continue
-            
-            oldColumns = list(table.columns)
-            minMax = (max(minMax[0], min(oldColumns)), min(minMax[1],max(oldColumns)))
-#            for field in config.ID_FIELDS:
-#                table.loc[:,field] = table.meta[field]
-            
-            table.loc[:,'region'] = table.index
-            table.loc[:,'unit']   = table.meta['unit']
-            table.loc[:,'variable']   = table.meta['variable']
             
             try:
-                table.loc[:,'scenario'] = table.meta['scenario']
-            except:
-                print(table.meta)
-                raise(BaseException('meta key "scenario" not found'))
-            if 'model' in table.meta.keys():
-                table.loc[:,'model'] = table.meta['model']
-            else:
-                table.loc[:,'model']   = ''
-                
-            tableNew = table.loc[:, ['variable', 'region', 'scenario',  'model', 'unit'] +  oldColumns]
-            tableNew.index= range(len(tableNew.index))
-            tableList.append(tableNew)
-        #df = pd.DataFrame(columns = ['variable','region', 'model', 'unit'] + list(range(minMax[0], minMax[1])))
+                df = df.assign(
+                    region=df.index,
+                    variable=df.meta['variable'],
+                    unit=df.meta['unit'],
+                    scenario=df.meta["scenario"],
+                    model=df.meta.get("model", "")
+                ).reset_index(drop=True)
+            except KeyError as exc:
+                raise AssertionError(f"meta of {variable} does not contain {exc.args[0]}")
+ 
+            tables.append(df)
+
+        long_df = pd.concat(tables, ignore_index=True, sort=False)
         
-#        iaDf = pyam.IamDataFrame(tableList[0])
-#        for table in tableList[1:]:
-#            iaDf.append(table)
-#        return iaDf
-        fullDf = pd.DataFrame(tableList[0])
-        for table in tableList[1:]:
-            #print(table)
-            fullDf = fullDf.append(pd.DataFrame(table))
-        fullDf.index = range(len(fullDf))
-        
-        columns = list(fullDf.columns)
-        [columns.remove(x) for x in ['variable', 'region', 'scenario',  'model', 'unit']]
-        columns = ['variable', 'region', 'scenario',  'model', 'unit'] + columns 
-        return fullDf.loc[:, columns]
-    
-    def to_IamDataFrame(self):
+        # move id columns to the front
+        id_cols = pd.Index(['variable', 'region', 'scenario', 'model', 'unit'])
+        long_df = long_df[id_cols.union(long_df.columns)]
+
+        return long_df
+
+    def to_pyam(self):
         
         import pyam
-        import copy
-        #self = dt.getTables(res.index)
-        tableList= list()
-        minMax = (-np.inf, np.inf)
-        for key in self.keys():
-            table= copy.copy(self[key])
-            #print(table.columns)
-            if (len(table.index)== 0) or (len(table.columns)== 0):
-                continue
-            
-            oldColumns = list(table.columns)
-            minMax = (max(minMax[0], min(oldColumns)), min(minMax[1],max(oldColumns)))
-#            for field in config.ID_FIELDS:
-#                table.loc[:,field] = table.meta[field]
-            
-            table.loc[:,'region'] = table.index
-            table.loc[:,'unit']   = table.meta['unit']
-            table.loc[:,'variable']   = table.meta['variable']
-            
 
-            table.loc[:,'scenario'] = table.meta['scenario']
-            if 'model' in table.meta.keys():
-                table.loc[:,'model'] = table.meta['model']
-            else:
-                table.loc[:,'model']   = ''
-            tableNew = table.loc[:, ['variable','region', 'scenario',  'model', 'unit'] +  oldColumns]
-            tableNew.index= range(len(tableNew.index))
-            tableList.append(tableNew)
-        #df = pd.DataFrame(columns = ['variable','region', 'model', 'unit'] + list(range(minMax[0], minMax[1])))
-        
-#        iaDf = pyam.IamDataFrame(tableList[0])
-#        for table in tableList[1:]:
-#            iaDf.append(table)
-#        return iaDf
-        iaDf = pyam.IamDataFrame(pd.DataFrame(tableList[0]))
-        for table in tableList[1:]:
-#            print(table)
-            iaDf = iaDf.append(pd.DataFrame(table))
-        return iaDf         
+        idf = pyam.IamDataFrame(pd.DataFrame(self.to_LongTable()))
+
+        meta = pd.DataFrame([df.meta for df in self.values()])
+        if 'model' not in meta:
+            meta['model'] = ""
+        if 'scenario' not in meta:
+            meta['scenario'] = ""
+        meta = (
+            meta[
+                pd.Index(['model', 'scenario', 'pathway'])
+                .append(meta.columns[meta.columns.str.startswith('source')])
+            ]
+            .set_index(['model', 'scenario'])
+            .drop_duplicates()
+        )
+
+        idf.meta = meta
+        idf.reset_exclude()
+
+        return idf
+
+    # Alias for backwards-compatibility
+    to_IamDataFrame = to_pyam
 
     def plotAvailibility(self, regionList= None, years = None):
         
@@ -705,6 +728,8 @@ class TableSet(dict):
 #print(tableset.pathways())
 #
 #cropsSet = tableset.filter(variable='Crop')
+# %%
+
 #%%    
     
     
