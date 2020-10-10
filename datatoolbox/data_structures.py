@@ -10,6 +10,7 @@ import pandas as pd
 import matplotlib.pylab as plt
 import numpy as np
 from copy import copy
+from typing import Iterable
 
 from . import core
 from . import config 
@@ -414,7 +415,17 @@ class TableSet(dict):
         
 #        if config.AVAILABLE_XARRAY:
 #           self.to_Xarray = self._to_Xarray         
-            
+
+    @classmethod
+    def concat(cls, tablesets: Iterable["TableSet"]) -> "TableSet":
+        tableset = cls()
+        inventories = []
+        for ts in tablesets:
+            inventories.append(ts.inventory)
+            tableset.update(ts)
+        tableset.inventory = pd.concat(inventories)
+        return tableset
+
     def to_xarray(self, dimensions):
         if not config.AVAILABLE_XARRAY:
             raise(BaseException('xarray not available'))

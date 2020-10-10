@@ -23,8 +23,7 @@ from . import config
 from . import core
 from .data_structures import Datatable, TableSet, read_csv
 
-from . import database
-core.DB = database.Database()
+from .database import Database
 from . import mapping as mapp
 from . import io_tools as io
 from . import interfaces
@@ -41,23 +40,25 @@ unitReg = core.ur
 
 ExcelReader = io.ExcelReader # TODO make this general IO tools
 
-commitTable  = core.DB.commitTable
-commitTables = core.DB.commitTables
+datashelf = core.DB = Database.from_datashelf()
 
-updateTable  = core.DB.updateTable
-updateTables = core.DB.updateTables
+# commitTable  = core.DB.commitTable
+# commitTables = core.DB.commitTables
 
-removeTable  = core.DB.removeTable
-removeTables  = core.DB.removeTables
+# updateTable  = core.DB.updateTable
+# updateTables = core.DB.updateTables
 
-find         = core.DB.getInventory
-findExact    = core.DB.findExact
-getTable     = core.DB.getTable
-getTables    = core.DB.getTables
+# removeTable  = core.DB.removeTable
+# removeTables  = core.DB.removeTables
 
-isAvailable  = core.DB._tableExists
+find         = datashelf.filter
+filter       = datashelf.filter
+getTable     = datashelf.__getitem__
+getTables    = datashelf.__getitem__
 
-updateExcelInput = core.DB.updateExcelInput
+isAvailable  = datashelf.__contains__
+
+# updateExcelInput = core.DB.updateExcelInput
 
 insertDataIntoExcelFile = io.insertDataIntoExcelFile
 sources = _raw_sources.sources
@@ -71,19 +72,19 @@ countryDataExtract = util.getCountryExtract
 
 executeForAll = util.forAll
 
-DBinfo = core.DB.info
-sourceInfo = core.DB.sourceInfo
-inventory = core.DB.returnInventory
+info = datashelf.info
+source_info = datashelf.source_info
+inventory = datashelf
 
-validate_ID = core.DB.validate_ID
+# validate_ID = core.DB.validate_ID
 #writeMAGICC6ScenFile = tools.wr
 
 # Source management
-import_new_source_from_remote = core.DB.importSourceFromRemote
-export_new_source_to_remote   = core.DB.exportSourceToRemote
-remove_source                 = core.DB.removeSource
-push_source_to_remote         = core.DB.gitManager.push_to_remote_datashelf
-pull_source_from_remote      = core.DB.gitManager.pull_update_from_remote
+#import_new_source_from_remote = core.DB.importSourceFromRemote
+#export_new_source_to_remote   = core.DB.exportSourceToRemote
+remove_source                 = datashelf.remove_source
+#push_source_to_remote         = core.DB.gitManager.push_to_remote_datashelf
+#pull_source_from_remote      = core.DB.gitManager.pull_update_from_remote
 
 
 if config.PATH_TO_DATASHELF == os.path.join(config.MODULE_PATH, 'data/SANDBOX_datashelf'):

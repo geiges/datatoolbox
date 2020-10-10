@@ -67,6 +67,7 @@ INVENTORY_FIELDS = ['variable',
                     'unit'
                     ]
 
+CONCISE_INVENTORY_FIELDS = ['source', 'model', 'scenario', 'variable', 'unit']
 
 META_DECLARATION = '### META ###\n'
 DATA_DECLARATION = '### DATA ###\n'

@@ -11,6 +11,7 @@ import datatoolbox as dt
 from datatoolbox import mapping as mapp
 from datatoolbox import core
 from datatoolbox import config
+from typing import Union, Iterable, Any
 #from .data_structures import read_csv
 from datatoolbox.greenhouse_gas_database import GreenhouseGasTable 
 import matplotlib.pylab as plt
@@ -989,38 +990,101 @@ if __name__ == '__main__':
     outputTables, success = forAll(calculateTotalBiomass, "scenario")
 
 
-def pattern_match(data: pd.Series, values, level=None, regexp=False, has_nan=False):
-    """Return list where data matches values
+def pattern_match(
+    data: pd.Series,
+    patterns: Union[str, Iterable[str]],
+    regex : bool = False
+) -> pd.Series:
+    """Find matches in `data` for a list of shell-style `patterns`
 
-    The function matches model/scenario names, variables, regions
-    and meta columns to pseudo-regex (if not `regexp`)
-    for filtering (str, int, bool)
+    Arguments
+    ---------
+    data : pd.Series
+        Series of data to match against
+    patterns : Union[str, Iterable[str]]
+        One or multiple patterns, which are OR'd together
+    regex : bool, optional
+        Accept plain regex syntax instead of shell-style, default: False
+    
+    Returns
+    -------
+    matches : pd.Series[bool]
+        Mask for selecting matched rows
     """
-    matches = np.zeros(len(data), dtype=bool)
 
-    if not isinstance(values, Iterable) or isinstance(values, str):
-        values = [values]
+    if not isinstance(patterns, Iterable) or isinstance(patterns, str):
+        patterns = [patterns]
+    elif not patterns:
+        raise ValueError("pattern list may not be empty")
 
-    for s in values:
-        if isinstance(s, str):
-            depth = True if level is None else data.str.count(r"\|") == level
-            pattern = _escape_regexp(s) + '$' if not regexp else s
-            matches |= data.str.match(pattern, na=False) & depth
+    matches = False
+    for pat in patterns:
+        if isinstance(pat, str):
+            if not regex:
+                pat = shell_pattern_to_regex(pat) + '$'
+            matches |= data.str.match(pat, na=False)
         else:
-            matches |= data == s
+            matches |= data == pat
 
     return matches
-    
-def _escape_regexp(s):
+
+
+def shell_pattern_to_regex(s):
     """Escape characters with specific regexp use"""
     return (
         str(s)
         .replace('|', r'\|')
         .replace('.', r'\.')  # `.` has to be replaced before `*`
-        .replace('**', r'.*')
+        .replace('**', '__starstar__') # temporarily __starstar__
         .replace('*', r'[^|]*')
+        .replace('__starstar__', r'.*')
         .replace('+', r'\+')
         .replace('(', r'\(')
         .replace(')', r'\)')
         .replace('$', r'\$')
     )
+
+
+def print_list(x: Iterable[Any], n: int) -> str:
+    """Return a printable string of a list shortened to n characters
+    
+    Written by Daniel Huppmann and published as part of pyam at
+    https://github.com/IAMconsortium/pyam/commit/015e8a69f95a20b83dcc302499ad1411114aa539
+    """
+    # subtract count added at end from line width
+    x = list(map(str, x))
+
+    # write number of elements
+    count = f' ({len(x)})'
+    n -= len(count)
+
+    # if not enough space to write first item, write shortest sensible line
+    if len(x[0]) > n - 5:
+        return '...' + count
+
+    # if only one item in list
+    if len(x) == 1:
+        return f'{x[0]} (1)'
+
+    # add first item
+    lst = f'{x[0]}, '
+    n -= len(lst)
+
+    # if possible, add last item before number of elements
+    if len(x[-1]) + 4 > n:
+        return lst + '...' + count
+    else:
+        count = f'{x[-1]}{count}'
+        n -= len({x[-1]}) + 3
+
+    # iterate over remaining entries until line is full
+    for i in x[1:-1]:
+        if len(i) + 6 <= n:
+            lst += f'{i}, '
+            n -= len(i) + 2
+        else:
+            lst += '... '
+            break
+
+    return lst + count
+
