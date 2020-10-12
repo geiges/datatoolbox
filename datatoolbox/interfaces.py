@@ -12,7 +12,9 @@ import os
 import pandas as pd
 from . import core
 
-class _MAGGIC6():
+
+class MAGGIC6:
+    @staticmethod
     def read_MAGICC6_ScenFile(fileName, **kwargs):
         VALID_MASS_UNITS= {
                 'Pt': 1e18,
@@ -69,6 +71,7 @@ class _MAGGIC6():
         return entityFrame
 
 
+    @staticmethod
     def read_MAGICC6_MATLAB_bulkout(pathName):
         
         temp_offset = 0.61
@@ -83,6 +86,7 @@ class _MAGGIC6():
     #    meta['unit']   = '°C'
     #    return Datatable(df, meta=meta)
     
+    @staticmethod
     def read_MAGICC6_BINOUT(filePath):
         import pymagicc as pym
         reader = pym.io._BinaryOutReader(filePath)
@@ -98,7 +102,9 @@ class _MAGGIC6():
     
         return Datatable(data, meta=metaDict)
 
-class _primap():
+
+class primap:
+    @staticmethod
     def read_PRIMAP_csv(fileName):
         
         metaMapping = {
@@ -147,7 +153,8 @@ class _primap():
         table = table.loc[:, util.yearsColumnsOnly(table)]
         table.columns = table.columns.astype(int)
         return table#, data
-    
+
+    @staticmethod
     def read_PRIMAP_Excel(fileName, sheet_name= 0, xlsFile=None):
         if xlsFile is not None:
             xlsFile = xlsFile
@@ -193,6 +200,7 @@ class _primap():
             print('warning: Columns could not be converted to int')
         return table
 
+    @staticmethod
     def write_PRIMAP_Excel(data, fileName):
         
         if ~isinstance(data, TableSet):
@@ -205,11 +213,10 @@ class _primap():
                 
             else:
                 raise(BaseException('Could not identifiy compatible data'))
-                
-            
-            
 
-class _matlab():
+
+class matlab:
+    @staticmethod
     def load_mat_file_as_dict(file_path):
         """
         Function to load a complex mat file as a dictionary
@@ -276,9 +283,9 @@ class _matlab():
         data = loadmat(file_path, struct_as_record=False, squeeze_me=True)
         return _check_vars(data)
 
-class _EmissionModulePIK():
-    
-    
+
+class EmissionModulePIK:
+
     N_ROWS_TO_ADD = 1
     ID_PARTS = ['SHEET_ENTITY', 
                 'SHEET_CATEGORY', 
@@ -305,7 +312,8 @@ class _EmissionModulePIK():
     categoryNameMapping = {'CATM1A' : 'Aviation',
                            'CATM1B' : 'Marine'}
             
-    def write_tables(self, tables, sheet_names, filePath):
+    @classmethod
+    def write_tables(cls, tables, sheet_names, filePath):
         #%%
         
         if not isinstance(tables, list):
@@ -321,17 +329,17 @@ class _EmissionModulePIK():
         writer = pd.ExcelWriter(filePath, engine='xlsxwriter')
         
         for table, sheet_name in zip(tables, sheet_names):
-            header = pd.DataFrame(data=list(self.metaDict.values()), index= self.metaDict.keys(), columns=['values'])
+            header = pd.DataFrame(data=list(cls.metaDict.values()), index=cls.metaDict.keys(), columns=['values'])
             
             header.loc['SHEET_ENTITY'] = validStrings(table.meta['entity']).upper().replace('EMISSIONS','')
             header.loc['SHEET_CATEGORY'] = validStrings(table.meta['category']).upper()
-            header.loc['SHEET_NAME_CATEGORY'] = self.categoryNameMapping[validStrings(table.meta['category']).upper()]
+            header.loc['SHEET_NAME_CATEGORY'] = cls.categoryNameMapping[validStrings(table.meta['category']).upper()]
             header.loc['SHEET_SCENARIO'] = validStrings(table.meta['pathway']).upper()
             header.loc['SHEET_UNIT'] = table.meta['unit']
             header.loc['SHEET_SOURCE'] = validStrings(table.meta['source']).upper()
-            firstDataRow = len(header) + self.N_ROWS_TO_ADD
+            firstDataRow = len(header) + cls.N_ROWS_TO_ADD
             header.loc['SHEET_FIRSTDATAROW'] = firstDataRow +2
-            header.loc['SHEET_CODE']   = '_'.join([header.loc[x,'values'] for x in self.ID_PARTS])
+            header.loc['SHEET_CODE']   = '_'.join([header.loc[x,'values'] for x in cls.ID_PARTS])
             
         
 #            sheet_name = header.loc['SHEET_CODE'][0][:31]
@@ -340,20 +348,23 @@ class _EmissionModulePIK():
         writer.close()
 #        Excel.open('pandas_positioning.xlsx')
        #%%
-class Excel():
-    
+
+
+class Excel:
+
+    @staticmethod
     def open(filePath):
         if config.OS == 'Linux':
             os.system('libreoffice ' + filePath )
         elif config.OS == 'Darwin':
             os.system('open -a "Microsoft Excel" ' + filePath )
             #%%
-class _Xarray():
 
-    to_Xarray = core.to_XDataArray
-        
-    
-    
+
+class Xarray:
+    to_Xarray = staticmethod(core.to_XDataArray)
+
+
 def read_IAMC_table(iamcData, relationList):
     import datatoolbox as dt
     import pandas as pd
@@ -446,13 +457,9 @@ def read_long_table(longDf, relationList):
     
     return outTables
 
-matlab = _matlab()
-emission_module = _EmissionModulePIK()
+emission_module = EmissionModulePIK
 if config.AVAILABLE_XARRAY:
-    xarray = _Xarray()
-
-
-
+    xarray = Xarray
 
 
 if __name__ == '__main__':
