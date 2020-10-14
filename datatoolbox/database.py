@@ -107,7 +107,7 @@ class Database():
         
         return table
 
-    def findp(self, /, level=None, regex=False, **filters):
+    def findp(self, level=None, regex=False, **filters):
         # filter by columns and list of values
         keep = True
 
