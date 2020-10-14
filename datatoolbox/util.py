@@ -254,12 +254,16 @@ def scatterIndicatorComparison(tableX, tableY):
     
 def cleanDataTable(dataTable):
     # ensure valid ISO or region IDs
-    dataTable = dataTable.filter(spaceIDs = mapp.getValidSpatialIDs())    
+    invalidSpatialIDs = dataTable.index.difference(mapp.getValidSpatialIDs())
+    if not invalidSpatialIDs.empty:
+        print(
+            f"Removing unknown regions from dataTable {dataTable.meta.get('ID', 'unnamed')}:",
+            ", ".join(invalidSpatialIDs)
+        )
+        dataTable = dataTable.loc[dataTable.index.difference(invalidSpatialIDs)]
     
-    dataTable = dataTable.loc[:,~dataTable.isnull().all(axis=0)]
-    dataTable = dataTable.loc[~dataTable.isnull().all(axis=1),:]
-    #dataTable = dataTable.loc[~dataTable.isnull().all(axis=0),:]
-    
+    dataTable = dataTable.dropna(how="all", axis=1).dropna(how="all", axis=0)
+
     # clean meta data
     keysToDelete = list()
     for key in dataTable.meta.keys():
