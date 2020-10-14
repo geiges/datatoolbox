@@ -1,4 +1,4 @@
-pandas<=1.0.0
+pandas>=0.24,<1.1
 numpy
 gitpython
 openscm-units
