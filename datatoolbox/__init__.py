@@ -51,6 +51,7 @@ removeTable  = core.DB.removeTable
 removeTables  = core.DB.removeTables
 
 find         = core.DB.getInventory
+findp        = core.DB.findp
 findExact    = core.DB.findExact
 getTable     = core.DB.getTable
 getTables    = core.DB.getTables

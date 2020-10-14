@@ -102,6 +102,32 @@ class Database():
         
         return table
 
+    def findp(self, level=None, regex=False, **filters):
+        # filter by columns and list of values
+        keep = True
+
+        for field, pattern in filters.items():
+            # treat `col=None` as no filter applied
+            if pattern is None:
+                continue
+
+            if field not in self.inventory:
+                raise ValueError(f'filter by `{field}` not supported')
+
+            keep &= util.pattern_match(
+                self.inventory[field], pattern, regex=regex
+            )
+
+        if level is not None:
+            keep &= self.inventory['variable'].str.count(r"\|") == level
+
+        table = self.inventory.loc[keep]
+
+        # test to add function to a instance (does not require class)
+        table.graph = types.MethodType(plot_query_as_graph, table)
+
+        return table
+
     def findExact(self, **kwargs):
         
         table = self.inventory.copy()
