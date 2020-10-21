@@ -1015,6 +1015,12 @@ def shell_pattern_to_regex(s):
         .replace('$', r'\$')
     )
 
+def fix_source_inconsistency(sourceID):
+    gitManager = dt.core.DB.gitManager.__dict__['repositories'][sourceID]
+    gitManager.git.execute(["git", "add", "tables/*"])
+    dt.core.DB.gitManager.sources.loc['IEA_WEB_2020','git_commit_hash'] = gitManager.commit().hexsha
+    dt.core.DB.gitManager.commit('inconsistent fix')
+
 
 #%%    
 if __name__ == '__main__':

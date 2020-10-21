@@ -200,8 +200,10 @@ def _AR4_conversionFactor(unitFrom, unitTo):
     assert len(co2eqkeys) == 1 and len(gasesToconvert) == 1
     co2Key = co2eqkeys[0]
     gasKey = gasesToconvert[0]
-    print(co2Key)
-    print(gasKey)
+        
+    if config.DEBUG:    
+        print('Converting from {} to {} using GWP AR4'.format(gasKey,co2Key))
+        
     
     unitFrom = unitFrom.replace(gasKey, co2Key)
     conversFactor = getUnit(unitFrom).to(unitTo).m
