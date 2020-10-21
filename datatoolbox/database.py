@@ -203,7 +203,7 @@ class Database():
         sourceID = dataTable.meta['source']
         if not self.isSource(sourceID):
             if sourceMetaDict is None:
-                raise(BaseException('Source does not extist and now sourceMeta provided'))
+                raise(BaseException('Source does not exist and no sourceMeta provided'))
             else:
                 if not( sourceMetaDict['SOURCE_ID'] in self.gitManager.sources.index):
                     self._addNewSource(sourceMetaDict)
@@ -750,6 +750,8 @@ class GitRepository_Manager:
 
         """
         self[repoName].remote('origin').pull(progress=TqdmProgressPrinter())
+        self.updateGitHash(repoName)
+        self.commit()
     
     def verifyGitHash(self, repoName):
         repo = self.repositories[repoName]
