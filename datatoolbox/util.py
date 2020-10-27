@@ -13,7 +13,7 @@ import datatoolbox as dt
 from datatoolbox import mapping as mapp
 from datatoolbox import core
 from datatoolbox import config
-#from .data_structures import read_csv
+from datatoolbox import data_structures
 from datatoolbox.greenhouse_gas_database import GreenhouseGasTable 
 import matplotlib.pylab as plt
 import os
@@ -1021,6 +1021,46 @@ def fix_source_inconsistency(sourceID):
     dt.core.DB.gitManager.sources.loc['IEA_WEB_2020','git_commit_hash'] = gitManager.commit().hexsha
     dt.core.DB.gitManager.commit('inconsistent fix')
 
+
+def _create_sandbox_tables(sourceID, random_seed):
+    #%%
+#    import datatoolbox as dt
+    import numpy as np
+    np.random.seed(1)
+    
+
+    tables = list()
+    source_meta = {'SOURCE_ID': sourceID,
+                      'collected_by' : 'Hard worker 1',
+                      'date': core.getDateString(),
+                      'source_url' : 'www.www.www',
+                      'licence': 'open access' }
+    
+    meta = {'entity' : 'Emissions|CO2',
+            'category': 'Total',
+            'scenario': None,
+            'pathway' : 'Historic',
+            'source' : sourceID,
+            'unit' : 'Mt CO2'}
+    
+    table = data_structures.Datatable(np.random.randint(0,20,[3,21]), 
+                         columns = list(range(2000,2021)), 
+                         index = ['World', 'Asia', 'ZAF'],
+                         meta=meta).astype(float)
+    tables.append(table)
+    meta = {'entity' : 'Emissions|CO2',
+            'category': 'Total_excl_LULUCF',
+            'scenario': None,
+            'pathway' : 'Historic',
+            'source_name' : sourceID,
+            'unit' : 'Mt CO2'}
+    
+    table = data_structures.Datatable(np.random.randint(0,15,[3,21]), 
+                         columns = list(range(2000,2021)), 
+                         index = ['World', 'Asia', 'ZAF'],
+                         meta=meta).astype(float)
+    tables.append(table)
+    return tables,source_meta
 
 #%%    
 if __name__ == '__main__':

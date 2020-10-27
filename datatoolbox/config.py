@@ -20,10 +20,10 @@ if not os.path.isfile(os.path.dirname(__file__) + '/settings/personal.py'):
     from .tools.install_support import create_initial_config
     modulePath =  os.path.dirname(__file__) + '/'
     CRUNCHER, PATH_TO_DATASHELF, DB_READ_ONLY, DEBUG = create_initial_config(modulePath)
-
+    TEST_ENV = True
 else:
     from .settings.personal import CRUNCHER, PATH_TO_DATASHELF, DB_READ_ONLY, DEBUG
-  
+    TEST_ENV = False
 
 
  

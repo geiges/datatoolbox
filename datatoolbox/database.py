@@ -44,6 +44,16 @@ class Database():
         if config.DEBUG:
             print('Database loaded in {:2.4f} seconds'.format(time.time()-tt))
     
+        if config.TEST_ENV:
+            tablesToCommit, source_meta  = util._create_sandbox_tables('SOURCE_A_2020', 1)
+            self.commitTables(tablesToCommit,
+                         message = 'added dummy tablesof source A', 
+                         sourceMetaDict = source_meta)
+            tablesToCommit, source_meta  = util._create_sandbox_tables('SOURCE_B_2020', 2)
+            self.commitTables(tablesToCommit,
+                         message = 'added dummy tables of source B', 
+                         sourceMetaDict = source_meta)
+    
     def _validateRepository(self, repoID='main'):
         return self.gitManager._validateRepository(repoID)
     
@@ -796,3 +806,5 @@ class TqdmProgressPrinter(git.RemoteProgress):
 
         if op_code & self.END:
             self.progressbar.close()
+
+
