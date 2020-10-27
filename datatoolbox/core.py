@@ -46,12 +46,20 @@ def to_XDataArray(tableSet, dimensions = ['region', 'year', 'pathway']):
     #%%
 #    dimensions = ['region', 'year', 'scenario', 'model']
     
+#    metaDict = dict()
+    
     fullIdx = dict()
     for dim in dimensions:
         fullIdx[dim] = set()
 
     for table in tableSet:
         
+#        for metaKey, metaValue in table.meta.items():
+#            if metaKey not in metaDict.keys():
+#                metaDict[metaKey] = set([metaValue])
+#            else:
+#                metaDict[metaKey].add(metaValue)
+            
         for dim in dimensions:
             if dim == 'region':
                 fullIdx[dim] = fullIdx[dim].union(table.index)
@@ -66,6 +74,8 @@ def to_XDataArray(tableSet, dimensions = ['region', 'year', 'pathway']):
     dimList = [sorted(list(fullIdx[x])) for x in dimensions]
     xData =  xr.DataArray(np.zeros(dimSize)*np.nan, coords=dimList, dims=dimensions)
     
+    
+            
     
     metaCollection = dict()
     for table in tableSet:
@@ -83,14 +93,23 @@ def to_XDataArray(tableSet, dimensions = ['region', 'year', 'pathway']):
         xData.loc[tuple(indexTuple)] = table.values
         
         for key in table.meta.keys():
+            if key in dimensions  or key == 'ID':
+                continue
             if key not in metaCollection.keys():
                 metaCollection[key] = set()
                 
-            metaCollection[key] = metaCollection[key].union([table.meta[key]])
+            metaCollection[key].add(table.meta[key])
     
     # only implemented for homgeneous physical units
     assert len(metaCollection['unit']) == 1
     xData.attrs['unit'] = list(metaCollection['unit'])[0]   
+    
+    for  metaKey, metaValue in metaCollection.items():
+        if len(metaValue) == 1:
+            xData.attrs[metaKey] = metaValue.pop()
+        else:
+            print('Warning, dropping meta data: ' + metaKey +  ' ' + str(metaValue))
+    
     return xData
 #%%
 
