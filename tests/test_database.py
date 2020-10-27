@@ -53,6 +53,19 @@ def test_delete_mutliple_tables():
 def test_delete_source():    
     dt.core.DB.removeSource('XYZ_2020')
     
+def test_findp():
+    inv = dt.findp(variable = 'Emissions|CO2|Total',
+                  source='SOURCE_A_2020')    
+    
+    
+    assert len(inv.variable.unique()) ==1
+    
+    inv = dt.findp(variable = 'Emissions|CO2|**',
+                  source='SOURCE_A_2020')    
+    
+    
+    assert len(inv.variable.unique()) ==2
+    
 if __name__ == '__main__':
     test_commit_new_table()
     test_validate_ID()
