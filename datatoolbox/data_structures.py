@@ -560,7 +560,11 @@ class TableSet(dict):
         super(TableSet, self).__setitem__(key, datatable)
         
         if datatable.ID is None:
-            datatable.generateTableID()
+            try:
+                datatable.generateTableID()
+            except:
+                print('Cuold not generate ID, key used instead')
+                datatable.ID = key
         self.inventory.loc[datatable.ID, "key"] = key
         self.inventory.loc[datatable.ID, config.INVENTORY_FIELDS] = [datatable.meta.get(x,None) for x in config.INVENTORY_FIELDS]
     
