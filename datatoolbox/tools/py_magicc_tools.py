@@ -12,7 +12,7 @@ PYMAGICC TOOLS
 #%%
 import pymagicc as pym
 import pandas as pd
-import datatools as dt
+import datatoolbox as dt
 
 #%%
 

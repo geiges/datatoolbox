@@ -86,6 +86,7 @@ remove_source                 = core.DB.removeSource
 push_source_to_remote         = core.DB.gitManager.push_to_remote_datashelf
 pull_source_from_remote      = core.DB.gitManager.pull_update_from_remote
 
+import datatoolbox.tools as tools
 
 if config.PATH_TO_DATASHELF == os.path.join(config.MODULE_PATH, 'data/SANDBOX_datashelf'):
     print("""
