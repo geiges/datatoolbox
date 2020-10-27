@@ -9,7 +9,7 @@ Created on Tue Apr  2 11:20:42 2019
 import datatoolbox as dt
 from datatoolbox import config
 from datatoolbox.data_structures import Datatable
-from datatoolbox.util import isUnit
+from datatoolbox.util import isUnit, yearsColumnsOnly
 
 from collections import defaultdict
 import pandas as pd
@@ -856,18 +856,18 @@ class IEA_FUEL_2019(BaseImportTool):
 #        dt.mapp.regions.addRegionToContext('IEA',mappingToCountries)
 
 
-class IEA_WEB_2019_New(BaseImportTool):
+class IEA_World_Energy_Balance(BaseImportTool):
     """
     IEA World balance data import 
     """
-    def __init__(self):
+    def __init__(self, year = 2020):
         self.setup = setupStruct()
-        self.setup.SOURCE_ID    = "IEA_WEB_2019"
-        self.setup.SOURCE_PATH  = config.PATH_TO_DATASHELF + 'rawdata/IEA_WEB_2019/'
-        self.setup.DATA_FILE    = self.setup.SOURCE_PATH + 'World_Energy_Balances_2019_clean.csv'
+        self.setup.SOURCE_ID    = "IEA_WEB_" + str(year)
+        self.setup.SOURCE_PATH  = config.PATH_TO_DATASHELF + 'rawdata/IEA_WEB_' + str(year) +'/'
+        self.setup.DATA_FILE    = self.setup.SOURCE_PATH + 'World_Energy_Balances_' + str(year) +'_clean.csv'
         self.setup.MAPPING_FILE = self.setup.SOURCE_PATH + 'mapping.xlsx'
         self.setup.LICENCE = 'restricted'
-        self.setup.URL     = 'https://webstore.iea.org/world-energy-balances-2019'
+        self.setup.URL     = 'https://webstore.iea.org/world-energy-balances-' + str(year)
         
         self.setup.INDEX_COLUMN_NAME = ['FLOW', 'PRODUCT']
         self.setup.SPATIAL_COLUM_NAME = 'COUNTRY'
@@ -883,7 +883,7 @@ class IEA_WEB_2019_New(BaseImportTool):
 
 
     def loadData(self):
-        self.data = pd.read_csv(self.setup.DATA_FILE, encoding='utf8', engine='python', index_col = None, header =0, na_values=['c','..'])
+        self.data = pd.read_csv(self.setup.DATA_FILE, encoding='utf8', engine='python', index_col = None, header =0, na_values=['x','c','..'], sep=';')
         self.data['combined'] = self.data[self.setup.INDEX_COLUMN_NAME].apply(lambda x: '_'.join(x.str.strip()), axis=1)
         
         self.data = self.data.set_index(self.data['combined'])#.drop('combined',axis=1)
@@ -971,15 +971,19 @@ class IEA_WEB_2019_New(BaseImportTool):
                 
                 metaDict['entity'] = '|'.join([self.mapping['FLOW'].mapping.loc[flow],
                                               self.mapping['PRODUCT'].mapping.loc[product]])
-                metaDict['scenario']  = 'historic'
+                metaDict['scenario']  = 'Historic'
                 metaDict['category']  = ''
+                
+                
+                
+                print(metaDict)
+                metaDict = dt.core._update_meta(metaDict)
+                tableID = dt.core._createDatabaseID(metaDict)
+                
                 
                 for key in [ 'unit', 'unitTo']:
                     metaDict[key] = self.mapping['FLOW'].loc[flow,key]
-                
-                print(metaDict)
-                tableID = dt.core._createDatabaseID(metaDict)
-                #print(tableID)
+                    
                 if not updateTables:
                     if dt.core.DB.tableExist(tableID):
                         excludedTables['exists'].append(tableID)
@@ -4634,7 +4638,7 @@ class WEO(BaseImportTool):
         
         # loop over energy mapping
         for region in self.spatialMapping.index:
-            setup['sheetName'] = region + '_Balance'
+            se7tup['sheetName'] = region + '_Balance'
             for i, idx in enumerate(list(self.mappingEnergy.index)):
 #                print(i)
                 metaDf = self.mappingEnergy.loc[idx,:]
@@ -4657,12 +4661,13 @@ class WEO(BaseImportTool):
                 if ex.spaceIdxList[0][0]>41 and region != 'World':
                     ex.spaceIdxList = [(ex.spaceIdxList[0][0]-1,0)]
                 
-                #print(ex.setup())
+#                print(ex.setup())
                 if i == 0:
                     df = ex.gatherData()
                 else:
-                     df = ex.gatherData(load=False)
-#                return ex,1
+                    df = ex.gatherData(load=False)
+                print(df)
+                df = df.loc[:, yearsColumnsOnly(df)]
                 df.columns = df.columns.astype(int)
                 metaDict = dict()
                 metaDict['entity']   = metaDf['Name'].strip().replace('| ','|')
@@ -4671,6 +4676,7 @@ class WEO(BaseImportTool):
                 metaDict['scenario'] =  metaDf['Scenario']  
                 metaDict['source']   = self.setup.SOURCE_ID
                 metaDict['unitTo'] = metaDf['unitTo']
+                metaDict = dt.core._update_meta(metaDict)
                 ID = dt.core._createDatabaseID(metaDict)
                 coISO = self.spatialMapping.loc[region,'mapping']
                 if ID not in tablesToCommit.keys():
@@ -4710,6 +4716,8 @@ class WEO(BaseImportTool):
                     df = ex.gatherData()
                 else:
                     df = ex.gatherData(load=False)
+                print(df)
+                df = df.loc[:, yearsColumnsOnly(df)]
                 df.columns = df.columns.astype(int)
                 metaDict = dict()
                 metaDict['entity']   = metaDf['Name'].strip().replace('| ','|')
@@ -4719,6 +4727,7 @@ class WEO(BaseImportTool):
                 metaDict['source']   = self.setup.SOURCE_ID
                 metaDict['unitTo'] = metaDf['unitTo']
                 
+                metaDict = dt.core._update_meta(metaDict)
                 ID = dt.core._createDatabaseID(metaDict)
                 coISO = self.spatialMapping.loc[region,'mapping']
                 if ID not in tablesToCommit.keys():
@@ -5368,7 +5377,7 @@ def UN_WPP_2019_import():
 
 #%% 
 sources = sourcesStruct()
-_sourceClasses = [IEA_WEB_2019_New, IEA_WEB_2018, ADVANCE_DB, IAMC15_2019, IRENA2019,
+_sourceClasses = [IEA_World_Energy_Balance, IEA_WEB_2018, ADVANCE_DB, IAMC15_2019, IRENA2019,
                   SSP_DATA, SDG_DATA_2019, AR5_DATABASE, IEA_FUEL_2019, PRIMAP_HIST, SDG_DATA_2019,
                   CRF_DATA, WDI_2020, APEC, WEO, VANMARLE2017, HOESLY2018, FAO, LED_2019, IMAGE15_2020]
 
@@ -5417,13 +5426,13 @@ if __name__ == '__main__':
 ##    iea.openMappingFile()
 #    dt.commitTables(tableList, 'Added WDI 2020  data', wdi.meta, update=True)
 #    sdf
-#%%IEA data
-    iea19 = IEA_WEB_2019_New()
+#%%IEA World Energy Balance
+    iea19 = IEA_World_Energy_Balance(2020)
 #    iea19.createVariableMapping()
 #    iea19.addSpatialMapping()
-#    tableList, excludedTables = iea19.gatherMappedData(updateTables=False)
-#    dt.commitTables(tableList, 'IEA2019 World balance update', iea19.meta)
-    
+#    tableList, excludedTables = iea19.gatherMappedData(updateTables=True)
+#    dt.commitTables(tableList, 'IEA2020 World balance update', iea19.meta,update=True)
+#    sdf
 #    iea16 = IEA2016()
 #    iea18 = IEA_WEB_2018()
 #    iea18.addSpatialMapping()
@@ -5463,9 +5472,10 @@ if __name__ == '__main__':
 #%% IAMC DATA
 
     iamc = IAMC15_2019()    
-#    tableList, excludedTables = iamc.gatherMappedData(updateTables=False)
+    tableList, excludedTables = iamc.gatherMappedData(updateTables=False)
 #    iamc.createSourceMeta()
-#    dt.commitTables(tableList, 'update IAM 1.5 data R20', iamc.meta, update=False)
+    dt.commitTables(tableList, 'update IAM 1.5 data R20', iamc.meta, update=True)
+    sad
 #%% CD LINKS
 
     cdlinks = CDLINKS_2018()    
@@ -5493,10 +5503,10 @@ if __name__ == '__main__':
 #            print(countryCode + ' not found')
 #%% AR5
     ar5_db = AR5_DATABASE()
-    tableList, excludedTables = ar5_db.gatherMappedData()
+#    tableList, excludedTables = ar5_db.gatherMappedData()
 #    dt.commitTables(tableList, 'AR5  data added', ar5_db.meta)
 #%% WEO
-    weo = WEO(2019)
+    weo = WEO(2020)
 #    tableList, excludedTables = weo.gatherMappedData()
 #    dt.commitTables(tableList, 'WEO  data updated', weo.meta, update=True)  
     
@@ -5532,6 +5542,7 @@ if __name__ == '__main__':
 #    tableList, excludedTables = cat_psr.gatherMappedData()
 #    dt.commitTables(tableList, 'CAT PSR data', cat_psr.meta, update=False)  
     #%%
+    sdf
     i = 66
     
     table19 = tableList[i]
