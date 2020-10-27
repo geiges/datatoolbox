@@ -1048,6 +1048,22 @@ def _create_sandbox_tables(sourceID, random_seed):
                          index = ['World', 'Asia', 'ZAF'],
                          meta=meta).astype(float)
     tables.append(table)
+    
+    meta = {'entity' : 'Emissions|CO2',
+            'category': 'Total',
+            'scenario': 'Medium',
+            'pathway' : 'Projections',
+            'source' : sourceID,
+            'unit' : 'Mt CO2'}
+    
+    table = data_structures.Datatable(np.random.randint(20,30,[3,31]), 
+                         columns = list(range(2021,2050)), 
+                         index = ['World', 'Asia', 'ZAF'],
+                         meta=meta).astype(float)
+    tables.append(table)
+    
+    
+    
     meta = {'entity' : 'Emissions|CO2',
             'category': 'Total_excl_LULUCF',
             'scenario': None,

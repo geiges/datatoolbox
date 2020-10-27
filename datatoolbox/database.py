@@ -35,16 +35,14 @@ class Database():
         self.sources   = self.gitManager.sources
         
         self.gitManager._validateRepository('main')
-            
-#        if (config.OS == 'win32') | (config.OS == "Windows"):
-#            self.getTable = self._getTableWindows
-#        else:
-#            self.getTable = self._getTableLinux
+
 
         if config.DEBUG:
             print('Database loaded in {:2.4f} seconds'.format(time.time()-tt))
     
         if config.TEST_ENV:
+            # if no config is given, the empty sandbox is populated with some test
+            # tables
             tablesToCommit, source_meta  = util._create_sandbox_tables('SOURCE_A_2020', 1)
             self.commitTables(tablesToCommit,
                          message = 'added dummy tablesof source A', 
@@ -53,6 +51,8 @@ class Database():
             self.commitTables(tablesToCommit,
                          message = 'added dummy tables of source B', 
                          sourceMetaDict = source_meta)
+            print('Added test tables to Sandbox datashelf')
+            
     
     def _validateRepository(self, repoID='main'):
         return self.gitManager._validateRepository(repoID)
