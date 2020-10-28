@@ -41,6 +41,9 @@ class Datatable(pd.DataFrame):
     
         if config.AVAILABLE_XARRAY:
             self.to_xarray = self._to_xarray
+            
+        self.columns.name = 'time'
+        self.index.name   = 'region'
     
     @classmethod
     def from_pyam(cls, idf, **kwargs):
@@ -81,6 +84,8 @@ class Datatable(pd.DataFrame):
     def _to_xarray(self):
         
         return core.xr.DataArray(self.values, coords=[self.index, self.columns], dims=['space','time'], attrs=self.meta)
+    
+
     
     @property
     def _constructor(self):
@@ -477,9 +482,16 @@ class TableSet(dict):
             
     def to_xarray(self, dimensions):
         if not config.AVAILABLE_XARRAY:
-            raise(BaseException('xarray not available'))
+            raise(BaseException('module xarray not available'))
         return core.to_XDataArray(self, dimensions)
-        
+       
+    def to_xset(self):
+        dimensions = ['region', 'time']
+        if not config.AVAILABLE_XARRAY:
+            raise(BaseException('module xarray not available'))
+        return core.to_XDataSet(self, dimensions)
+    
+    
     def __iter__(self):
         return iter(self.values())
     
