@@ -674,14 +674,15 @@ class TableSet(dict):
         # move id columns to the front
         id_cols = pd.Index(['variable', 'region', 'scenario', 'model', 'unit'])
         long_df = long_df[id_cols.union(long_df.columns)]
-
+        
         return long_df
 
     def to_pyam(self):
         
         import pyam
-
-        idf = pyam.IamDataFrame(pd.DataFrame(self.to_LongTable()))
+        long_table = self.to_LongTable()
+        long_table.index.name = None
+        idf = pyam.IamDataFrame(pd.DataFrame(long_table))
 
         meta = pd.DataFrame([df.meta for df in self.values()])
         if 'model' not in meta:
