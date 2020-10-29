@@ -760,7 +760,7 @@ class GitRepository_Manager:
         """
         self[repoName].remote('origin').pull(progress=TqdmProgressPrinter())
         self.updateGitHash(repoName)
-        self.commit()
+        self.commit('udpate from remote')
     
     def verifyGitHash(self, repoName):
         repo = self.repositories[repoName]

@@ -210,7 +210,7 @@ class _primap():
             
 
 class _matlab():
-    def load_mat_file_as_dict(file_path):
+    def load_mat_file_as_dict(self, file_path):
         """
         Function to load a complex mat file as a dictionary
         Source for code: 
@@ -303,11 +303,21 @@ class _EmissionModulePIK():
                 'SHEET_SUBSOURCE':''}
     
     categoryNameMapping = {'CATM1A' : 'Aviation',
-                           'CATM1B' : 'Marine'}
+                           'CATM1B' : 'Marine',
+                           'CATM0EL': 'National_total_exlucding_LULUCF'}
             
-    def write_tables(self, tables, sheet_names, filePath):
+    def write_tables(self, file, tables, sheet_names):
         #%%
         
+        
+        if isinstance(file, str):
+            close_writer = True
+            writer = pd.ExcelWriter(file, engine='xlsxwriter')
+        else:
+            close_writer = False
+            # assume pandas excel writer
+            writer = file
+            
         if not isinstance(tables, list):
             tables = list(tables)
             sheet_names = list(sheet_names)
@@ -318,7 +328,7 @@ class _EmissionModulePIK():
         def validStrings(input):
             return  ''.join(filter(_validLettersAndNumbers, input))
     #%%
-        writer = pd.ExcelWriter(filePath, engine='xlsxwriter')
+        
         
         for table, sheet_name in zip(tables, sheet_names):
             header = pd.DataFrame(data=list(self.metaDict.values()), index= self.metaDict.keys(), columns=['values'])
@@ -337,7 +347,9 @@ class _EmissionModulePIK():
 #            sheet_name = header.loc['SHEET_CODE'][0][:31]
             header.to_excel(writer, header=None, sheet_name= sheet_name)
             pd.DataFrame(table).to_excel(writer, startrow=firstDataRow, sheet_name= sheet_name)
-        writer.close()
+        
+        if close_writer:
+            writer.close()
 #        Excel.open('pandas_positioning.xlsx')
        #%%
 class Excel():
