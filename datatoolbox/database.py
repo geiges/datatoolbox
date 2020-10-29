@@ -432,10 +432,9 @@ class Database():
             raise(BaseException('Sorry, data of table {} is needed to be numeric'.format(datatable)))            
             
         # check that spatial index is consistend with defined countries or regions
-        for regionIdx in datatable.index:
-            #print(regionIdx + '-')
-            if not mapp.regions.exists(regionIdx) and not mapp.countries.exists(regionIdx):
-                raise(BaseException('Sorry, region in table {}: {} does not exist'.format(datatable, regionIdx)))
+        invalidSpatialIDs = datatable.index.difference(mapp.getValidSpatialIDs())
+        if len(invalidSpatialIDs) > 0:
+            raise(BaseException('Sorry, regions in table {}: {} do not exist'.format(datatable, invalidSpatialIDs)))
         
         # check that the time colmns are years
         from pandas.api.types import is_integer_dtype
