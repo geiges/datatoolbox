@@ -26,8 +26,8 @@ def create_empty_datashelf(pathToDataself):
     path.mkdir(parents=True,exist_ok=True)
     
     # add subfolders database
-    path.mkdir(os.path.join(pathToDataself, 'database'))
-    path.mkdir(os.path.join(pathToDataself, 'rawdata'))
+    Path(os.path.join(pathToDataself, 'database')).mkdir()
+    Path(os.path.join(pathToDataself, 'rawdata')).mkdir()
     
     #create mappings
     os.makedirs(os.path.join(pathToDataself, 'mappings'),exist_ok=True)
