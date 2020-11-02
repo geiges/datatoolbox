@@ -21,8 +21,15 @@ def change_personal_config():
     
 def create_empty_datashelf(pathToDataself):
     from pathlib import Path
+    import os
     path = Path(pathToDataself)
     path.mkdir(parents=True,exist_ok=True)
+    
+    # add subfolders database
+    path.mkdir(os.path.join(pathToDataself, 'database'))
+    path.mkdir(os.path.join(pathToDataself, 'rawdata'))
+    
+    #create mappings
     os.makedirs(os.path.join(pathToDataself, 'mappings'),exist_ok=True)
     shutil.copyfile(os.path.join(config.MODULE_PATH, 'data/SANDBOX_datashelf/mappings/regions.csv'),
                     os.path.join(pathToDataself, 'mappings/regions.csv'))
