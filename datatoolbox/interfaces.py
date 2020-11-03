@@ -364,53 +364,176 @@ class _Xarray():
 
     to_Xarray = core.to_XDataArray
         
+ 
     
     
-def read_IAMC_table(iamcData, relationList):
-    import datatoolbox as dt
-    import pandas as pd
+class IAMC_PYAM():
     
-    """
-    Class to help convert iamcData input to homogeneous data tables
-    
-    Tables are split according the column variable of the iamcData table.
-    The following colums are expected ['model', 'scenario', 'region', 'variable', 'unit']
-    and a variable amount of year columns.
-    The relationList maps which variable name is mapped to which output table.
-    """
-    from types import SimpleNamespace
-    import re
-    
-    YEAR_EXP = re.compile('^[0-9]{4}$')
-    dataColumnsIds = [int(x) for x in iamcData.columns if YEAR_EXP.search(str(x)) is not None] 
-    
-    outTables = list()
-    
-    for varName in relationList:
+    def __init__(self):
         
-        if varName not in list(iamcData.loc[:,'variable']):
-            raise(BaseException('Required variable "{}" not found in input table'.format(varName)))
-        ids = iamcData.loc[:,'variable'] == varName
-        idx0 = iamcData.index[ids][0]
-        dataExtract = iamcData.loc[ids, dataColumnsIds]
-        dataExtract.meta = SimpleNamespace()
-        dataExtract.index= iamcData.region[ids]
+        self.entityDict = self._mapped_entities()
         
-        # asserting that the unit, scenario and model data is only containing
-        #  the same value
-        assert iamcData.unit[ids].nunique() ==1
-        assert iamcData.scenario[ids].nunique() ==1
-        assert iamcData.model[ids].nunique() ==1
         
-        meta = dict()
-        meta['entity'] = varName
-        meta['model']    = iamcData.loc[idx0,'model']
-        meta['scenario'] = iamcData.loc[idx0,'scenario']
-        meta['unit']     = iamcData.loc[idx0,'unit']
+        
+    def _mapped_entities(self):
+        """
+        Entities that are commonly used. Keys are the original code and 
+        values are the datatools equivalent
+        """
+        eDict = {
+                # Emissions
+                 'Emissions|CO2': 'Emissions|CO2',
+                 'Emissions|CH4': 'Emissions|CH4',
+                 'Emissions|NOx': 'Emissions|NOx',
+                 'Emissions|NH3': 'Emissions|NH3',
+                 'Emissions|CO': 'Emissions|CO',
+                 'Emissions|BC': 'Emissions|BC',
+                 'Emissions|N2O': 'Emissions|N2O',
+                 'Emissions|KYOTOGHG_AR4': 'Emissions|KYOTOGHG_AR4',
+                 'Emissions|KYOTOGHGAR4': 'Emissions|KYOTOGHG_AR4',
+                 'Emissions|CO|AFOLU': 'Emissions|CO|AFOLU',
+                 'Emissions|SF6': 'Emissions|SF6',
+                 'Emissions|OC': 'Emissions|OC',
+                 'Emissions|HFC': 'Emissions|HFC',
+                 'Emissions|KYOTOGHG_AR5': 'Emissions|KYOTOGHG_AR5',
+                 'Emissions|Sulfur': 'Emissions|Sulfur',
+                 'Emissions|CO|Energy': 'Emissions|CO|Energy',
+                 'Emissions|F-Gases': 'Emissions|F-Gases',
+                 'Emissions|Sulfur|AFOLU': 'Emissions|Sulfur|AFOLU',
+                 'Emissions|VOC': 'Emissions|VOC',
+                 'Emissions|PFC': 'Emissions|PFC',
+                 # Energy
+                 'Primary_Energy': 'Primary_Energy',
+                 'Secondary_Energy': 'Secondary_Energy',
+                 'Final Energy' 
+                 #Temperature assessment
+                 'Global_mean_temperature': 'Global_mean_temperature',
+                 #Misc
+                 'GDP|MER': 'GDP|MER',
+                 'GDP|PPP': 'GDP|PPP',
+                 'Subsidies' : 'Subsidies',
+                 'Investment': 'Investment',
+                 'Population' : 'Population',
+                 'Price|Carbon': 'Price|Carbon',
+                 'Carbon_Sequestration': 'Carbon_Sequestration',
+                }
+        
+        return eDict
     
-        outTables.append(dt.Datatable(dataExtract, meta= meta))
+    def _split_variable(self, variable):
+        for key in self.entityDict.keys():
+            if key in variable:
+                category = variable.replace(key,'').lstrip('_').lstrip('|')
+                entity = self.entityDict[key]
+                return entity, category
     
-    return outTables
+    def from_iamc_table(self, idf):
+        """Extracts a consistent time-series for a unique variable from ``idf``
+    
+        Parameters
+        ----------
+        idf : pyam.IamDataFrame
+            pyam data frame from which to extract
+            
+        Returns
+        -------
+        TableSet 
+        Returns the extracted data as tableset
+        
+        """
+        
+        timeseries = idf.timeseries()
+        time_colunms = timeseries.columns
+        timeseries = timeseries.reset_index()
+        timeseries.loc[:,'pathway'] = timeseries[['scenario', 'model']].apply(lambda x: ''.join(x), axis=1)
+        timeseries.loc[:,'entity'] = None
+        timeseries.loc[:,'category'] = None
+        
+        meta_columns = set(timeseries.columns).difference(time_colunms)
+        
+        datatables = TableSet()
+        for variable in timeseries.variable.unique():
+            
+            #index selection boolean
+            var_mask = timeseries.loc[:,'variable'] == variable
+            ind = timeseries.index[var_mask]
+            
+            entity, category = self._split_variable(variable)
+            
+            timeseries.loc[ind,'entity'] = entity
+            timeseries.loc[ind,'category'] = category
+            
+            
+            for pathway in timeseries.pathway.unique():
+                path_mask = timeseries.loc[:,'pathway'] == pathway
+                
+                ind = timeseries.index[var_mask & path_mask]
+                
+                # create meta dictionary
+                metaDict = {metaKey: timeseries.loc[ind[0], metaKey] for metaKey in meta_columns}
+                    
+                # create datatable
+                table = Datatable(timeseries.loc[ind, list(time_colunms) + ['region']].set_index('region'),
+                                                 meta = metaDict)
+                
+                # add table to dataset
+                tableKey = '__'.join([variable, pathway])
+                datatables[tableKey] = table
+        
+        return datatables
+    
+    
+    def read_IAMC_table(self, iamcData):
+        """
+        Class to help convert iamcData input to homogeneous data tables
+        
+        Tables are split according the column variable of the iamcData table.
+        The following colums are expected ['model', 'scenario', 'region', 'variable', 'unit']
+        and a variable amount of year columns.
+        The relationList maps which variable name is mapped to which output table.
+        
+        RelationDict Example:
+        relationDict = {'Emissions|KYOTOGHGAR4|IPCM0EL' : {'entitiy' : 'Emissions|KYOTOGHGAR4',
+                                                           'category': 'IPCM0EL'}}
+        """
+        from types import SimpleNamespace
+    #    import re
+        
+    #    YEAR_EXP = re.compile('^[0-9]{4}$')
+    #    dataColumnsIds = [int(x) for x in iamcData.columns if YEAR_EXP.search(str(x)) is not None] 
+        
+        dataColumnsIds = iamcData.year
+        
+        outTables = list()
+        
+        for varName, mappDict in relationDict.items():
+            
+            if varName not in set(iamcData.variable):
+                raise(BaseException('Required variable "{}" not found in input table'.format(varName)))
+            ids = iamcData.data.loc[:,'variable'] == varName
+            idx0 = iamcData.data.index[ids][0]
+            mask
+            dataExtract = iamcData.data.loc[ids, dataColumnsIds]
+            dataExtract.meta = SimpleNamespace()
+            dataExtract.index= iamcData.data.region[ids]
+            
+            # asserting that the unit, scenario and model data is only containing
+            #  the same value
+            assert iamcData.data.unit[ids].nunique() ==1
+            assert iamcData.data.scenario[ids].nunique() ==1
+            assert iamcData.data.model[ids].nunique() ==1    
+            
+            meta = dict()
+            for key in mappDict.keys():
+                meta[key]   = mappDict[key]
+    #        meta['entity'] = varName
+            meta['model']    = iamcData.loc[idx0,'model']
+            meta['scenario'] = iamcData.loc[idx0,'scenario']
+            meta['unit']     = iamcData.loc[idx0,'unit']
+        
+            outTables.append(Datatable(dataExtract, meta= meta))
+        
+        return outTables
 
 def read_long_table(longDf, relationList):
 
@@ -463,7 +586,7 @@ emission_module = _EmissionModulePIK()
 if config.AVAILABLE_XARRAY:
     xarray = _Xarray()
 
-
+pyam = IAMC_PYAM()
 
 
 

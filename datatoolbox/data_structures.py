@@ -498,10 +498,20 @@ class TableSet(dict):
     def add(self, datatables=None, tableID=None):
         if isinstance(datatables, (list, TableSet)):
             for datatable in datatables:
-                self._add(datatable, tableID)
+                
+                if tableID in self.keys():
+                    self._update(datatable, tableID)
+                else:
+                    self._add(datatable, tableID)
+
         else:
             datatable = datatables
-            self._add(datatable, tableID)
+            if tableID in self.keys():
+                self._update(datatable, tableID)
+            else:
+                self._add(datatable, tableID)
+
+    
             
     def _add(self, datatable=None, tableID=None):
         if datatable is None:
@@ -575,7 +585,7 @@ class TableSet(dict):
             try:
                 datatable.generateTableID()
             except:
-                print('Cuold not generate ID, key used instead')
+                print('Could not generate ID, key used instead')
                 datatable.ID = key
         self.inventory.loc[datatable.ID, "key"] = key
         self.inventory.loc[datatable.ID, config.INVENTORY_FIELDS] = [datatable.meta.get(x,None) for x in config.INVENTORY_FIELDS]
