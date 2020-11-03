@@ -471,7 +471,7 @@ class IAMC_PYAM():
                 
                 # create meta dictionary
                 metaDict = {metaKey: timeseries.loc[ind[0], metaKey] for metaKey in meta_columns}
-                    
+                del metaDict['region']    
                 # create datatable
                 table = Datatable(timeseries.loc[ind, list(time_colunms) + ['region']].set_index('region'),
                                                  meta = metaDict)

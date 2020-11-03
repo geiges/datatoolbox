@@ -496,35 +496,78 @@ class TableSet(dict):
         return iter(self.values())
     
     def add(self, datatables=None, tableID=None):
-        if isinstance(datatables, (list, TableSet)):
-            for datatable in datatables:
-                
-                if tableID in self.keys():
-                    self._update(datatable, tableID)
-                else:
-                    self._add(datatable, tableID)
-
-        else:
-            datatable = datatables
-            if tableID in self.keys():
-                self._update(datatable, tableID)
-            else:
-                self._add(datatable, tableID)
-
-    
+        
+        if datatables is not None:
             
-    def _add(self, datatable=None, tableID=None):
-        if datatable is None:
-            # adding only the ID, the full table is only loaded when necessary
-            self[tableID] = None
-            self.inventory.loc[tableID] = [None for x in config.ID_FIELDS]
+            if isinstance(datatables, list):
+                self._add_list(datatables)
+                
+            elif isinstance(datatables, TableSet):
+                self._add_TableSet(datatables)
+                
+            elif isinstance(datatables, Datatable):
+                self._add_single_table(datatables)
+                
+            else:
+                 print('Data type not recognized.')
+            
+        elif tableID is not None:
+            self._add_tableID(tableID)
+            
+            
+            
+    def _add_list(self, tableList):
+        for table in tableList:
+            tableID = table.generateTableID()
+            
+            if tableID in self.keys():
+                self._update(table, tableID)
+            else:
+                self.__setitem__(tableID, table)
+    
+    def _add_TableSet(self, tableSet):
+        
+        for tableID, table in tableSet.items():
+            
+            if tableID in self.keys():
+                self._update(table, tableID)
+            else:
+                self.__setitem__(tableID, table)
+    
+    def _add_single_table(self, table):
+        tableID = table.generateTableID()
+        if tableID in self.keys():
+            self._update(table, tableID)
         else:
-            # loading the full table
-            if datatable.ID is None:
-                datatable.generateTableID()
-            self[datatable.ID] = datatable
-            self.inventory.loc[datatable.ID, "key"] = datatable.ID
-            self.inventory.loc[datatable.ID, config.INVENTORY_FIELDS] = [datatable.meta.get(x,None) for x in config.INVENTORY_FIELDS]
+            self.__setitem__(tableID, table)
+        
+    def _add_tableID(self, tableID):
+        self[tableID] = None
+        self.inventory.loc[tableID] = [None for x in config.ID_FIELDS]   
+        
+        
+    def _update(self, table, tableKey):
+        
+        # make sure the data is compatible
+#        print(table.meta)
+#        print(self[tableKey].meta)
+        assert table.meta == self[tableKey].meta
+        
+        # update data
+        self[tableKey] = pd.concat([self[tableKey] , table])
+            
+#    def _add(self, datatable=None, tableID=None):
+#        if datatable is None:
+#            # adding only the ID, the full table is only loaded when necessary
+#            self[tableID] = None
+#            self.inventory.loc[tableID] = [None for x in config.ID_FIELDS]
+#        else:
+#            # loading the full table
+#            if datatable.ID is None:
+#                datatable.generateTableID()
+#            self[datatable.ID] = datatable
+#            self.inventory.loc[datatable.ID, "key"] = datatable.ID
+#            self.inventory.loc[datatable.ID, config.INVENTORY_FIELDS] = [datatable.meta.get(x,None) for x in config.INVENTORY_FIELDS]
     
     def remove(self, tableID):
         del self[tableID]
