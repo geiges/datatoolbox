@@ -445,7 +445,7 @@ class IAMC_PYAM():
         timeseries = idf.timeseries()
         time_colunms = timeseries.columns
         timeseries = timeseries.reset_index()
-        timeseries.loc[:,'pathway'] = timeseries[['scenario', 'model']].apply(lambda x: ''.join(x), axis=1)
+        timeseries.loc[:,'pathway'] = timeseries[['scenario', 'model']].apply(lambda x: '|'.join(x), axis=1)
         timeseries.loc[:,'entity'] = None
         timeseries.loc[:,'category'] = None
         
@@ -471,13 +471,20 @@ class IAMC_PYAM():
                 
                 # create meta dictionary
                 metaDict = {metaKey: timeseries.loc[ind[0], metaKey] for metaKey in meta_columns}
-                del metaDict['region']    
+                del metaDict['region']
+                
+                #ToDo genralize
+                if ('source' in idf.meta.columns) and (len(idf.meta.source.unique()) ==1):
+                    metaDict['source'] = list(idf.meta.source.unique())[0]
                 # create datatable
                 table = Datatable(timeseries.loc[ind, list(time_colunms) + ['region']].set_index('region'),
                                                  meta = metaDict)
                 
                 # add table to dataset
-                tableKey = '__'.join([variable, pathway])
+#                if hasattr(table, 'ID'):
+#                    datatables[table.ID] = table
+#                else:
+                tableKey =  '__'.join([variable, pathway])
                 datatables[tableKey] = table
         
         return datatables
