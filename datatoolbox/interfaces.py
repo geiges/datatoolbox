@@ -351,7 +351,7 @@ class _EmissionModulePIK():
         if close_writer:
             writer.close()
 #        Excel.open('pandas_positioning.xlsx')
-       #%%
+    #%%
 class Excel():
     
     def open(filePath):
@@ -359,13 +359,13 @@ class Excel():
             os.system('libreoffice ' + filePath )
         elif config.OS == 'Darwin':
             os.system('open -a "Microsoft Excel" ' + filePath )
-            #%%
+    #%%
 class _Xarray():
 
     to_Xarray = core.to_XDataArray
         
  
-    
+    #%%    
     
 class IAMC_PYAM():
     
@@ -427,7 +427,7 @@ class IAMC_PYAM():
                 entity = self.entityDict[key]
                 return entity, category
     
-    def from_iamc_table(self, idf):
+    def from_IamDataFrame(self, idf):
         """Extracts a consistent time-series for a unique variable from ``idf``
     
         Parameters
@@ -480,14 +480,36 @@ class IAMC_PYAM():
                 table = Datatable(timeseries.loc[ind, list(time_colunms) + ['region']].set_index('region'),
                                                  meta = metaDict)
                 
-                # add table to dataset
-#                if hasattr(table, 'ID'):
-#                    datatables[table.ID] = table
-#                else:
                 tableKey =  '__'.join([variable, pathway])
                 datatables[tableKey] = table
         
         return datatables
+    
+    def to_IamDataFrame(tableSet):
+        
+        import pyam
+        long_table = tableSet.to_LongTable()
+        long_table.index.name = None
+        idf = pyam.IamDataFrame(pd.DataFrame(long_table))
+
+        meta = pd.DataFrame([df.meta for df in self.values()])
+        if 'model' not in meta:
+            meta['model'] = ""
+        if 'scenario' not in meta:
+            meta['scenario'] = ""
+        meta = (
+            meta[
+                pd.Index(['model', 'scenario', 'pathway'])
+                .append(meta.columns[meta.columns.str.startswith('source')])
+            ]
+            .set_index(['model', 'scenario'])
+            .drop_duplicates()
+        )
+
+        idf.meta = meta
+        idf.reset_exclude()
+
+        return idf
     
     
     def read_IAMC_table(self, iamcData):
@@ -503,6 +525,8 @@ class IAMC_PYAM():
         relationDict = {'Emissions|KYOTOGHGAR4|IPCM0EL' : {'entitiy' : 'Emissions|KYOTOGHGAR4',
                                                            'category': 'IPCM0EL'}}
         """
+        
+        print('this function is decribcated, please use from_idf')
         from types import SimpleNamespace
     #    import re
         

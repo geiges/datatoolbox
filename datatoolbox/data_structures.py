@@ -498,6 +498,8 @@ class TableSet(dict):
             raise(BaseException('module xarray not available'))
         return core.to_XDataSet(self, dimensions)
     
+    def to_list(self):
+        return [ self[key] for key in self.keys()]
     
     def __iter__(self):
         return iter(self.values())
