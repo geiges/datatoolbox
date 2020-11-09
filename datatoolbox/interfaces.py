@@ -477,11 +477,15 @@ class IAMC_PYAM():
                 if ('source' in idf.meta.columns) and (len(idf.meta.source.unique()) ==1):
                     metaDict['source'] = list(idf.meta.source.unique())[0]
                 # create datatable
-                table = Datatable(timeseries.loc[ind, list(time_colunms) + ['region']].set_index('region'),
+                table = Datatable(timeseries.loc[ind, 
+                                                 list(time_colunms) + ['region']].set_index('region'),
                                                  meta = metaDict)
                 
-                tableKey =  '__'.join([variable, pathway])
-                datatables[tableKey] = table
+                try:
+                    tableKey = table.generateTableID()
+                except:
+                    tableKey =  '__'.join([variable, pathway])
+                datatables[tableKey] = table.clean()
         
         return datatables
     

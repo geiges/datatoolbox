@@ -1038,8 +1038,8 @@ def _create_sandbox_tables(sourceID, random_seed):
     
     meta = {'entity' : 'Emissions|CO2',
             'category': 'Total',
-            'scenario': None,
-            'model' : 'Historic',
+            'model': None,
+            'scenario' : 'Historic',
             'source' : sourceID,
             'unit' : 'Mt CO2'}
     
