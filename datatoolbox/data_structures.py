@@ -477,8 +477,15 @@ class TableSet(dict):
                 self.add(core.DB.getTable(tableID))
         
         
-#        if config.AVAILABLE_XARRAY:
-#           self.to_Xarray = self._to_Xarray         
+    @classmethod
+    def from_list(cls,
+                  tableList):
+        tableSet = cls()
+        for table in tableList:
+            tableSet.add(table)
+    
+        return tableSet
+    
             
     def to_xarray(self, dimensions):
         if not config.AVAILABLE_XARRAY:
@@ -727,7 +734,7 @@ class TableSet(dict):
         # move id columns to the front
         id_cols = pd.Index(['variable', 'region', 'scenario', 'model', 'unit'])
         long_df = long_df[id_cols.union(long_df.columns)]
-        
+        long_df = pd.DataFrame(long_df)
         return long_df
 
     def to_pyam(self):
