@@ -11,6 +11,11 @@ import numpy as np
 import pandas as pd
 import os
 
+
+def test_import():
+    import xarray
+    
+    
 def test_to_xarray_interface():
     #%%
     inv = dt.findp(variable = 'Emissions|CO2|Total',

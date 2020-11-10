@@ -11,6 +11,11 @@ import numpy as np
 import pandas as pd
 import os
 
+
+def test_import():
+    import pyam
+    
+    
 def test_to_pyam_interface():
     #%%
     inv = dt.findp(variable = 'Emissions|CO2|Total',
