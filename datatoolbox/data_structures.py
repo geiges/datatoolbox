@@ -147,7 +147,7 @@ class Datatable(pd.DataFrame):
     x.diff()
     
     def to_excel(self, fileName = None, sheetName = "Sheet0", writer = None, append=False):
-        if writer is None:
+        if fileName is not None:
             if append:
                 writer = pd.ExcelWriter(fileName, 
                                         engine='openpyxl', mode='a',
@@ -164,7 +164,9 @@ class Datatable(pd.DataFrame):
         
         metaSeries.to_excel(writer, sheet_name=sheetName, header=None, columns=None)
         super(Datatable, self).to_excel(writer, sheet_name= sheetName, startrow=len(metaSeries))
-        writer.close()
+        
+        if fileName is not None:
+            writer.close()
         
         
                 

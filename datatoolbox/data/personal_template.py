@@ -6,6 +6,6 @@ Personal setup
 
 
 CRUNCHER = 'XX'
-PATH_TO_DATASHELF = '/PPP/PPP'
+PATH_TO_DATASHELF = r'/PPP/PPP'
 DB_READ_ONLY = True
 DEBUG = False
