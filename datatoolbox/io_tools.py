@@ -10,6 +10,8 @@ import os
 import string
 import pandas as pd
 import numpy as np
+from tqdm import tqdm
+
 from . import config
 
 from . import core
@@ -149,7 +151,7 @@ def read_PRIMAP_Excel(fileName, sheet_names= None, xlsFile=None):
         sheet_names = getAllSheetNames(fileName)
         
     out = TableSet()
-    for sheet_name in sheet_names:
+    for sheet_name in tqdm(sheet_names):
         table = _read_PRIMAP_Excel_single(fileName, sheet_name, xlsFile=xlsFile)
         out[sheet_name] = table
         
@@ -357,7 +359,7 @@ class ExcelReader():
 
         if load:
             self.df = pd.read_excel(os.path.join(self.filePath, self.fileName), sheet_name=self.sheetName, header=None)
-            print('df loaded')
+#            print('df loaded')
         elif core.config.DEBUG:
             print('use loaded df')
 

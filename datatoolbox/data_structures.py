@@ -639,7 +639,7 @@ class TableSet(dict):
             try:
                 datatable.generateTableID()
             except:
-                print('Could not generate ID, key used instead')
+#                print('Could not generate ID, key used instead')
                 datatable.ID = key
         self.inventory.loc[datatable.ID, "key"] = key
         self.inventory.loc[datatable.ID, config.INVENTORY_FIELDS] = [datatable.meta.get(x,None) for x in config.INVENTORY_FIELDS]

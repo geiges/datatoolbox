@@ -8,7 +8,8 @@ This is a python tool box project for handling global datasets. It contains the 
     Automatic unit conversion and table based computations
     ID based data structure
 
-Authors: Andreas Geiges  
+Authors: Andreas Geiges
+         Jonas Hörsch     
          Gaurav Ganti
 
 @Climate Analytics gGmbH
