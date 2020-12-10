@@ -215,6 +215,9 @@ class Datatable(pd.DataFrame):
                 idf.set_meta(meta[field], field)
  
         return idf
+       
+    def to_IamDataFrame(self, **kwargs):
+        return self.to_pyam(**kwargs)
         
     def convert(self, newUnit, context=None):
         

@@ -145,6 +145,10 @@ def read_PRIMAP_csv(fileName):
     return table#, data
 
 def read_PRIMAP_Excel(fileName, sheet_names= None, xlsFile=None):
+    
+    if isinstance(sheet_names, str):
+        return _read_PRIMAP_Excel_single(fileName, sheet_names, xlsFile)
+    
     if sheet_names is None:
         sheet_names = getAllSheetNames(fileName)
         
