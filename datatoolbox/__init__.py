@@ -2,24 +2,25 @@
 # -*- coding: utf-8 -*-
 """
 ----------- DATA TOOL BOX -------------
-This is a python tool box project for handling global datasets. It contains the following features:
+This is a python tool box project for handling global datasets. 
+It contains the following features:
 
     Augumented pandas DataFrames adding meta data,
     Automatic unit conversion and table based computations
     ID based data structure
+    Code templates (see templates.py)
+    Package specific helper functions (see: tools/)
 
 Authors: Andreas Geiges
          Jonas Hörsch     
          Gaurav Ganti
-
-@Climate Analytics gGmbH
+         Matthew Giddens
+         
 """
 
 from .version import version as __version__
 
 import os
-import time
-import copy
 from . import config
 from . import core
 from .data_structures import Datatable, TableSet, read_csv
