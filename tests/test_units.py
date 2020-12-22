@@ -20,9 +20,9 @@ def test_custom_base_conversion1():
     npt.assert_almost_equal(obs, exp)
 
 
-def test_GWP_conversion_CO():    
-    obs = dt.conversionFactor("Mt CO", "Gg CO2eq", context="GWPAR4")
-    exp = 1000
+def test_GWP_conversion_N2O():    
+    obs = dt.conversionFactor("Mt N2O", "Gg CO2eq", context="GWPAR4")
+    exp = 298000
     npt.assert_almost_equal(obs, exp)
 
 def test_GWP_conversion_CH4():        
