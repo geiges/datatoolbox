@@ -1,9 +1,8 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
 """
-Created on Fri Mar 22 14:55:32 2019
-
-@author: and
+CSV and git-based database to store year-country data in a multi-user
+setup
 """
 
 import pandas as pd

@@ -1,9 +1,13 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
 """
-Created on Thu Mar 21 10:46:40 2019
+Basic data structures that allow more efficient handling of year-country
+based data sets. 
 
-@author: andreas geiges
+Datatables are based on pandas dataframes and enfore regions as index
+and years as columns. It uses meta data and provides full unit handling
+by any computations using datatables.
+
 """
 
 import pandas as pd
@@ -19,7 +23,12 @@ from . import util
 #from .tools import xarray
             
 class Datatable(pd.DataFrame):
+    """
+    Datatable
+    ^^^^^^^^^
     
+    Test documentation
+    """
     _metadata = ['meta', 'ID']
 
     def __init__(self, *args, **kwargs):
@@ -145,11 +154,6 @@ class Datatable(pd.DataFrame):
         out.meta['unit'] = self.meta['unit']
         
         return out
-    
-#with pd.ExcelWriter('the_file.xlsx', engine='openpyxl', mode='a') as writer: 
-#     data_filtered.to_excel(writer) 
-    x = pd.DataFrame()
-    x.diff()
     
     def to_excel(self, fileName = None, sheetName = "Sheet0", writer = None, append=False):
         if fileName is not None:
