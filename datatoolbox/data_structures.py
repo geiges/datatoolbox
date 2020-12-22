@@ -81,6 +81,11 @@ class Datatable(pd.DataFrame):
 
         return cls(data, meta=meta)
 
+    @classmethod
+    def from_excel(cls, filepath, sheetNames = None):
+       
+       return read_excel(filepath,sheetNames)
+       
     def _to_xarray(self):
         
         return core.xr.DataArray(self.values, coords=[self.index, self.columns], dims=['space','time'], attrs=self.meta)
@@ -1084,7 +1089,11 @@ def read_excel(fileName, sheetNames = None):
                                   index   = fileContent.loc[columnIdx+1:, 0], 
                                   columns = [int(x) for x in fileContent.loc[columnIdx, 1:]], 
                                   meta    = metaDict)
-            dataTable.generateTableID()
+            
+            try:
+                dataTable.generateTableID()
+            except:
+                print('Warning: Meta data incomplete, table ID not generated')
             out = dataTable
 #        except:
 #                print('Failed to read the sheet: {}'.format(sheet))
