@@ -19,23 +19,9 @@ import matplotlib.pylab as plt
 import os
 import tqdm
 
+import deprecated as dp
 #from .tools import kaya_idendentiy_decomposition
 
-DataFrameStyle = """
-<style>
-    tr:nth-child(even) {color: blue; }
-    tr:nth-child(odd)  {background: #ededed;}
-    thead th      { background: #cecccc; }
-    tr:hover { background: silver;   cursor: pointer;}
-    td, th {padding: 5px;}
-    {border: 1px solid silver;}
-    {border-collapse: collapse; }
-    {font-size: 11pt;}
-    {font-family: Arial;}
-    {text-align: left;}
-</style>
-"""
-#nice green #d2f4e5
 
 try:
     from hdx.location.country import Country
@@ -58,73 +44,29 @@ except:
         print('use: "pip install hdx-python-country" to install')
         return None
 
-def colorGenerator(reset=False):
-    
-    
-    _colors = ['#1f77b4',
-            '#aec7e8', #aec7e8
-            '#ff7f0e', #ff7f0e
-            '#ffbb78', #ffbb78
-            '#2ca02c', #2ca02c
-            '#98df8a', #98df8a
-            '#d62728', #d62728
-            '#ff9896', #ff9896
-            '#9467bd', #9467bd
-            '#c5b0d5', #c5b0d5
-            '#8c564b', #8c564b
-            '#c49c94', #c49c94
-            '#e377c2', #e377c2
-            '#f7b6d2', #f7b6d2
-            '#7f7f7f', #7f7f7f
-            '#c7c7c7', #c7c7c7
-            '#bcbd22', #bcbd22
-            '#dbdb8d', #dbdb8d
-            '#17becf', #17becf
-            '#9edae5', #9edae5
-            ]
-    for color in _colors:
-        yield(color)
 
+from .tools import matplotlib as _plt
+
+colorGenerator = dp.deprecated(_plt.colorGenerator, 
+                               reason="please import from matplotlib toolkid", 
+                               version='0.4.0')
+savefig = dp.deprecated(_plt.savefig,
+                               reason="please import from matplotlib toolkid", 
+                               version='0.4.0')
+from .tools import pandas as _pd
+
+yearsColumnsOnly = dp.deprecated(_pd.yearsColumnsOnly,
+                               reason="please import from pandas toolkid", 
+                               version='0.4.0')
  
 #%%
-
-def generate_html(dataframe, style =None) :
-    
-    if style is None:
-        style = DataFrameStyle
-    pd.set_option('colheader_justify', 'center')   # FOR TABLE <th>
-    
-    html = _HTML_with_style(dataframe, '<style>table {}</style>'.format(style))
-    
-    return html.data.replace('NaN','')
+from .tools import html as _html
 
 def export_to_pdf( dataframe, fileName):
-    html = export_to_html(dataframe)
+    html = _html.export_to_html(dataframe)
     import pdfkit
     pdfkit.from_string(html, fileName)
 
-def export_to_html( dataframe, fileName = None, heading =''):
-    pd.set_option('colheader_justify', 'center')   # FOR TABLE <th>
-    
-    html = _HTML_with_style(dataframe, '<style>table {}</style>'.format(DataFrameStyle))
-    
-    html_string = '''
-            <html>
-              <head><title>HTML Pandas Dataframe with CSS</title></head>
-              <link rel="stylesheet" type="text/css" href="df_style.css"/>
-              <body>
-              <h1>{heading}</h1>
-                {table}
-              </body>
-            </html>
-            '''
-    df_html = html_string.format(table=html.data, heading=heading)
-    
-    if fileName:
-        with open(fileName, 'w') as f:
-            f.write(df_html)
-    
-    return df_html
 
 GHG_data = GreenhouseGasTable()
 
@@ -178,41 +120,7 @@ def diff(df1, df2):
         return pd.DataFrame({'from': changed_from, 'to': changed_to},
                             index=changed.index)        
 
-def convertToCO2eq(dataTable, context = 'GWP100_AR5'):
-    # load the greenhouse gase table if not done yet
-    
-    
-    
-    # remove mass unit
-    unit = core.getUnit(dataTable.meta['unit'])
-    unitDict = unit.u._units
-    unitEntity = (unit / core.ur('kg')).to_base_units().u
-    
-    
-    if len(unitEntity._units.keys()) > 1:
-        raise Exception('More than one gas entity found: ' + str(unitEntity) + ' - cannot convert')
-    
-    # get the GWP equivalent from the GHG database
-    gasPropertyDict = GHG_data.searchGHG(str(unitEntity))
-    if gasPropertyDict is None:
-        raise Exception('No gas been found for conversion')
-        
-    GWP_equivalent = gasPropertyDict[context]
-    
-    # prepate a dict of units and remove the old gas entity
-    unitDict =  unitDict.remove(str(unitEntity))
-    # add CO2eq as unit
-    unitDict = unitDict.add('CO2eq',1)
-    
-    # create a new composite sting of the new mass of CO2eq    
-    newUnit = ' '.join([xx for xx in unitDict.keys()])
-    
-    # copy table and convert values and create new meta data
-    outTable = dataTable.copy()
-    outTable.values[:] = outTable.values[:] * GWP_equivalent
-    outTable.meta['unit'] = newUnit
-    
-    return outTable
+
 
 def isUnit(unit):
     try:
@@ -280,65 +188,9 @@ def cleanDataTable(dataTable):
     
     return dataTable
 
-def _HTML_with_style(df, style=None, random_id=None):
-    from IPython.display import HTML
-    import numpy as np
-    import re
 
-    df_html = df.to_html(escape =False)
 
-    if random_id is None:
-        random_id = 'id%d' % np.random.choice(np.arange(1000000))
 
-    if style is None:
-        style = """
-        <style>
-            table#{random_id} {{color: blue}}
-        </style>
-        """.format(random_id=random_id)
-    else:
-        new_style = []
-        s = re.sub(r'</?style>', '', style).strip()
-        for line in s.split('\n'):
-                line = line.strip()
-                if not re.match(r'^table', line):
-                    line = re.sub(r'^', 'table ', line)
-                new_style.append(line)
-        new_style = ['<style>'] + new_style + ['</style>']
-
-        style = re.sub(r'table(#\S+)?', 'table#%s' % random_id, '\n'.join(new_style))
-
-    df_html = re.sub(r'<table', r'<table id=%s ' % random_id, df_html)
-
-#    html_string = '''
-#        <html>
-#          <head><title>HTML Pandas Dataframe with CSS</title></head>
-#          <link rel="stylesheet" type="text/css" href="df_style.css"/>
-#          <body>
-#          <h1>{heading}</h1>
-#            {table}
-#          </body>
-#        </html>.
-#        '''
-    #df_html = html_string.format(table=df_html, heading=heading)
-    return HTML(style + df_html)
-
-def savefig(*args, **kwargs):
-    """
-    Wrapper around plt.savefig to append the filename of the creating scrip
-    for re-producibiltiy
-    """
-    import inspect, os
-    import matplotlib.pylab as plt
-    frame = inspect.stack()[1]
-    module = inspect.getmodule(frame[0])
-    try:
-        pyFileName = os.path.basename(module.__file__)
-    except:
-        pyFileName = 'unkown'
-    
-    plt.gcf().text(0.01, 0.02, 'file:' + pyFileName)
-    plt.savefig(*args, **kwargs)
     
     
 def identifyCountry(string):
@@ -390,118 +242,7 @@ def addCountryNames(table):
     table.loc[:,'country_name'] = names
     return table
 
-def getCountryExtract(countryList, sourceList='all'):
-    
-    if sourceList == 'all':
-        sourceList = list(dt.core.DB.sources.index)
-    
-    if not isinstance(countryList,list):
-        countryList = [countryList]
-    if not isinstance(sourceList,list):
-        sourceList = [sourceList]
-            
-    #%%
-    resFull = list()
-    sourceList.sort()
-    for source in sourceList:
-        print(source)
-        newList = list(dt.find(source=source).index)    
-        newList.sort()
-        resFull = resFull + newList
-    #resFull.sort()
-    #return(resFull)
-    _res2Excel(resFull, countryList)
 
-def _res2Excel(resFull, countryList):
-    tableSet = dt.TableSet()
-    
-    yearRange = (pd.np.inf, -pd.np.inf)
-    
-    ID_list = list()
-    for ID in resFull:
-        table = dt.getTable(ID)
-        if 'Gg' in table.meta['unit']:
-            table = table.convert(table.meta['unit'].replace('Gg','Mt'))
-        tableSet.add(table)
-        ID_list.append(table.ID)
-        
-        minYears = min(yearRange[0], table.columns.min())
-        maxYears = max(yearRange[1], table.columns.max())
-        yearRange = (minYears, maxYears)
-        
-    for country in countryList:
-        
-        coISO = identifyCountry(country)
-        
-        if coISO is None:
-            coISO = country
-        
-        outDf = pd.DataFrame(columns = ['Source', 'Entity', 'Category', 'Scenario', 'Unit'] + list(range(yearRange[0], yearRange[1]+1)))
-        
-        i =0
-        for ID in ID_list:
-            if coISO in tableSet[ID].index:
-                years =  tableSet[ID].columns[~tableSet[ID].loc[coISO].isna()]
-                outDf.loc[i,years] = tableSet[ID].loc[coISO,years]
-                outDf.loc[i,['Source', 'Entity','Category', 'Scenario', 'Unit']] = [tableSet[ID].meta[x] for x in ['source', 'entity','category', 'scenario', 'unit']]
-                i = i+1
-        
-        outDf = outDf.loc[:,~outDf.isnull().all(axis=0)]
-        outDf.to_excel('extract_'+  coISO + '.xlsx')
-        
-        
-    #%%
-def compare_excel_files(file1, file2, eps=1e-6):
-    #%%
-    
-    def report_diff(x):
-        try:
-#            print(x)
-            x = x.astype(float)
-#            print(x)
-            return x[1] if (abs(x[0] - x[1]) < eps) or  pd.np.any(pd.isnull(x))  else '{0:.2f} -> {1:.2f}'.format(*x)
-        except:
-            return x[1] if (x[0] == x[1]) or  pd.np.any(pd.isnull(x))  else '{} -> {}'.format(*x)
-            #print(x)
-            
-    xlFile1 = pd.ExcelFile(file1)
-    sheetNameList1 = set(xlFile1.sheet_names)
-    
-    xlFile2 = pd.ExcelFile(file2)
-    sheetNameList2 = set(xlFile2.sheet_names)
-    
-    writer = pd.ExcelWriter("diff_temp.xlsx")
-    
-    for sheetName in sheetNameList2.intersection(sheetNameList1):
-        data1  = pd.read_excel(xlFile1, sheet_name=sheetName)
-        data2  = pd.read_excel(xlFile2, sheet_name=sheetName)
-        data1 = data1.replace(pd.np.nan, '').astype(str)
-        data2 = data2.replace(pd.np.nan, '').astype(str)
-        data1 = data1.apply(lambda x: x.str.strip())
-        data2 = data2.apply(lambda x: x.str.strip())
-        diff_panel = pd.Panel(dict(df1=data1,df2=data2))
-        diff_output = diff_panel.apply(report_diff, axis=0)
-
-        diff_output.to_excel(writer,sheet_name=sheetName)
-    
-        workbook  = writer.book
-        worksheet = writer.sheets[sheetName]
-        highlight_fmt = workbook.add_format({'font_color': '#FF0000', 'bg_color':'#B1B3B3'})
-    
-        grey_fmt = workbook.add_format({'font_color': '#8d8f91'})
-        
-        worksheet.conditional_format('A1:ZZ1000', {'type': 'text',
-                                                'criteria': 'containing',
-                                                'value':'->',
-                                                'format': highlight_fmt})
-        worksheet.conditional_format('A1:ZZ1000', {'type': 'text',
-                                                'criteria': 'not containing',
-                                                'value':'->',
-                                                'format': grey_fmt})
-        
-    writer.close()
-    os.system('libreoffice ' + "diff_temp.xlsx")
-    os.system('rm diff_temp.xlsx')
 
 
 def update_source_from_file(fileName, message=None):
@@ -867,22 +608,7 @@ def forAll(funcHandle, subset='scenario', source='IAMC15_2019_R2'):
     return outTables, success
 
 
-def yearsColumnsOnly(dataframe):
-    import re
-    REG_YEAR   = re.compile('^[0-9]{4}$')
-    
-    newColumns = []
-    for col in dataframe.columns:
-        if REG_YEAR.search(str(col)) is not None:
-            newColumns.append(col)
-        else:
-            try: 
-                if ~np.isnan(col) and REG_YEAR.search(str(int(col))) is not None:
-                #   test float string
-                    newColumns.append(col)
-            except:
-                pass
-    return newColumns
+
 
 import csv
 
@@ -1038,8 +764,8 @@ def _create_sandbox_tables(sourceID, random_seed):
     
     meta = {'entity' : 'Emissions|CO2',
             'category': 'Total',
-            'scenario': None,
-            'model' : 'Historic',
+            'model': None,
+            'scenario' : 'Historic',
             'source' : sourceID,
             'unit' : 'Mt CO2'}
     

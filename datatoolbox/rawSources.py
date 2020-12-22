@@ -3001,7 +3001,8 @@ class SSP_DATA(BaseImportTool):
         
         self.setup.SOURCE_ID    = "SSP_DB_2013"
         self.setup.SOURCE_PATH  = config.PATH_TO_DATASHELF + 'rawdata/SSP_DB/'
-        self.setup.DATA_FILE    = self.setup.SOURCE_PATH + 'SspDb_country_data_2013-06-12.csv'
+        self.setup.DATA_FILE    = [self.setup.SOURCE_PATH + 'SspDb_country_data_2013-06-12.csv',
+                                   self.setup.SOURCE_PATH + 'SspDb_compare_regions_2013-06-12.csv']
         self.setup.MAPPING_FILE = self.setup.SOURCE_PATH + 'mapping.xlsx'
         self.setup.LICENCE = 'open access'
         self.setup.URL     = 'tntcat.iiasa.ac.at/SspWorkDb'
@@ -3041,7 +3042,8 @@ class SSP_DATA(BaseImportTool):
 
 
     def loadData(self):
-        self.data = pd.read_csv(self.setup.DATA_FILE, index_col = None, header =0) 
+        datafiles = [pd.read_csv(dataFile) for dataFile in self.setup.DATA_FILE]
+        self.data = pd.concat(datafiles)
 
 
     def createVariableMapping(self):
@@ -3112,8 +3114,8 @@ class SSP_DATA(BaseImportTool):
             tempDataMo = self.data.loc[mask]
             
             for scenario in self.mappingScenario.index:
-                metaDict['scenario'] = scenario + '|' + model
-                mask = tempDataMo['Scenario'] == self.mappingScenario.loc[scenario]['original_scenario']
+                metaDict['scenario'] = scenario
+                mask = tempDataMo['SCENARIO'] == self.mappingScenario.loc[scenario]['original_scenario']
                 tempDataMoSc = tempDataMo.loc[mask]
                 
                 
@@ -3122,9 +3124,10 @@ class SSP_DATA(BaseImportTool):
                     metaDict['entity'] = self.mappingEntity.loc[entity]['entity']
                     metaDict['model']  = model
                     
-                    for key in [ 'category', 'unit']:
+                    for key in [ 'category', 'unit', 'unitTo']:
                         metaDict[key] = metaDf[key]
-
+                    
+                    metaDict = dt.core._update_meta(metaDict)
                     tableID = dt.core._createDatabaseID(metaDict)
                     print(tableID)
                     if not updateTables:
@@ -5472,10 +5475,10 @@ if __name__ == '__main__':
 #%% IAMC DATA
 
     iamc = IAMC15_2019()    
-    tableList, excludedTables = iamc.gatherMappedData(updateTables=False)
-#    iamc.createSourceMeta()
-    dt.commitTables(tableList, 'update IAM 1.5 data R20', iamc.meta, update=True)
-    sad
+#    tableList, excludedTables = iamc.gatherMappedData(updateTables=False)
+##    iamc.createSourceMeta()
+#    dt.commitTables(tableList, 'update IAM 1.5 data R20', iamc.meta, update=True)
+#    sad
 #%% CD LINKS
 
     cdlinks = CDLINKS_2018()    
@@ -5493,14 +5496,15 @@ if __name__ == '__main__':
 #%% SSPDB 2013
     
     ssp2013 = SSP_DATA()
-#    tableList, excludedTables = ssp2013.gatherMappedData()
-#    dt.commitTables(tableList, 'SSP Database data added', ssp2013.meta)
+    tableList, excludedTables = ssp2013.gatherMappedData(updateTables=True)
+    dt.commitTables(tableList, 'SSP Database data added', ssp2013.meta, update=True)
 #    for countryCode in tableList[0].index:
 #        country = pycountry.countries.get(name = countryCode)
 #        if country is not None:
 #            print(countryCode + ': ' + country.alpha_3)
 #        else:
 #            print(countryCode + ' not found')
+    
 #%% AR5
     ar5_db = AR5_DATABASE()
 #    tableList, excludedTables = ar5_db.gatherMappedData()

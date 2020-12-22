@@ -1,9 +1,13 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
 """
-Created on Thu Mar 21 10:46:40 2019
+Basic data structures that allow more efficient handling of year-country
+based data sets. 
 
-@author: andreas geiges
+Datatables are based on pandas dataframes and enfore regions as index
+and years as columns. It uses meta data and provides full unit handling
+by any computations using datatables.
+
 """
 
 import pandas as pd
@@ -19,7 +23,12 @@ from . import util
 #from .tools import xarray
             
 class Datatable(pd.DataFrame):
+    """
+    Datatable
+    ^^^^^^^^^
     
+    Test documentation
+    """
     _metadata = ['meta', 'ID']
 
     def __init__(self, *args, **kwargs):
@@ -81,6 +90,11 @@ class Datatable(pd.DataFrame):
 
         return cls(data, meta=meta)
 
+    @classmethod
+    def from_excel(cls, filepath, sheetNames = None):
+       
+       return read_excel(filepath,sheetNames)
+       
     def _to_xarray(self):
         
         return core.xr.DataArray(self.values, coords=[self.index, self.columns], dims=['space','time'], attrs=self.meta)
@@ -140,11 +154,6 @@ class Datatable(pd.DataFrame):
         out.meta['unit'] = self.meta['unit']
         
         return out
-    
-#with pd.ExcelWriter('the_file.xlsx', engine='openpyxl', mode='a') as writer: 
-#     data_filtered.to_excel(writer) 
-    x = pd.DataFrame()
-    x.diff()
     
     def to_excel(self, fileName = None, sheetName = "Sheet0", writer = None, append=False):
         if fileName is not None:
@@ -482,8 +491,15 @@ class TableSet(dict):
                 self.add(core.DB.getTable(tableID))
         
         
-#        if config.AVAILABLE_XARRAY:
-#           self.to_Xarray = self._to_Xarray         
+    @classmethod
+    def from_list(cls,
+                  tableList):
+        tableSet = cls()
+        for table in tableList:
+            tableSet.add(table)
+    
+        return tableSet
+    
             
     def to_xarray(self, dimensions):
         if not config.AVAILABLE_XARRAY:
@@ -496,30 +512,85 @@ class TableSet(dict):
             raise(BaseException('module xarray not available'))
         return core.to_XDataSet(self, dimensions)
     
+    def to_list(self):
+        return [ self[key] for key in self.keys()]
     
     def __iter__(self):
         return iter(self.values())
     
     def add(self, datatables=None, tableID=None):
-        if isinstance(datatables, (list, TableSet)):
-            for datatable in datatables:
-                self._add(datatable, tableID)
-        else:
-            datatable = datatables
-            self._add(datatable, tableID)
+        
+        if datatables is not None:
             
-    def _add(self, datatable=None, tableID=None):
-        if datatable is None:
-            # adding only the ID, the full table is only loaded when necessary
-            self[tableID] = None
-            self.inventory.loc[tableID] = [None for x in config.ID_FIELDS]
+            if isinstance(datatables, list):
+                self._add_list(datatables)
+                
+            elif isinstance(datatables, TableSet):
+                self._add_TableSet(datatables)
+                
+            elif isinstance(datatables, Datatable):
+                self._add_single_table(datatables)
+                
+            else:
+                 print('Data type not recognized.')
+            
+        elif tableID is not None:
+            self._add_tableID(tableID)
+            
+            
+            
+    def _add_list(self, tableList):
+        for table in tableList:
+            tableID = table.generateTableID()
+            
+            if tableID in self.keys():
+                self._update(table, tableID)
+            else:
+                self.__setitem__(tableID, table)
+    
+    def _add_TableSet(self, tableSet):
+        
+        for tableID, table in tableSet.items():
+            
+            if tableID in self.keys():
+                self._update(table, tableID)
+            else:
+                self.__setitem__(tableID, table)
+    
+    def _add_single_table(self, table):
+        tableID = table.generateTableID()
+        if tableID in self.keys():
+            self._update(table, tableID)
         else:
-            # loading the full table
-            if datatable.ID is None:
-                datatable.generateTableID()
-            self[datatable.ID] = datatable
-            self.inventory.loc[datatable.ID, "key"] = datatable.ID
-            self.inventory.loc[datatable.ID, config.INVENTORY_FIELDS] = [datatable.meta.get(x,None) for x in config.INVENTORY_FIELDS]
+            self.__setitem__(tableID, table)
+        
+    def _add_tableID(self, tableID):
+        self[tableID] = None
+        self.inventory.loc[tableID] = [None for x in config.ID_FIELDS]   
+        
+        
+    def _update(self, table, tableKey):
+        
+        # make sure the data is compatible
+#        print(table.meta)
+#        print(self[tableKey].meta)
+        assert table.meta == self[tableKey].meta
+        
+        # update data
+        self[tableKey] = pd.concat([self[tableKey] , table])
+            
+#    def _add(self, datatable=None, tableID=None):
+#        if datatable is None:
+#            # adding only the ID, the full table is only loaded when necessary
+#            self[tableID] = None
+#            self.inventory.loc[tableID] = [None for x in config.ID_FIELDS]
+#        else:
+#            # loading the full table
+#            if datatable.ID is None:
+#                datatable.generateTableID()
+#            self[datatable.ID] = datatable
+#            self.inventory.loc[datatable.ID, "key"] = datatable.ID
+#            self.inventory.loc[datatable.ID, config.INVENTORY_FIELDS] = [datatable.meta.get(x,None) for x in config.INVENTORY_FIELDS]
     
     def remove(self, tableID):
         del self[tableID]
@@ -580,7 +651,7 @@ class TableSet(dict):
             try:
                 datatable.generateTableID()
             except:
-                print('Cuold not generate ID, key used instead')
+#                print('Could not generate ID, key used instead')
                 datatable.ID = key
         self.inventory.loc[datatable.ID, "key"] = key
         self.inventory.loc[datatable.ID, config.INVENTORY_FIELDS] = [datatable.meta.get(x,None) for x in config.INVENTORY_FIELDS]
@@ -679,7 +750,7 @@ class TableSet(dict):
         # move id columns to the front
         id_cols = pd.Index(['variable', 'region', 'scenario', 'model', 'unit'])
         long_df = long_df[id_cols.union(long_df.columns)]
-        
+        long_df = pd.DataFrame(long_df)
         return long_df
 
     def to_pyam(self):
@@ -1025,7 +1096,11 @@ def read_excel(fileName, sheetNames = None):
                                   index   = fileContent.loc[columnIdx+1:, 0], 
                                   columns = [int(x) for x in fileContent.loc[columnIdx, 1:]], 
                                   meta    = metaDict)
-            dataTable.generateTableID()
+            
+            try:
+                dataTable.generateTableID()
+            except:
+                print('Warning: Meta data incomplete, table ID not generated')
             out = dataTable
 #        except:
 #                print('Failed to read the sheet: {}'.format(sheet))

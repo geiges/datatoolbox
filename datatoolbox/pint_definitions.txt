@@ -29,6 +29,7 @@ billion_USD_2010 = 1e9 * USD_2010_ppp
 
 
 EUR = [euro_currency] = eur
+USD_ppp_2005 = [constant_PPP20105]
 USD_ppp_2010 = [constant_PPP2010]
 USD_ppp_2011 = [constant_PPP2011]
 million_USD_ppp_2011 = USD_ppp_2011 * 1e6

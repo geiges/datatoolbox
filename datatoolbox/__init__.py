@@ -2,23 +2,25 @@
 # -*- coding: utf-8 -*-
 """
 ----------- DATA TOOL BOX -------------
-This is a python tool box project for handling global datasets. It contains the following features:
+This is a python tool box project for handling global datasets. 
+It contains the following features:
 
     Augumented pandas DataFrames adding meta data,
     Automatic unit conversion and table based computations
     ID based data structure
+    Code templates (see templates.py)
+    Package specific helper functions (see: tools/)
 
-Authors: Andreas Geiges  
+Authors: Andreas Geiges
+         Jonas Hörsch     
          Gaurav Ganti
-
-@Climate Analytics gGmbH
+         Matthew Giddens
+         
 """
 
 from .version import version as __version__
 
 import os
-import time
-import copy
 from . import config
 from . import core
 from .data_structures import Datatable, TableSet, read_csv
@@ -30,16 +32,24 @@ from . import io_tools as io
 from . import interfaces
 from . import util as util
 from . import admin as admin
+from . import templates
 
 from . import rawSources as _raw_sources
 
 # Predefined sets for regions and scenrarios
 from datatoolbox.sets import REGIONS, SCENARIOS
 
+import datatoolbox.tools as tools
+
+from .tools import pandas as pd
+from .tools import matplotlib as plt
+from .tools import xarray as xr
+from .tools import excel as xls
+
 # unit conversion package
 unitReg = core.ur
 
-ExcelReader = io.ExcelReader # TODO make this general IO tools
+ExcelReader = xls.ExcelReader # TODO make this general IO tools
 
 commitTable  = core.DB.commitTable
 commitTables = core.DB.commitTables
@@ -68,7 +78,7 @@ getCountryISO = util.getCountryISO
 conversionFactor = core.conversionFactor
 
 # extract data for specific countries and sources
-countryDataExtract = util.getCountryExtract
+countryDataExtract = xls.getCountryExtract
 
 executeForAll = util.forAll
 
@@ -86,7 +96,8 @@ remove_source                 = core.DB.removeSource
 push_source_to_remote         = core.DB.gitManager.push_to_remote_datashelf
 pull_source_from_remote      = core.DB.gitManager.pull_update_from_remote
 
-import datatoolbox.tools as tools
+
+
 
 if config.PATH_TO_DATASHELF == os.path.join(config.MODULE_PATH, 'data/SANDBOX_datashelf'):
     print("""

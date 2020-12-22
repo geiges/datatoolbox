@@ -1,9 +1,8 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
 """
-Created on Fri Mar 22 14:55:32 2019
-
-@author: and
+CSV and git-based database to store year-country data in a multi-user
+setup
 """
 
 import pandas as pd
@@ -18,7 +17,7 @@ from pathlib import Path
 
 from . import config
 from .data_structures import Datatable, TableSet, read_csv
-from .utilities import plot_query_as_graph
+from .utilities import plot_query_as_graph, shorten_find_output
 from . import mapping as mapp
 from . import io_tools as io
 from . import util
@@ -109,7 +108,7 @@ class Database():
         
         # test to add function to a instance (does not require class)
         table.graph = types.MethodType( plot_query_as_graph, table )
-        
+        table.short = types.MethodType(shorten_find_output, table)
         return table
 
     def findp(self, level=None, regex=False, **filters):
@@ -135,9 +134,10 @@ class Database():
 
         # test to add function to a instance (does not require class)
         table.graph = types.MethodType(plot_query_as_graph, table)
-
+        table.short = types.MethodType(shorten_find_output, table)
         return table
 
+    
     def findExact(self, **kwargs):
         
         table = self.inventory.copy()
@@ -150,7 +150,7 @@ class Database():
         
         # test to add function to a instance (does not require class)
         table.graph = types.MethodType( plot_query_as_graph, table )
-        
+        table.short = types.MethodType(shorten_find_output, table)
         return table
     
     def _getTableFilePath(self,ID):
