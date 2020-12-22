@@ -37,10 +37,17 @@ from . import rawSources as _raw_sources
 # Predefined sets for regions and scenrarios
 from datatoolbox.sets import REGIONS, SCENARIOS
 
+import datatoolbox.tools as tools
+
+from .tools import pandas as pd
+from .tools import matplotlib as plt
+from .tools import xarray as xr
+from .tools import excel as xls
+
 # unit conversion package
 unitReg = core.ur
 
-ExcelReader = io.ExcelReader # TODO make this general IO tools
+ExcelReader = xls.ExcelReader # TODO make this general IO tools
 
 commitTable  = core.DB.commitTable
 commitTables = core.DB.commitTables
@@ -69,7 +76,7 @@ getCountryISO = util.getCountryISO
 conversionFactor = core.conversionFactor
 
 # extract data for specific countries and sources
-countryDataExtract = util.getCountryExtract
+countryDataExtract = xls.getCountryExtract
 
 executeForAll = util.forAll
 
@@ -87,7 +94,8 @@ remove_source                 = core.DB.removeSource
 push_source_to_remote         = core.DB.gitManager.push_to_remote_datashelf
 pull_source_from_remote      = core.DB.gitManager.pull_update_from_remote
 
-import datatoolbox.tools as tools
+
+
 
 if config.PATH_TO_DATASHELF == os.path.join(config.MODULE_PATH, 'data/SANDBOX_datashelf'):
     print("""

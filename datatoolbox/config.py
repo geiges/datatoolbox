@@ -26,6 +26,11 @@ else:
     TEST_ENV = False
 
 
+try:
+    import xarray as xr
+    AVAILABLE_XARRAY = True
+except:
+    AVAILABLE_XARRAY = False   
  
 
 #%% general setup
