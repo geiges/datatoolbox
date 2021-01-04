@@ -151,6 +151,56 @@ def _AR4_conversionFactor(unitFrom, unitTo):
     co2eq_factor = AR4GWPDict[gasKey]
     factor = conversFactor * co2eq_factor
     return factor
+
+
+def get_dimension_extend(table_iterable, dimensions):
+    """
+    This functions assesses the the unique extend for various dimensions
+    given a set of datatables
+    """
+    fullIdx = dict()
+    for dim in dimensions:
+        fullIdx[dim] = set()
+
+    for table in table_iterable:
+        
+#        for metaKey, metaValue in table.meta.items():
+#            if metaKey not in metaDict.keys():
+#                metaDict[metaKey] = set([metaValue])
+#            else:
+#                metaDict[metaKey].add(metaValue)
+            
+        for dim in dimensions:
+            if dim == 'region':
+                fullIdx[dim] = fullIdx[dim].union(table.index)
+            elif dim == 'time':
+                fullIdx[dim] = fullIdx[dim].union(table.columns)
+            elif dim in table.meta.keys():
+                fullIdx[dim].add(table.meta[dim])
+            else:
+                raise(BaseException('Dimension not available'))
+
+    dimSize = [len(fullIdx[x]) for x in dimensions]
+    dimList = [sorted(list(fullIdx[x])) for x in dimensions]
+    
+    return dimSize, dimList
+    
+
+def get_meta_collection(table_iterable, dimensions):
+
+    
+    metaCollection = dict()
+    for table in table_iterable:
+        
+        for key in table.meta.keys():
+            if key in dimensions  or key == 'ID':
+                continue
+            if key not in metaCollection.keys():
+                metaCollection[key] = set()
+                
+            metaCollection[key].add(table.meta[key])
+    
+    return metaCollection
     
 if config.DEBUG:
     print('core loaded in {:2.4f} seconds'.format(time.time()-tt))

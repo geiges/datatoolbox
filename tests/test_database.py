@@ -7,6 +7,7 @@ Created on Thu May 28 19:56:03 2020
 """
 import copy
 import datatoolbox as dt
+dt.admin.switch_database('sandbox')
 from util import df, df2, sourceMeta
  
 

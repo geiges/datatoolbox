@@ -53,7 +53,7 @@ def main():
             "tqdm",
             "pyam-iamc",
             "openpyxl",
-	    "xarray"],
+            "xarray"],
         }
     rtn = setup(**setup_kwargs)
 

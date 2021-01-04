@@ -12,6 +12,7 @@ OS = platform.system()
 from datatoolbox import config
 import git
 import shutil
+import datatoolbox as dt
 
 def change_personal_config():
     from .tools.install_support import create_personal_setting
@@ -46,5 +47,36 @@ def create_empty_datashelf(pathToDataself):
     filePath= os.path.join(pathToDataself, 'inventory.csv')
     inventoryDf.to_csv(filePath)
     git.Repo.init(pathToDataself)
+
+def _re_link_functions(dt):
+
     
+    dt.commitTable = dt.core.DB.commitTable
+    dt.commitTables = dt.core.DB.commitTables
     
+    dt.updateTable  = dt.core.DB.updateTable
+    dt.updateTables  = dt.core.DB.updateTables
+    
+    dt.removeTable = dt.core.DB.removeTable
+    dt.removeTables = dt.core.DB.removeTables
+    
+    dt.find         = dt.core.DB.getInventory
+    dt.findp        = dt.core.DB.findp
+    dt.findExact    = dt.core.DB.findExact
+    dt.getTable     = dt.core.DB.getTable
+    dt.getTables    = dt.core.DB.getTables
+    
+    dt.isAvailable  = dt.core.DB._tableExists
+    
+    dt.updateExcelInput = dt.core.DB.updateExcelInput
+    
+def switch_database(database='default'):
+    from datatoolbox.tools.install_support import create_initial_config
+    
+    _, sandboxPath, READ_ONLY, DEBUG = create_initial_config(config.MODULE_PATH, write_config=False)
+    if database == 'sandbox':
+        config.PATH_TO_DATASHELF = sandboxPath
+        config.SOURCE_FILE = os.path.join(sandboxPath, 'sources.csv')
+        dt.core.DB  = dt.database.Database()
+
+        _re_link_functions(dt)
