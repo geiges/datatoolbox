@@ -1,0 +1,250 @@
+,alpha2,numISO,name,IEA_Name
+AFG,AF,4.0,Afghanistan,Other Asia
+ALA,AX,248.0,Åland Islands,
+ALB,AL,8.0,Albania,Albania
+DZA,DZ,12.0,Algeria,Algeria
+ASM,AS,16.0,American Samoa,United States
+AND,AD,20.0,Andorra,
+AGO,AO,24.0,Angola,Angola
+AIA,AI,660.0,Anguilla,
+ATA,,,Antarctica,
+ATG,AG,28.0,Antigua and Barbuda,Other Non-OECD Americas
+ARG,AR,32.0,Argentina,Argentina
+ARM,AM,51.0,Armenia,Armenia
+ABW,AW,533.0,Aruba,Other Non-OECD Americas
+AUS,AU,36.0,Australia,Australia
+AUT,AT,40.0,Austria,Austria
+AZE,AZ,31.0,Azerbaijan,Azerbaijan
+BHS,BS,44.0,Bahamas,Other Non-OECD Americas
+BHR,BH,48.0,Bahrain,
+BGD,BD,50.0,Bangladesh,Bangladesh
+BRB,BB,52.0,Barbados,Other Non-OECD Americas
+BLR,BY,112.0,Belarus,Belarus
+BEL,BE,56.0,Belgium,Belgium
+BLZ,BZ,84.0,Belize,Other Non-OECD Americas
+BEN,BJ,204.0,Benin,Benin
+BMU,BM,60.0,Bermuda,
+BTN,BT,64.0,Bhutan,Other Asia
+BOL,BO,68.0,Bolivia (Plurinational State of),Bolivia
+BIH,BA,70.0,Bosnia and Herzegovina,Bosnia and Herzegovina
+BES,BQ,535.0,"Bonaire, Sint Eustatius and Saba",
+BWA,BW,72.0,Botswana,Botswana
+BVT,BV,74.0,Bouvet Island,
+BRA,BR,76.0,Brazil,Brazil
+IOT,IO,86.0,British Indian Ocean Territory,
+BRN,BN,96.0,Brunei Darussalam,Brunei Darussalam
+BGR,BG,100.0,Bulgaria,Bulgaria
+BFA,BF,854.0,Burkina Faso,Other Africa
+BDI,BI,108.0,Burundi,Other Africa
+KHM,KH,116.0,Cambodia,Cambodia
+CMR,CM,120.0,Cameroon,Cameroon
+CAN,CA,124.0,Canada,Canada
+CPV,CV,132.0,Cabo Verde,Other Africa
+CYM,KY,136.0,Cayman Islands,Other Non-OECD Americas
+CAF,CF,140.0,Central African Republic,Other Africa
+TCD,TD,148.0,Chad,Other Africa
+CHL,CL,152.0,Chile,Chile
+CHN,CN,156.0,China,People's Republic of China
+CXR,CX,162.0,Christmas Island,
+CCK,CC,166.0,Cocos (Keeling) Islands,
+COL,CO,170.0,Colombia,Colombia
+COM,KM,174.0,Comoros,Other Africa
+COG,CG,178.0,Congo,Congo
+COD,CD,180.0,Democratic Republic of the Congo,Democratic Republic of Congo
+COK,CK,184.0,Cook Islands,Other Asia
+CRI,CR,188.0,Costa Rica,Costa Rica
+CIV,CI,384.0,Côte d'Ivoire,Côte d’Ivoire
+HRV,HR,191.0,Croatia,Croatia
+CUB,CU,192.0,Cuba,Cuba
+CUW,CW,531.0,Curaçao,
+CYP,CY,196.0,Cyprus,Cyprus
+CZE,CZ,203.0,Czechia,Czech Republic
+DNK,DK,208.0,Denmark,Denmark
+DJI,DJ,262.0,Djibouti,Other Africa
+DMA,DM,212.0,Dominica,Other Non-OECD Americas
+DOM,DO,214.0,Dominican Republic,Dominican Republic
+ECU,EC,218.0,Ecuador,Ecuador
+EGY,EG,818.0,Egypt,Egypt
+SLV,SV,222.0,El Salvador,El Salvador
+GNQ,GQ,226.0,Equatorial Guinea,Other Africa
+ERI,ER,232.0,Eritrea,Eritrea
+EST,EE,233.0,Estonia,Estonia
+ETH,ET,231.0,Ethiopia,Ethiopia
+FLK,FK,238.0,Falkland Islands (Malvinas),Other Non-OECD Americas
+FRO,FO,234.0,Faroe Islands,
+FJI,FJ,242.0,Fiji,Other Asia
+FIN,FI,246.0,Finland,Finland
+FRA,FR,250.0,France,France
+GUF,GF,254.0,French Guiana,Other Non-OECD Americas
+PYF,PF,258.0,French Polynesia,Other Asia
+ATF,TF,260.0,French Southern and Antarctic Territories,
+GAB,GA,266.0,Gabon,Gabon
+GMB,GM,270.0,Gambia,Other Africa
+GEO,GE,268.0,Georgia,Georgia
+DEU,DE,276.0,Germany,Germany
+GHA,GH,288.0,Ghana,Ghana
+GIB,GI,292.0,Gibraltar,Gibraltar
+GRC,GR,300.0,Greece,Greece
+GRL,GL,304.0,Greenland,
+GRD,GD,308.0,Grenada,Other Non-OECD Americas
+GLP,GP,312.0,Guadeloupe,Other Non-OECD Americas
+GUM,GU,316.0,Guam,United States
+GTM,GT,320.0,Guatemala,Guatemala
+GGY,GG,831.0,Guernsey,
+GIN,GN,324.0,Guinea,Other Africa
+GNB,GW,624.0,Guinea-Bissau,Other Africa
+GUY,GY,328.0,Guyana,Other Non-OECD Americas
+HTI,HT,332.0,Haiti,Haiti
+HMD,HM,334.0,Heard Island and McDonald Islands,
+VAT,VA,336.0,Holy See,
+HND,HN,340.0,Honduras,Honduras
+HKG,HK,344.0,"China, Hong Kong Special Administrative Region","Hong Kong, China"
+HUN,HU,348.0,Hungary,Hungary
+ISL,IS,352.0,Iceland,Iceland
+IND,IN,356.0,India,India
+IDN,ID,360.0,Indonesia,Indonesia
+IRN,IR,364.0,Iran (Islamic Republic of),Islamic Republic of Iran
+IRQ,IQ,368.0,Iraq,Iraq
+IRL,IE,372.0,Ireland,Ireland
+IMN,IM,833.0,Isle of Man,
+ISR,IL,376.0,Israel,Israel
+ITA,IT,380.0,Italy,Italy
+JAM,JM,388.0,Jamaica,Jamaica
+JPN,JP,392.0,Japan,Japan
+JEY,JE,832.0,Jersey,
+JOR,JO,400.0,Jordan,Jordan
+KAZ,KZ,398.0,Kazakhstan,Kazakhstan
+KEN,KE,404.0,Kenya,Kenya
+KIR,KI,296.0,Kiribati,Other Asia
+PRK,KP,408.0,Democratic People's Republic of Korea,Democratic People's Republic of Korea
+KOR,KR,410.0,Republic of Korea,Korea
+KWT,KW,414.0,Kuwait,Kuwait
+KGZ,KG,417.0,Kyrgyzstan,Kyrgyzstan
+LAO,LA,418.0,Lao People's Democratic Republic,Other Asia
+LVA,LV,428.0,Latvia,Latvia
+LBN,LB,422.0,Lebanon,Lebanon
+LSO,LS,426.0,Lesotho,Other Africa
+LBR,LR,430.0,Liberia,Other Africa
+LBY,LY,434.0,Libya,Libya
+LIE,LI,438.0,Liechtenstein,
+LTU,LT,440.0,Lithuania,Lithuania
+LUX,LU,442.0,Luxembourg,Luxembourg
+MAC,MO,446.0,"China, Macao Special Administrative Region",Other Asia
+MKD,MK,807.0,Republic of North Macedonia,Former Yugoslav Republic of Macedonia
+MDG,MG,450.0,Madagascar,Other Africa
+MWI,MW,454.0,Malawi,Other Africa
+MYS,MY,458.0,Malaysia,Malaysia
+MDV,MV,462.0,Maldives,Other Asia
+MLI,ML,466.0,Mali,Other Africa
+MLT,MT,470.0,Malta,Malta
+MHL,MH,584.0,Marshall Islands,
+MTQ,MQ,474.0,Martinique,Other Non-OECD Americas
+MRT,MR,478.0,Mauritania,Other Africa
+MUS,MU,480.0,Mauritius,Mauritius
+MYT,YT,175.0,Mayotte,
+MEX,MX,484.0,Mexico,Mexico
+FSM,FM,583.0,Micronesia (Federated States of),
+MDA,MD,498.0,Republic of Moldova,Republic of Moldova
+MCO,MC,492.0,Monaco,
+MNG,MN,496.0,Mongolia,Mongolia
+MNE,ME,499.0,Montenegro,Montenegro
+MSR,MS,500.0,Montserrat,Other Non-OECD Americas
+MAR,MA,504.0,Morocco,Morocco
+MOZ,MZ,508.0,Mozambique,Mozambique
+MMR,MM,104.0,Myanmar,Myanmar
+NAM,,516.0,Namibia,Namibia
+NRU,NR,520.0,Nauru,
+NPL,NP,524.0,Nepal,Nepal
+NLD,NL,528.0,Netherlands,Netherlands
+NCL,NC,540.0,New Caledonia,Other Asia
+NZL,NZ,554.0,New Zealand,New Zealand
+NIC,NI,558.0,Nicaragua,Nicaragua
+NER,NE,562.0,Niger,Other Africa
+NGA,NG,566.0,Nigeria,Nigeria
+NIU,NU,570.0,Niue,
+NFK,NF,574.0,Norfolk Island,
+NOR,NO,578.0,Norway,Norway
+OMN,OM,512.0,Oman,Oman
+PAK,PK,586.0,Pakistan,Pakistan
+PLW,PW,585.0,Palau,Other Asia
+PSE,PS,275.0,State of Palestine,
+PAN,PA,591.0,Panama,Panama
+PNG,PG,598.0,Papua New Guinea,Other Asia
+PRY,PY,600.0,Paraguay,Paraguay
+PER,PE,604.0,Peru,Peru
+PHL,PH,608.0,Philippines,Philippines
+PCN,PN,612.0,Pitcairn,
+POL,PL,616.0,Poland,Poland
+PRT,PT,620.0,Portugal,Portugal
+PRI,PR,630.0,Puerto Rico,United States
+QAT,QA,634.0,Qatar,Qatar
+REU,RE,638.0,Réunion,Other Africa
+ROU,RO,642.0,Romania,Romania
+RUS,RU,643.0,Russian Federation,Russian Federation
+RWA,RW,646.0,Rwanda,Other Africa
+BLM,BL,652.0,Saint Barthélemy,
+SHN,SH,654.0,Saint Helena,
+KNA,KN,659.0,Saint Kitts and Nevis,Other Non-OECD Americas
+LCA,LC,662.0,Saint Lucia,Other Non-OECD Americas
+MAF,MF,663.0,Saint Martin (French part),
+SPM,PM,666.0,Saint Pierre and Miquelon,Other Non-OECD Americas
+VCT,VC,670.0,Saint Vincent and The Grenadines,Other Non-OECD Americas
+WSM,WS,882.0,Samoa,Other Asia
+SMR,SM,674.0,San Marino,
+STP,ST,678.0,Sao Tome and Principe,Other Africa
+SAU,SA,682.0,Saudi Arabia,Saudi Arabia
+SEN,SN,686.0,Senegal,Senegal
+SRB,RS,688.0,Serbia,Serbia
+SYC,SC,690.0,Seychelles,Other Africa
+SLE,SL,694.0,Sierra Leone,Other Africa
+SGP,SG,702.0,Singapore,Singapore
+SXM,SX,534.0,Sint Maarten (Dutch part),
+SVK,SK,703.0,Slovakia,Sloval Republic
+SVN,SI,705.0,Slovenia,Slovenia
+SLB,SB,90.0,Solomon Islands,Other Asia
+SOM,SO,706.0,Somalia,Other Africa
+ZAF,ZA,710.0,South Africa,South Africa
+SGS,GS,239.0,South Georgia and the South Sandwich Islands,
+ESP,ES,724.0,Spain,Spain
+LKA,LK,144.0,Sri Lanka,Sri Lanka
+SSD,SS,728.0,South Sudan,
+SDN,SD,729.0,Sudan,Sudan
+SUR,SR,740.0,Suriname,Other Non-OECD Americas
+SJM,SJ,744.0,Svalbard and Jan Mayen Islands,
+SWZ,SZ,748.0,Kingdom of Eswatini,Other Africa
+SWE,SE,752.0,Sweden,Sweden
+CHE,CH,756.0,Switzerland,Switzerland
+SYR,SY,760.0,Syrian Arab Republic,Syrian Arab Republic
+TWN,TW,158.0,Taiwan (Province of China),Chinese Taipei
+TJK,TJ,762.0,Tajikistan,Tajikistan
+TZA,TZ,834.0,United Republic of Tanzania,United Republic of Tanzania
+THA,TH,764.0,Thailand,Thailand
+TLS,TL,626.0,Timor-Leste,Other Asia
+TGO,TG,768.0,Togo,Togo
+TKL,TK,772.0,Tokelau,
+TON,TO,776.0,Tonga,Other Asia
+TTO,TT,780.0,Trinidad and Tobago,Trinidad and Tobago
+TUN,TN,788.0,Tunisia,Tunisia
+TUR,TR,792.0,Turkey,Turkey
+TKM,TM,795.0,Turkmenistan,Turkmenistan
+TCA,TC,796.0,Turks and Caicos Islands,Other Non-OECD Americas
+TUV,TV,798.0,Tuvalu,
+UGA,UG,800.0,Uganda,Other Africa
+UKR,UA,804.0,Ukraine,Ukraine
+ARE,AE,784.0,United Arab Emirates,United Arab Emirates
+GBR,GB,826.0,United Kingdom of Great Britain and Northern Ireland,United Kingdom
+USA,US,840.0,United States of America,United States
+UMI,UM,581.0,United States Minor Outlying Islands (the),
+URY,UY,858.0,Uruguay,Uruguay
+UZB,UZ,860.0,Uzbekistan,Uzbekistan
+VUT,VU,548.0,Vanuatu,Other Asia
+VEN,VE,862.0,Venezuela (Bolivarian Republic of),Venezuela
+VNM,VN,704.0,Viet Nam,Viet Nam
+VGB,VG,92.0,British Virgin Islands,Other Non-OECD Americas
+WLF,WF,876.0,Wallis and Futuna Islands,
+ESH,EH,732.0,Western Sahara,Other Africa
+YEM,YE,887.0,Yemen,Yemen
+ZMB,ZM,894.0,Zambia,Zambia
+ZWE,ZW,716.0,Zimbabwe,Zimbabwe
+MNP,MP,580.0,Northern Mariana Islands,United States
+VIR,VI,850.0,United States Virgin Islands,United States
