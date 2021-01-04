@@ -450,7 +450,7 @@ class Database():
         source = self.inventory.loc[ID, 'source']
         tablePath = self._getTableFilePath(ID)
         self.remove_from_inventory(ID)
-        self.gitManager[source].execute(["git", "rm", tablePath])
+#        self.gitManager[source].execute(["git", "rm", tablePath])
         self.gitManager.gitRemoveFile(source, tablePath)
 
         

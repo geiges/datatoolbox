@@ -39,7 +39,7 @@ def test_update_meta():
     assert  'Emissions|CO2|transport__Historic__XYZ_2020' in dt.core.DB.inventory.index
     
 def test_delete_table():
-    dt.removeTable(df.ID)
+    dt.removeTable('Emissions|CO2|transport__Historic__XYZ_2020')
     
     assert not dt.isAvailable(df.ID)
   
