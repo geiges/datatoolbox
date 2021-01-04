@@ -17,7 +17,7 @@ from copy import copy
 
 from . import core
 from . import config 
-from . import mapping as mapp
+#from . import mapping as mapp
 from . import util
 #from . import io_tools
 #from .tools import xarray
@@ -904,8 +904,10 @@ class Visualization():
         
         source = ColumnDataSource(df)
         legend_it = list()
+        import datatoolbox as dt
         for spatID,color in zip(self.df.index, palette):
-            coName = mapp.countries.codes.name.loc[spatID]
+#            coName = mapp.countries.codes.name.loc[spatID]
+            coName = dt.mapp.nameOfCountry(spatID)
             #plot.line(x=self.columns, y=self.loc[spatID], source=source, name=spatID)
             c = plot.line('year', spatID + '_y', source=source, name=spatID, line_width=2, line_color = color)
             legend_it.append((coName, [c]))
@@ -1006,8 +1008,9 @@ class Visualization():
         
         source = ColumnDataSource(df)
         legend_it = list()
+        import datatoolbox as  dt
         for spatID, color in zip(self.df.index, palette):
-            coName = mapp.countries.codes.name.loc[spatID]
+            coName = dt.mapp.countries.codes.name.loc[spatID]
             #plot.line(x=self.columns, y=self.loc[spatID], source=source, name=spatID)
             c = plot.circle('year', spatID + '_y', source=source, name=spatID, color = color)
             legend_it.append((coName, [c]))

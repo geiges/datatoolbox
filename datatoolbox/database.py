@@ -28,6 +28,11 @@ class Database():
     def __init__(self):
         tt = time.time()
         self.path = config.PATH_TO_DATASHELF
+        
+        if not os.path.exists(os.path.join(self.path, 'inventory.csv')):
+            self.create_empty_datashelf(config.MODULE_PATH,
+                                        self.path)
+        
         self.gitManager = GitRepository_Manager(config)
         self.INVENTORY_PATH = os.path.join(self.path, 'inventory.csv')
         self.inventory = pd.read_csv(self.INVENTORY_PATH, index_col=0, dtype={'source_year': str})
@@ -52,6 +57,38 @@ class Database():
                          sourceMetaDict = source_meta)
             print('Added test tables to Sandbox datashelf')
             
+ 
+    
+    def create_empty_datashelf(modulePath, 
+                           pathToDataself):
+        from pathlib import Path
+        import os
+        path = Path(pathToDataself)
+        path.mkdir(parents=True,exist_ok=True)
+        
+        # add subfolders database
+        Path(os.path.join(pathToDataself, 'database')).mkdir()
+        Path(os.path.join(pathToDataself, 'mappings')).mkdir()
+        Path(os.path.join(pathToDataself, 'rawdata')).mkdir()
+        
+        #create mappings
+        os.makedirs(os.path.join(pathToDataself, 'mappings'),exist_ok=True)
+        shutil.copyfile(os.path.join(modulePath, 'data/regions.csv'),
+                        os.path.join(pathToDataself, 'mappings/regions.csv'))
+        shutil.copyfile(os.path.join(modulePath, 'data/continent.csv'),
+                        os.path.join(pathToDataself, 'mappings/continent.csv'))
+        shutil.copyfile(os.path.join(modulePath, 'data/country_codes.csv'),
+                        os.path.join(pathToDataself, 'mappings/country_codes.csv'))    
+        
+        sourcesDf = pd.DataFrame(columns = config.SOURCE_META_FIELDS)
+        filePath= os.path.join(pathToDataself, 'sources.csv')
+        sourcesDf.to_csv(filePath)
+        
+        inventoryDf = pd.DataFrame(columns = config.INVENTORY_FIELDS)
+        filePath= os.path.join(pathToDataself, 'inventory.csv')
+        inventoryDf.to_csv(filePath)
+        git.Repo.init(pathToDataself)
+    
     
     def _validateRepository(self, repoID='main'):
         return self.gitManager._validateRepository(repoID)

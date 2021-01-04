@@ -17,6 +17,13 @@ from . import config as conf
 
 special_regions = list()   
 
+if not os.path.exists(os.path.join(conf.PATH_TO_DATASHELF, 'mappings')):
+    from .admin import create_empty_datashelf
+    create_empty_datashelf(conf.MODULE_PATH,
+                           conf.PATH_TO_DATASHELF)
+
+
+
 class RegionMapping:
     
     def __init__(self, mappingFolder = None):

@@ -7,7 +7,7 @@ Created on Tue Oct 27 11:05:30 2020
 """
 
 from . import  for_datatables 
-from . import install_support
+#from . import install_support
 
 from . import pandas
 from . import excel

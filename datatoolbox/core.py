@@ -7,7 +7,7 @@ Created on Fri Mar  1 14:15:56 2019
 """
 
 import time
-from . import config
+from datatoolbox import config
 import numpy as np
 tt = time.time()
 import pint

@@ -10,16 +10,17 @@ import platform
 OS = platform.system() #'win32' , linux, #Darwin
 
 
-
+MODULE_PATH = os.path.dirname(__file__)
 
 if OS == 'Darwin':
     import matplotlib
     matplotlib.use("TkAgg")
 #%% Personal setup
 if not os.path.isfile(os.path.dirname(__file__) + '/settings/personal.py'):
-    from .tools.install_support import create_initial_config
+    from .admin import create_initial_config, create_empty_datashelf
     modulePath =  os.path.dirname(__file__) + '/'
     CRUNCHER, PATH_TO_DATASHELF, DB_READ_ONLY, DEBUG = create_initial_config(modulePath)
+
     TEST_ENV = True
 else:
     from .settings.personal import CRUNCHER, PATH_TO_DATASHELF, DB_READ_ONLY, DEBUG

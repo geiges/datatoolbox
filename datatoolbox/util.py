@@ -10,7 +10,7 @@ import numpy as np
 from typing import Union, Iterable, Optional
 
 import datatoolbox as dt
-from datatoolbox import mapping as mapp
+#from datatoolbox import mapping as mapp
 from datatoolbox import core
 from datatoolbox import config
 from datatoolbox import data_structures
@@ -133,7 +133,7 @@ def isUnit(unit):
 def scatterIndicatorComparison(tableX, tableY):
     timeCol = list(set(tableY.columns).intersection(set(tableX.columns)))
     for ISOcode in tableX.index:
-        coName= mapp.countries.codes.name.loc[ISOcode]
+        coName= dt.mapp.countries.codes.name.loc[ISOcode]
     #    
     #    p = plt.plot(tableX.loc[ISOcode,timeCol4], tableY.loc[ISOcode,timeCol4],linewidth=.2)
     #    color = p[0].get_color()
@@ -162,7 +162,7 @@ def scatterIndicatorComparison(tableX, tableY):
     
 def cleanDataTable(dataTable):
     # ensure valid ISO or region IDs
-    invalidSpatialIDs = dataTable.index.difference(mapp.getValidSpatialIDs())
+    invalidSpatialIDs = dataTable.index.difference(dt.mapp.getValidSpatialIDs())
     if not invalidSpatialIDs.empty:
         print(
             f"Removing unknown regions from dataTable {dataTable.meta.get('ID', 'unnamed')}:",
