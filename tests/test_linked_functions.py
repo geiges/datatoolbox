@@ -7,7 +7,7 @@ Created on Mon May 25 12:32:28 2020
 """
 
 import datatoolbox as dt
-
+dt.admin.switch_database_to_testing()
 
 def test_init():
     dt.inventory()

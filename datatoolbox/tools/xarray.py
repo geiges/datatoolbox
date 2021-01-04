@@ -9,13 +9,13 @@ This module contains all relevant tools regarding the use of xarray
 import numpy as np 
 import xarray as xr
 
-
+from datatoolbox import core
 
 
     
 def to_XDataSet(tableSet, dimensions):
     
-    dimSize, dimList = get_dimension_extend(tableSet, dimensions= ['region', 'time'])
+    dimSize, dimList = core.get_dimension_extend(tableSet, dimensions= ['region', 'time'])
     
     dimensions= ['region', 'time']
     
@@ -33,8 +33,8 @@ def to_XDataArray(tableSet, dimensions = ['region', 'time', 'pathway']):
     
 #    metaDict = dict()
     
-    dimSize, dimList = get_dimension_extend(tableSet, dimensions)
-    metaCollection = get_meta_collection(tableSet, dimensions)
+    dimSize, dimList = core.get_dimension_extend(tableSet, dimensions)
+    metaCollection = core.get_meta_collection(tableSet, dimensions)
      
     xData =  xr.DataArray(np.zeros(dimSize)*np.nan, coords=dimList, dims=dimensions)
     

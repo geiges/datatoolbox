@@ -416,6 +416,8 @@ class IAMC_PYAM():
                  'Population' : 'Population',
                  'Price|Carbon': 'Price|Carbon',
                  'Carbon_Sequestration': 'Carbon_Sequestration',
+                 #Testing
+                 'Numbers' : 'Numbers'
                 }
         
         return eDict

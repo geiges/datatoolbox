@@ -7,6 +7,7 @@ dist
 *.egg-info
 /.eggs
 /datatoolbox/version.py
+datatoolbox/data/SANDBOX_datashelf*
 *.png
 .DS_STORE
 .ipynb*
