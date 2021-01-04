@@ -69,9 +69,9 @@ class Database():
         path.mkdir(parents=True,exist_ok=True)
         
         # add subfolders database
-        Path(os.path.join(pathToDataself, 'database')).mkdir()
-        Path(os.path.join(pathToDataself, 'mappings')).mkdir()
-        Path(os.path.join(pathToDataself, 'rawdata')).mkdir()
+        Path(os.path.join(pathToDataself, 'database')).mkdir(exist_ok=True)
+        Path(os.path.join(pathToDataself, 'mappings')).mkdir(exist_ok=True)
+        Path(os.path.join(pathToDataself, 'rawdata')).mkdir(exist_ok=True)
         
         #create mappings
         os.makedirs(os.path.join(pathToDataself, 'mappings'),exist_ok=True)
