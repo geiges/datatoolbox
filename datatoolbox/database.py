@@ -59,10 +59,12 @@ class Database():
             
  
     
-    def create_empty_datashelf(modulePath, 
-                           pathToDataself):
+    def create_empty_datashelf(self,
+                               modulePath, 
+                               pathToDataself):
         from pathlib import Path
         import os
+        import shutil
         path = Path(pathToDataself)
         path.mkdir(parents=True,exist_ok=True)
         
