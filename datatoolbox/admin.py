@@ -16,8 +16,7 @@ import shutil
 import datatoolbox as dt
 
 
-def create_empty_datashelf(modulePath, 
-                           pathToDataself):
+def create_empty_datashelf(pathToDataself):
     from pathlib import Path
     import os
     path = Path(pathToDataself)
@@ -30,11 +29,11 @@ def create_empty_datashelf(modulePath,
     
     #create mappings
     os.makedirs(os.path.join(pathToDataself, 'mappings'),exist_ok=True)
-    shutil.copyfile(os.path.join(modulePath, 'data/regions.csv'),
+    shutil.copyfile(os.path.join(config.MODULE_PATH, 'data/regions.csv'),
                     os.path.join(pathToDataself, 'mappings/regions.csv'))
-    shutil.copyfile(os.path.join(modulePath, 'data/continent.csv'),
+    shutil.copyfile(os.path.join(config.MODULE_PATH, 'data/continent.csv'),
                     os.path.join(pathToDataself, 'mappings/continent.csv'))
-    shutil.copyfile(os.path.join(modulePath, 'data/country_codes.csv'),
+    shutil.copyfile(os.path.join(config.MODULE_PATH, 'data/country_codes.csv'),
                     os.path.join(pathToDataself, 'mappings/country_codes.csv'))    
     
     sourcesDf = pd.DataFrame(columns = config.SOURCE_META_FIELDS)

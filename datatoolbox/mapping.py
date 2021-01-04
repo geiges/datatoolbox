@@ -19,8 +19,7 @@ special_regions = list()
 
 if not os.path.exists(os.path.join(conf.PATH_TO_DATASHELF, 'mappings')):
     from .admin import create_empty_datashelf
-    create_empty_datashelf(conf.MODULE_PATH,
-                           conf.PATH_TO_DATASHELF)
+    create_empty_datashelf(conf.PATH_TO_DATASHELF)
 
 
 

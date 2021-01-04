@@ -10,7 +10,7 @@ import numpy as np
 from typing import Union, Iterable, Optional
 
 import datatoolbox as dt
-#from datatoolbox import mapping as mapp
+from datatoolbox import mapping as mapp
 from datatoolbox import core
 from datatoolbox import config
 from datatoolbox import data_structures
@@ -133,7 +133,7 @@ def isUnit(unit):
 def scatterIndicatorComparison(tableX, tableY):
     timeCol = list(set(tableY.columns).intersection(set(tableX.columns)))
     for ISOcode in tableX.index:
-        coName= dt.mapp.countries.codes.name.loc[ISOcode]
+        coName= mapp.countries.codes.name.loc[ISOcode]
     #    
     #    p = plt.plot(tableX.loc[ISOcode,timeCol4], tableY.loc[ISOcode,timeCol4],linewidth=.2)
     #    color = p[0].get_color()
@@ -162,7 +162,7 @@ def scatterIndicatorComparison(tableX, tableY):
     
 def cleanDataTable(dataTable):
     # ensure valid ISO or region IDs
-    invalidSpatialIDs = dataTable.index.difference(dt.mapp.getValidSpatialIDs())
+    invalidSpatialIDs = dataTable.index.difference(mapp.getValidSpatialIDs())
     if not invalidSpatialIDs.empty:
         print(
             f"Removing unknown regions from dataTable {dataTable.meta.get('ID', 'unnamed')}:",
@@ -198,19 +198,19 @@ def identifyCountry(string):
     #numeric ISO code
     try:
         numISO = float(string)
-        mask = numISO == dt.mapp.countries.codes['numISO']
+        mask = numISO == mapp.countries.codes['numISO']
         if mask.any():
-            return dt.mapp.countries.index[mask][0]
+            return mapp.countries.index[mask][0]
     except:
         pass
     if len(string) == 2:
-        mask = string == dt.mapp.countries.codes['alpha2']
+        mask = string == mapp.countries.codes['alpha2']
         if mask.any():
-            return dt.mapp.countries.codes.index[mask][0]
+            return mapp.countries.codes.index[mask][0]
     
     if len(string) == 3:
          
-        if string.upper() in dt.mapp.countries.codes.index:
+        if string.upper() in mapp.countries.codes.index:
             return string.upper()
     
     try: 
@@ -235,8 +235,8 @@ def convertIndexToISO(table):
 def addCountryNames(table):
     names = list()
     for idx in table.index:
-        if idx in dt.mapp.countries.codes.index:
-            names.append(dt.mapp.countries.codes.loc[idx,'name'])
+        if idx in mapp.countries.codes.index:
+            names.append(mapp.countries.codes.loc[idx,'name'])
         else:
             names.append('')
     table.loc[:,'country_name'] = names
