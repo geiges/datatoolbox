@@ -361,6 +361,7 @@ class Database():
         else:
             # delete old table
 #            tablePath = self._getPathOfTable(oldID)
+#            print(oldID)
             self.removeTable(oldID)
             
             # add new table
@@ -440,7 +441,7 @@ class Database():
         if not self.isSource(sourceID):
             raise(BaseException('source  does not exist'))
         
-        self._removeTable( tableID)
+        self._removeTable(tableID)
         self._gitCommit('Table removed')
         self._reloadInventory()
 
@@ -449,11 +450,9 @@ class Database():
         source = self.inventory.loc[ID, 'source']
         tablePath = self._getTableFilePath(ID)
         self.remove_from_inventory(ID)
-        
-#        self.gitManager[source].execute(["git", "rm", tablePath])
+        self.gitManager[source].execute(["git", "rm", tablePath])
         self.gitManager.gitRemoveFile(source, tablePath)
-#        self._gitCommit('Table removed')
-#        self._reloadInventory()
+
         
         
     def _tableExists(self, ID):
@@ -717,7 +716,8 @@ class GitRepository_Manager:
     def gitRemoveFile(self, repoName, filePath):
         if config.DEBUG:
             print('Removed file {} to repo: {}'.format(filePath,repoName))
-        self[repoName].index.remove(filePath, working_tree=True)
+#        self[repoName].index.remove(filePath, working_tree=True)
+        self[repoName].git.execute(["git", "rm", "-f", filePath]) #TODO Only works with -f forced, but why?
         self.updatedRepos.add(repoName)
     
     def _gitUpdateFile(self, repoName, filePath):
