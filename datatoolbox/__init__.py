@@ -97,6 +97,9 @@ push_source_to_remote         = core.DB.gitManager.push_to_remote_datashelf
 pull_source_from_remote      = core.DB.gitManager.pull_update_from_remote
 
 
+# convenience functions
+getTimeString = core.getTimeString
+getDateString = core.getDateString
 
 
 if config.PATH_TO_DATASHELF == os.path.join(config.MODULE_PATH, 'data/SANDBOX_datashelf'):

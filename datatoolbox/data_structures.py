@@ -27,7 +27,7 @@ class Datatable(pd.DataFrame):
     Datatable
     ^^^^^^^^^
     
-    Test documentation
+    Datatable is derrived from pandas dataframe. 
     """
     _metadata = ['meta', 'ID']
 
@@ -56,6 +56,24 @@ class Datatable(pd.DataFrame):
     
     @classmethod
     def from_pyam(cls, idf, **kwargs):
+        """
+        Create a datatable from an iam dataframe.
+
+        Parameters
+        ----------
+        cls : datatable class
+            DESCRIPTION.
+        idf : pyam dataframe
+            dataframe that contrains the data that is used to create the datatable.
+        **kwargs : TYPE
+            DESCRIPTION.
+
+        Returns
+        -------
+        datatatble : datatoolbox datatable
+            Datatable with original unit and related meta data.
+
+        """
         import pyam
 
         if kwargs:
@@ -91,9 +109,25 @@ class Datatable(pd.DataFrame):
         return cls(data, meta=meta)
 
     @classmethod
-    def from_excel(cls, filepath, sheetNames = None):
-       
-       return read_excel(filepath,sheetNames)
+    def from_excel(cls, filepath, sheetName = None):
+        """
+        Create a dataframe from a suitable excel file that is saved by datatoolbox.
+        
+        Parameters
+        ----------
+        cls : class
+        
+        filepath : str
+            Path to the file.
+        sheetName : str, optional
+            Sheetn ame that is read in. The default is None.
+     
+        Returns
+        -------
+        datatable
+            DESCRIPTION.
+        """
+        return read_excel(filepath,sheetNames= [sheetName()])
        
     def _to_xarray(self):
         
@@ -123,7 +157,16 @@ class Datatable(pd.DataFrame):
     
    
     def __appendMetaData__(self, metaDict):    
-        
+        """
+        Private function to append meta data.
+
+        Parameters
+        ----------
+        metaDict : dict
+            New meta data.
+
+
+        """
         self.__setattr__('meta', metaDict.copy())
 
         #test if unit is recognized
@@ -133,14 +176,14 @@ class Datatable(pd.DataFrame):
 
     def copy(self, deep=True):
         """
-        Make a copy of this ClimateFrame object
+        Make a copy of this Datatable object
         Parameters
         ----------
         deep : boolean, default True
             Make a deep copy, i.e. also copy data
         Returns
         -------
-        copy : ClimateFrame
+        copy : Datatable
         """
         # FIXME: this will likely be unnecessary in pandas >= 0.13
         data = self._data
@@ -148,14 +191,52 @@ class Datatable(pd.DataFrame):
             data = data.copy(deep=True)
         return Datatable(data).__finalize__(self) 
 
-    def diff(self, periods=1, axis=0):
+    def diff(self, 
+             periods=1, 
+             axis=0):
+        """
+        Compute the difference between different years in the datatable
+        Equivalent do pandas diff but return datatable.
         
+        Parameters
+        ----------
+        periods : int, optional
+            DESCRIPTION. The default is 1.
+        axis : int, optional
+            DESCRIPTION. The default is 0.
+
+        Returns
+        -------
+        out : TYPE
+            DESCRIPTION.
+
+        """
         out = super(Datatable, self).diff(periods=periods, axis=axis)
         out.meta['unit'] = self.meta['unit']
         
         return out
     
     def to_excel(self, fileName = None, sheetName = "Sheet0", writer = None, append=False):
+        """
+        Save datatable to excel.
+
+        Parameters
+        ----------
+        fileName : str, optional
+            Relative file path. If None is provide, a writer is expected. The default is None.
+        sheetName : str, optional
+            Sheet name that is read in. The default is "Sheet0".
+        writer : pandas excel writer, optional
+            Pandas writer that is used instead opening a new one. The default is None.
+        append : bool, optional
+            If true, data is appended to the writer. The default is False.
+
+        Returns
+        -------
+        None.
+
+        """
+
         if fileName is not None:
             if append:
                 writer = pd.ExcelWriter(fileName, 
@@ -181,7 +262,19 @@ class Datatable(pd.DataFrame):
                 
     
     def to_csv(self, fileName=None):
-        
+        """
+        Save the datatable to an annotated csv file.
+
+        Parameters
+        ----------
+        fileName : str, optional
+            Path to file. The default is None.
+
+        Returns
+        -------
+        None.
+
+        """
         if fileName is None:
             fileName = '|'.join([ self.meta[key] for key in config.ID_FIELDS]) + '.csv'
         else:
@@ -200,6 +293,25 @@ class Datatable(pd.DataFrame):
         fid.close()
 
     def to_pyam(self, **kwargs):
+        """
+        Conversion to pyam dataframe.
+
+        Parameters
+        ----------
+        **kwargs : TYPE
+            DESCRIPTION.
+
+        Raises
+        ------
+        AssertionError
+            DESCRIPTION.
+
+        Returns
+        -------
+        idf : pyam dataframe
+            DESCRIPTION.
+
+        """
         from pyam import IamDataFrame
 
         meta = {
@@ -226,10 +338,31 @@ class Datatable(pd.DataFrame):
         return idf
        
     def to_IamDataFrame(self, **kwargs):
+        """
+        Function to sustain backwars compatibility
+        Depreciated.
+
+        """
         return self.to_pyam(**kwargs)
         
     def convert(self, newUnit, context=None):
-        
+        """
+        Convert datatable to different unit and returns converted
+        datatable.
+
+        Parameters
+        ----------
+        newUnit : str
+            New unit string in which the datatable should be converted.
+        context : str, optional
+            Optional context (e.g. GWPAR4). The default is None.
+
+        Returns
+        -------
+        datatable
+            Datatable converted in the new unit.
+
+        """
         if self.meta['unit'] == newUnit:
             return self
         
@@ -255,6 +388,25 @@ class Datatable(pd.DataFrame):
         return aggregate_region(self, mapping)
     
     def interpolate(self, method="linear", add_missing_years=False):
+        """
+        Interpoltate missing data between year with the option to add
+        missing years in the columns.
+
+        Parameters
+        ----------
+        method : sting, optional
+            Interpolation method. The default is "linear".
+            - linear
+        add_missing_years : bool, optional
+            If true, missing years within the time value range are added to 
+            the dataframe. The default is False.
+
+        Returns
+        -------
+        datatable
+            Interpoltated dataframe.
+
+        """
         from datatoolbox.tools.for_datatables import interpolate
         
         if add_missing_years:
@@ -265,10 +417,33 @@ class Datatable(pd.DataFrame):
         return interpolate(self, method)
     
     def clean(self):
+        """
+        Clean up the dataframe to only recogniszed regions, years and numeric values. 
+        Removed columns and rows with only nan values.
 
+        Returns
+        -------
+        datatable
+            DESCRIPTION.
+
+        """
         return util.cleanDataTable(self)
     
-    def filter(self, spaceIDs=None):
+    def filter(self, spaceIDs):
+        """
+        Filter dataframe based on a list of spatial IDs.
+
+        Parameters
+        ----------
+        spaceIDs : iterable of str
+            DESCRIPTION.
+
+        Returns
+        -------
+        datatable
+            DESCRIPTION.
+
+        """
         mask = self.index.isin(spaceIDs)
         return self.iloc[mask,:]
     
@@ -277,6 +452,13 @@ class Datatable(pd.DataFrame):
         """
         This methods returns the yearly change for all years (t1) that reported
         and and where the previous year (t0) is also reported
+        
+        Parameters
+        ----------
+        forward : bool 
+            If true, the yearly change is computed in the forward direction, otherwise
+            backwards.
+            Default is forward.
         """
 
         #%%
@@ -306,6 +488,15 @@ class Datatable(pd.DataFrame):
     
     #%%
     def generateTableID(self):
+        """
+        Generates the table ID based on the meta data of the table.
+
+        Returns
+        -------
+        datatable
+            DESCRIPTION.
+
+        """
         # update meta data required for the ID
         self.meta =  core._update_meta(self.meta)
         self.ID   =  core._createDatabaseID(self.meta)
@@ -315,10 +506,28 @@ class Datatable(pd.DataFrame):
 
     
     def source(self):
+        """
+        Return the source of the table 
+        """
         return self.meta['source']
 
     def append(self, other, **kwargs):
+        """
+        Append data to the datatable
+        
 
+        Parameters
+        ----------
+        other : datatable
+            New data that will be added to the datatable.
+        **kwargs : TYPE
+            Default pandas append arguments.
+
+        Returns
+        -------
+        datatable
+
+        """
         if isinstance(other,Datatable):
             
             if other.meta['entity'] != self.meta['entity']:
@@ -336,20 +545,25 @@ class Datatable(pd.DataFrame):
         # overwrite scenario
         out.meta['scenario'] = 'computed: ' + self.meta['scenario'] + '+' + other.meta['scenario']
         return out
-#    def append(self, other, **kwargs):
-#        if isinstance(other,Datatable):
-#            
-#            if other.meta['entity'] != self.meta['entity']:
-#                raise(BaseException('Physical entities do not match, please correct'))
-#            if other.meta['unit'] != self.meta['unit']:
-#                other = other.convert(self.meta['unit'])
-#            
-#            
-#        
-#        super(Datatable, self).append(self, other, **kwargs)
+
     
         
     def __add__(self, other):
+        """
+        Private function to add two dataframes. The added table is converted to
+        the unit of first table.
+
+        Parameters
+        ----------
+        other : datatble
+            Data to add.
+
+        Returns
+        -------
+        out : datatable
+            DESCRIPTION.
+
+        """
         if isinstance(other,Datatable):
             
             if self.meta['unit'] == other.meta['unit']:
@@ -363,8 +577,6 @@ class Datatable(pd.DataFrame):
             out.meta['unit'] = self.meta['unit']
             out.meta['source'] = 'calculation'
         else:
-#            import pdb
-#            pdb.set_trace()
             out = Datatable(super(Datatable, self).__add__(other))
             out.meta['unit'] = self.meta['unit']
             out.meta['source'] = 'calculation'
@@ -373,6 +585,21 @@ class Datatable(pd.DataFrame):
     __radd__ = __add__
     
     def __sub__(self, other):
+        """
+        Private function to subract two dataframes. The subracted table is converted to
+        the unit of first table.
+
+        Parameters
+        ----------
+        other : datatble
+            Data to substract.
+
+        Returns
+        -------
+        out : datatable
+            DESCRIPTION.
+
+        """
         if isinstance(other,Datatable):
             if self.meta['unit'] == other.meta['unit']:
                 factor = 1
@@ -389,6 +616,9 @@ class Datatable(pd.DataFrame):
         return out
     
     def __rsub__(self, other):
+        """
+        Equivalent to __sub__
+        """
         if isinstance(other,Datatable):
             if self.meta['unit'] == other.meta['unit']:
                 factor = 1
@@ -482,7 +712,25 @@ class Datatable(pd.DataFrame):
         return outStr
 #%%
 class TableSet(dict):
+    """
+    Class TableSet that is inherited from the dict class. It organized multiple 
+    heterogeneous datatbles into one structure.
+    """
     def __init__(self, IDList=None):
+        """
+        Create tableset from a given list of table IDs. All tables are loaded from
+        the database.
+
+        Parameters
+        ----------
+        IDList : list, optional
+            DESCRIPTION. The default is None.
+
+        Returns
+        -------
+        None.
+
+        """
         super(dict, self).__init__()
         self.inventory = pd.DataFrame(columns = ['key']+ config.INVENTORY_FIELDS)
         
@@ -494,6 +742,22 @@ class TableSet(dict):
     @classmethod
     def from_list(cls,
                   tableList):
+        """
+        Create tableSet form list of datatables.
+
+        Parameters
+        ----------
+        cls : TYPE
+            DESCRIPTION.
+        tableList : list
+            List of datatables.
+
+        Returns
+        -------
+        tableSet : tableset
+            DESCRIPTION.
+
+        """
         tableSet = cls()
         for table in tableList:
             tableSet.add(table)
@@ -502,23 +766,79 @@ class TableSet(dict):
     
             
     def to_xarray(self, dimensions):
+        """
+        Convert tableset to and xarray with the given dimenions.
+        Requires xarray installed
+
+        Parameters
+        ----------
+        dimensions : list of str
+            List of xarray dimensions.
+
+        Returns
+        -------
+        xr.xarray
+            DESCRIPTION.
+
+        """
         if not config.AVAILABLE_XARRAY:
             raise(BaseException('module xarray not available'))
         return core.to_XDataArray(self, dimensions)
        
-    def to_xset(self):
+    def to_xset(self, dimensions = ['region', 'time']):
+        """
+        Convert table set to an xarray data set.
+
+        Parameters
+        ----------
+        dimensions : list, optional
+            DESCRIPTION. The default is ['region', 'time'].
+
+        Returns
+        -------
+        xr.Dataset
+            DESCRIPTION.
+
+        """
         dimensions = ['region', 'time']
         if not config.AVAILABLE_XARRAY:
             raise(BaseException('module xarray not available'))
         return core.to_XDataSet(self, dimensions)
     
     def to_list(self):
+        """
+        Convert to list of tables
+
+        Returns
+        -------
+        list
+            List of datatables.
+
+        """
         return [ self[key] for key in self.keys()]
     
     def __iter__(self):
         return iter(self.values())
     
     def add(self, datatables=None, tableID=None):
+        """
+        Add new tables to table set. Either datatables or table IDs should be given.
+
+        Parameters
+        ----------
+        datatables : list of datatables, optional
+            DESCRIPTION. The default is None.
+        tableID : TYPE, optional
+            DESCRIPTION. The default is None.
+
+        Returns
+        -------
+        None.
+
+        """
+        
+        # assert only on parameter is None
+        assert not ((datatables is None) and (tableID is None))
         
         if datatables is not None:
             
@@ -579,26 +899,41 @@ class TableSet(dict):
         # update data
         self[tableKey] = pd.concat([self[tableKey] , table])
             
-#    def _add(self, datatable=None, tableID=None):
-#        if datatable is None:
-#            # adding only the ID, the full table is only loaded when necessary
-#            self[tableID] = None
-#            self.inventory.loc[tableID] = [None for x in config.ID_FIELDS]
-#        else:
-#            # loading the full table
-#            if datatable.ID is None:
-#                datatable.generateTableID()
-#            self[datatable.ID] = datatable
-#            self.inventory.loc[datatable.ID, "key"] = datatable.ID
-#            self.inventory.loc[datatable.ID, config.INVENTORY_FIELDS] = [datatable.meta.get(x,None) for x in config.INVENTORY_FIELDS]
-    
+
     def remove(self, tableID):
+        """
+        Remove table form tableSet.
+
+        Parameters
+        ----------
+        tableID : str
+            TableID.
+
+        Returns
+        -------
+        None.
+
+        """
         del self[tableID]
         self.inventory.drop(tableID, inplace=True)
         
     
     def filter(self,**kwargs):
-        
+        """
+        Filter tableSet based on the given table inventory columns. 
+        (see config.INVENTORY_FIELDS)
+
+        Parameters
+        ----------
+        **kwargs : dict-like
+            Filter arguments as string that need to be contained in the fields..
+
+        Returns
+        -------
+        newTableSet : tableSet
+            DESCRIPTION.
+
+        """
         inv = self.inventory.copy()
         for key in kwargs.keys():
             #table = table.loc[self.inventory[key] == kwargs[key]]
@@ -612,18 +947,7 @@ class TableSet(dict):
             newTableSet[key] = self[key]
             
         return newTableSet
-#        def getInventory(self, **kwargs):
-#        
-#        table = self.inventory.copy()
-#        for key in kwargs.keys():
-#            #table = table.loc[self.inventory[key] == kwargs[key]]
-#            mask = self.inventory[key].str.contains(kwargs[key], regex=False)
-#            mask[pd.isna(mask)] = False
-#            mask = mask.astype(bool)
-#            table = table.loc[mask].copy()
-#            
-#        
-#        return table
+
     def aggregate_to_region(self, mapping):
         """ 
         This functions added the aggregates to the output according to the provided
@@ -658,8 +982,24 @@ class TableSet(dict):
     
 
     
-    def to_excel(self, fileName, append=False):
-       
+    def to_excel(self, 
+                 fileName, 
+                 append=False):
+        """
+        Sace TableSet as excel file with individual datatables in individual sheets.
+    
+        Parameters
+        ----------
+        fileName : str
+            File path.
+        append : bool, optional
+            If true, try to append data. The default is False.
+    
+        Returns
+        -------
+        None.
+
+        """
 
         if append:
             writer = pd.ExcelWriter(fileName, 
@@ -809,24 +1149,6 @@ class TableSet(dict):
         plt.xticks([x +.5 for x in range(len(avail.columns))], avail.columns, rotation=45)
 
 
-
-
-#table = dt.getTable(dt.inventory().index[0])
-#table2 = dt.getTable(dt.inventory().index[1])
-#tableset = TableSet()
-#tableset.add(table)
-#tableset['Table1'] = table
-#tableset['Table2'] = table2
-#    
-#print(tableset.pathways())
-#
-#cropsSet = tableset.filter(variable='Crop')
-# %%
-
-#%%    
-    
-    
-    
 class Visualization():
     """ 
     This class addes handy built-in visualizations to datatables

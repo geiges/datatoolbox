@@ -26,6 +26,7 @@ Package content:
    :maxdepth: 3
 
    data_structures
+   core
    database
    tools 
    license

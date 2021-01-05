@@ -24,8 +24,17 @@ from . import util
 from . import core
 
 class Database():
-    
+    """
+    CSV based database that uses git for as distributed version control system.
+    Each table is saved locally as a csv file and identified by a  unique ID. 
+    The csv files are organized in various sources in individual folders. Each 
+    sources comes with its own git repository and can be shared with others.
+    """
     def __init__(self):
+        """ 
+        Initialized the database and creates an empty one in case the directory
+        in the config is empty.
+        """
         tt = time.time()
         self.path = config.PATH_TO_DATASHELF
         
@@ -62,6 +71,10 @@ class Database():
     def create_empty_datashelf(self,
                                modulePath, 
                                pathToDataself):
+        """
+        Method to create the required files for an empty csv-based data base. 
+        (Equivalent to the fucntions in admin.py)
+        """
         from pathlib import Path
         import os
         import shutil
@@ -82,10 +95,12 @@ class Database():
         shutil.copyfile(os.path.join(modulePath, 'data/country_codes.csv'),
                         os.path.join(pathToDataself, 'mappings/country_codes.csv'))    
         
+        # created sources.csv that contains the indivitual information for each source
         sourcesDf = pd.DataFrame(columns = config.SOURCE_META_FIELDS)
         filePath= os.path.join(pathToDataself, 'sources.csv')
         sourcesDf.to_csv(filePath)
         
+        # creates inventory.csv that contains all data tables from all sources
         inventoryDf = pd.DataFrame(columns = config.INVENTORY_FIELDS)
         filePath= os.path.join(pathToDataself, 'inventory.csv')
         inventoryDf.to_csv(filePath)
@@ -93,11 +108,20 @@ class Database():
     
     
     def _validateRepository(self, repoID='main'):
+        """
+        Private
+        Checks that a sub repository is valid. Valid means that the git repository
+        is clean and not outanding commits are there.
+        """
         return self.gitManager._validateRepository(repoID)
     
     def info(self):
+        """
+        Shows the most inmportant information about the status of the database
+        """
         #%%
         print('######## Database informations: #############')
+        print('Your database is located at: ' + self.path)
         print('Number of tables: {}'.format(len(self.inventory)))  
         print('Number of data sources: {}'.format(len(self.gitManager.sources))) 
         print('Number of commits: {}'.format(self.gitManager['main'].git.rev_list("--all", "--count")))
@@ -108,38 +132,61 @@ class Database():
         print('#############################################')
         #%%
     def sourceInfo(self):
+        """ 
+        Returns a list of available sources and meta data
+        """
         sources = copy.copy(self.gitManager.sources)
         return sources.sort_index()
 
     def returnInventory(self):
+        """
+        Returns a copy of the data base inventory. 
+        """
         return copy.copy(self.inventory)
 
 
     def _reloadInventory(self):
+        """
+        Private
+        Reloades the inventory from the csv file
+        """
         self.inventory = pd.read_csv(self.INVENTORY_PATH, index_col=0, dtype={'source_year': str})
         
     def sourceExists(self, source):
+        """ 
+        Function to check if a source is propperly registered in the data base
+        
+        Input: SourceID
+        """
         return source in self.gitManager.sources.index
     
     def add_to_inventory(self, datatable):
-#        if config.DB_READ_ONLY:
-#            assert self._validateRepository()
-#        entry = [datatable.meta[key] for key in config.ID_FIELDS]
-#        print(entry)
-#        self.inventory.loc[datatable.ID] = entry
-       
+        """
+        Method to add a table to the global inventory file. 
+        Input: datatable
+        """
         self.inventory.loc[datatable.ID] = [datatable.meta.get(x,None) for x in config.INVENTORY_FIELDS]
-        #self.gitManager.updatedRepos.add('main')
+        #self.gitManager.updatedRepos.add('main') # TODO not needed anymore?
+        
 
     def remove_from_inventory(self, tableID):
+        """
+        Method to remove a table from the global inventory
+        Input: tableID
+        """
         self.inventory.drop(tableID, inplace=True)
 #        self.gitManager.updatedRepos.add('main')
     
     def getInventory(self, **kwargs):
+        """
+        Method to search through the inventory. kwargs can be all inventory entires
+        (see config.INVENTORY_FIELDS).
+        """
         
         table = self.inventory.copy()
+        # loop over all keys of kwargs to filter based on all of them
         for key in kwargs.keys():
-            #table = table.loc[self.inventory[key] == kwargs[key]]
+            
             mask = self.inventory[key].str.contains(kwargs[key], regex=False)
             mask[pd.isna(mask)] = False
             mask = mask.astype(bool)
@@ -151,6 +198,23 @@ class Database():
         return table
 
     def findp(self, level=None, regex=False, **filters):
+        """ 
+        Future defaulf find method that allows for more
+        sophisticated syntax in the filtering
+        
+        Usage:
+        -------
+        filters : Union[str, Iterable[str]]
+            One or multiple patterns, which are OR'd together
+        regex : bool, optional
+            Accept plain regex syntax instead of shell-style, default: False
+        
+        Returns
+        -------
+        matches : pd.Series
+        Mask for selecting matched rows
+        """    
+            
         # filter by columns and list of values
         keep = True
 
@@ -178,10 +242,11 @@ class Database():
 
     
     def findExact(self, **kwargs):
-        
+        """
+        Finds an exact match for the given filter criteria
+        """
         table = self.inventory.copy()
         for key in kwargs.keys():
-            #table = table.loc[self.inventory[key] == kwargs[key]]
             mask = self.inventory[key] == kwargs[key]
             mask[pd.isna(mask)] = False
             mask = mask.astype(bool)
@@ -193,31 +258,52 @@ class Database():
         return table
     
     def _getTableFilePath(self,ID):
+        """
+        Private
+        Return the file path for a given tableID
+        """
         source = self.inventory.loc[ID].source
         fileName = self._getTableFileName(ID)
         return os.path.join(config.PATH_TO_DATASHELF, 'database/', source, 'tables', fileName)
 
     def _getTableFileName(self, ID):
+        """
+        For compatibility to windows based sytems, the pipe '|' symbols is replaces
+        by double underscore '__' for the csv filename
+        """
         return ID.replace('|','-').replace('/','-') + '.csv'
 
     
     def getTable(self, ID):
+        """
+        Method to return the datatable for the given tableID
         
+        Input
+        -----
+        tableID : str
+        
+        Returns
+        table : Datatable
+        """
         if config.logTables:
             core.LOG['tableIDs'].append(ID)
 
         filePath = self._getTableFilePath(ID)
         return read_csv(filePath)
 
-#    def _getTableWindows(self, ID):
-#        
-#        if config.logTables:
-#            core.LOG['tableIDs'].append(ID)
-#
-#        filePath = self._getTableFilePath(ID).replace('|','___')
-#        return read_csv(filePath)
-
     def getTables(self, iterIDs):
+        """
+        Method to return multiple datatables at once as a dictionary like 
+        set fo tables.
+        
+        Input 
+        -----
+        table list : list [str]
+        
+        Returns
+        tables : TableSet
+        """
+        
         if config.logTables:
             IDs = list()
         res = TableSet()
@@ -231,10 +317,19 @@ class Database():
         return res
   
     def startLogTables(self):
+        """
+        Starts the logging of loaded datatables. This is useful to collect all
+        required tables for a given analysis to create a datapackage for off-line
+        useage
+        """
         config.logTables = True
         core.LOG['tableIDs'] = list()
     
     def stopLogTables(self):
+        """ 
+        Stops the logging process of datatables and return the list of loaded
+        table IDs for more processing.
+        """
         import copy
         config.logTables = False
         outList = copy.copy(core.LOG['tableIDs'])
@@ -242,13 +337,33 @@ class Database():
         return outList
     
     def clearLogTables(self):
+        """ 
+        Clears the list of logged tables. This is anyway done if the package is
+        newly loaded
+        """
         core.LOG['tableIDs'] = list()
 
     def isSource(self, sourceID):
+        """
+        Checks is the source is in the database
+        
+        Input
+        ------
+        sourceID : str
+        """
         return self.gitManager.isSource(sourceID)
 
     def commitTable(self, dataTable, message, sourceMetaDict=None):
+        """
+        Adds a table permamently to the underlying database. For the first table
+        of a new source, the meta data for the sources needs to be provides as well
         
+        Input
+        ------
+        table : Datatable
+        message : str
+        sourceMetaDict [Optional] :  dict
+        """
         sourceID = dataTable.meta['source']
         if not self.isSource(sourceID):
             if sourceMetaDict is None:
@@ -271,6 +386,25 @@ class Database():
                      update=False, 
                      overwrite=False , 
                      cleanTables=True):
+        """
+        Adds multipe tables permamently to the underlying database. For the first table
+        of a new source, the meta data for the sources needs to be provides as well
+        
+        Input
+        ------
+        tables : list of Datatable
+        message : str
+        sourceMetaDict [Optional] :  dict
+        append_data [optinal]  : bool to choose if new data is added to the existing
+                                 table (new data does not overwrite old data)
+        update : [optional]    : bool to choose if the exting data is updated
+        overwrire : [optional] : bool to choose if data is overwriten (new data 
+                                 overwrites old data)
+        cleanTables [optional] : bool (default: true) to choose if tables are 
+                                 cleaned before commit
+        
+        TODO: Check flags
+        """
         # create a new source if not extisting
         if not self.isSource(sourceMetaDict['SOURCE_ID']):
             self._addNewSource(sourceMetaDict)
@@ -311,7 +445,16 @@ class Database():
         
 
     def updateTable(self, oldTableID, newDataTable, message):
+        """
+        Specific method to update the data of an existing table
         
+        Input
+        -----
+        oldTableID    : str
+        newDataTabble : Datatable
+        message       : str 
+                        Commit message to describle the added data
+        """
         sourceID = self._getSourceFromID(newDataTable.ID)
         if not self.isSource(sourceID):
             raise(BaseException('source  does not exist'))
@@ -320,10 +463,16 @@ class Database():
         self._gitCommit(message)
     
     def updateTables(self, oldTableIDs, newDataTables, message):
-
         """
-        same as updateTable, but for list of tables
-        """
+        Equivalent method to updateTable, but for multiple tables at once
+        
+        Input
+        -----
+        oldTableIDs    : list of str
+        newDataTabbles : list of Datatable
+        message        : str 
+                         Commit message to describle the added data
+        """ 
         sourcesToUpdate = list()
         for tableID in oldTableIDs:
             sourceID = self._getSourceFromID(tableID)
@@ -335,7 +484,7 @@ class Database():
             if not self.isSource(sourceID):
                 raise(BaseException('source  does not exist'))
         
-        
+        # loop over tables
         for oldTableID, newDataTable in tqdm.tqdm(zip(oldTableIDs, newDataTables)):
             
             if oldTableID in self.inventory.index:
@@ -347,12 +496,15 @@ class Database():
         self._gitCommit(message)
 
     def _updateTable(self, oldTableID, newDataTable):
+        """
+        Private
         
+        Method as a common function form multiple functions
+        """
         newDataTable = util.cleanDataTable(newDataTable)
         
         oldDataTable = self.getTable(oldTableID)
         oldID = oldDataTable.meta['ID']
-        #print(oldDataTable.meta)
         newID = newDataTable.generateTableID()
         
         if oldID == newID and (oldDataTable.meta['unit'] == newDataTable.meta['unit']):
@@ -360,8 +512,6 @@ class Database():
             self._addTable( newDataTable)
         else:
             # delete old table
-#            tablePath = self._getPathOfTable(oldID)
-#            print(oldID)
             self.removeTable(oldID)
             
             # add new table
@@ -373,6 +523,10 @@ class Database():
 
 
     def validate_ID(self, ID, print_statement=True):
+        """ 
+        Method to chekc the validity of a table ID and check the state of the 
+        data
+        """
         RED = '\033[31m'
         GREEN = '\033[32m'
         BLACK = '\033[30m'
@@ -414,6 +568,13 @@ class Database():
         return all(valid)
 
     def removeTables(self, IDList):
+        """
+        Method to remnove tables from the database
+        
+        Input
+        -----
+        IDList : list of str
+        """
         
         sourcesToUpdate = list()
         for tableID in IDList:
@@ -436,7 +597,13 @@ class Database():
         self._gitCommit('Tables removed')
         
     def removeTable(self, tableID):
-
+        """
+        Method to remnove tables from the database
+        
+        Input
+        -----
+        tableID : str
+        """
         sourceID = self._getSourceFromID(tableID)
         if not self.isSource(sourceID):
             raise(BaseException('source  does not exist'))
@@ -446,7 +613,10 @@ class Database():
         self._reloadInventory()
 
     def _removeTable(self, ID):
-
+        """
+        Private method
+        Function to pool code for removing a table from the database
+        """
         source = self.inventory.loc[ID, 'source']
         tablePath = self._getTableFilePath(ID)
         self.remove_from_inventory(ID)
@@ -461,10 +631,24 @@ class Database():
 
 
     def tableExist(self, tableID):
+        """
+        Method to test if table exists in the database
+        
+        Input
+        -----
+        tableID : str
+        """
+        
         return self._tableExists(tableID)
 
     def isConsistentTable(self, datatable):
-        
+        """
+        Checks if that table is fitting the following requirements 
+        - numeric data 
+        - spatial identifiers are known to the database
+        - columns are propper years
+        - index is not duplicated
+        """
         if not pd.np.issubdtype(datatable.values.dtype, pd.np.number):
             
             raise(BaseException('Sorry, data of table {} is needed to be numeric'.format(datatable)))            
@@ -486,7 +670,10 @@ class Database():
     
 
     def _addTable(self, datatable):
-    
+        """
+        Private
+        Pools functionality to add table to the database
+        """
         
         ID = datatable.generateTableID()
         source = datatable.source()
@@ -503,21 +690,23 @@ class Database():
         
         self.isConsistentTable(datatable)
         
-#        if not self.sourceExists(source):
-            
-        
-#        tt = time.time()
+
         self._gitAddTable(datatable, source, filePath)
-#        print('time: {:2.6f}'.format(time.time()-tt))
-        #self.add_to_inventory(datatable)
-        
+
     def _gitAddTable(self, datatable, source, filePath):
-        
+        """
+        Private
+        Added file to git system
+        """
         datatable.to_csv(os.path.join(config.PATH_TO_DATASHELF, filePath))
         
         self.gitManager.gitAddFile(source, os.path.join('tables', self._getTableFileName(datatable.ID)))
         
     def _gitCommit(self, message):
+        """
+        Private
+        Commits all changes to git
+        """
         self.inventory.to_csv(self.INVENTORY_PATH)
         self.gitManager.gitAddFile('main',self.INVENTORY_PATH)
 
@@ -532,6 +721,10 @@ class Database():
             
 
     def _addNewSource(self, sourceMetaDict):
+        """
+        Private
+        Adds new source to the sources table 
+        """
         source_ID = sourceMetaDict['SOURCE_ID']
         
         if not self.sourceExists(source_ID):
@@ -544,10 +737,17 @@ class Database():
             print('source already exists')
 
     def _getSourceFromID(self, tableID):
+        """
+        Private
+        Returns the source of a given table
+        """
         return tableID.split(config.ID_SEPARATOR)[-1]
     
     
     def removeSource(self, sourceID):
+        """
+        Function to remove an entire source from the database. 
+        """
         import shutil
         if self.sourceExists(sourceID):
             sourcePath = os.path.join(config.PATH_TO_DATASHELF, 'database', sourceID)
@@ -571,23 +771,6 @@ class Database():
             dataTable = self.getTable(setup['dataID'])
             ins._writeData(setup, dataTable)
 
-#    if config.DB_READ_ONLY:
-#        def commitTable(self, dataTable, message, sourceMetaDict):
-#            
-#            raise(BaseException('Not possible in read only mode'))
-#    
-#        def commitTables(self, dataTables, message, sourceMetaDict, append_data=False):
-#    
-#            raise(BaseException('Not possible in read only mode'))
-#
-#            
-#    
-#        def updateTable(self, oldTableID, newDataTable, message):
-#            raise(BaseException('Not possible in read only mode'))
-#        
-#        def updateTables(self, oldTableIDs, newDataTables, message):
-#            raise(BaseException('Not possible in read only mode'))
-            
     #%% database mangement
     
     def _checkTablesOnDisk(self):
@@ -600,11 +783,12 @@ class Database():
         return notExistingTables
                 
     def saveTablesToDisk(self, folder, IDList):
+        """ 
+        Function to save a list of tables to disk as csv files.
+        """
         from shutil import copyfile
         import os 
-        #%%
-#        _getTableFilePath = dt.core.DB._getTableFilePath
-        
+
         for ID in IDList:
             pathToFile = self._getTableFilePath(ID)
             print()
@@ -669,6 +853,11 @@ class GitRepository_Manager:
         return repo
     
     def _validateRepository(self, sourceID):
+        """ 
+        Private
+        Cheks if sourceID points to a valid repository
+        
+        """
         repo = self.repositories[sourceID]
 
         if sourceID != 'main':
@@ -684,6 +873,15 @@ class GitRepository_Manager:
         return True
         
     def init_new_repo(self, repoPath, repoID, sourceMetaDict):
+        """
+        Method to create a new repository for a source
+        
+        Input
+        ----
+        repoPath : str
+        repoID   : str 
+        sourceMetaDict : dict with the required meta data descriptors
+        """
         self.sources.loc[repoID] = pd.Series(sourceMetaDict)
         self.sources.to_csv(config.SOURCE_FILE)
         self.gitAddFile('main', config.SOURCE_FILE)
@@ -706,7 +904,15 @@ class GitRepository_Manager:
 
         self.commit('added source: ' + repoID)
 
-    def gitAddFile(self, repoName, filePath, addToGit=True):
+    def gitAddFile(self, repoName, filePath):
+        """
+        Addes a new file to a repository
+        
+        Input
+        -----
+        repoName : str 
+        filePath : str of the relative file path
+        """
         if config.DEBUG:
             print('Added file {} to repo: {}'.format(filePath,repoName))
         
@@ -714,6 +920,14 @@ class GitRepository_Manager:
         self.updatedRepos.add(repoName)
         
     def gitRemoveFile(self, repoName, filePath):
+        """
+        Removes a file from the git repository
+        
+        Input
+        -----
+        repoName : str 
+        filePath : str of the relative file path
+        """
         if config.DEBUG:
             print('Removed file {} to repo: {}'.format(filePath,repoName))
 #        self[repoName].index.remove(filePath, working_tree=True)
@@ -724,6 +938,14 @@ class GitRepository_Manager:
         pass
         
     def commit(self, message):
+        """
+        Function to commit all oustanding changes to git. All repos including 
+        'main' are commited if there is any change
+        
+        Input
+        ----
+        message : str - commit message
+        """
         if 'main' in self.updatedRepos:
             self.updatedRepos.remove('main')
 
@@ -748,6 +970,9 @@ class GitRepository_Manager:
         
         
     def create_remote_repo(self, repoName):
+        """
+        Function to create a remove git repoisitoy from an existing local repo
+        """
         repo = self[repoName]
         if 'origin' in repo.remotes:
             print('remote origin already exists, skip')
@@ -773,6 +998,15 @@ class GitRepository_Manager:
         self[repoName].remote('origin').push(progress=TqdmProgressPrinter())
         
     def clone_source_from_remote(self, repoName, repoPath):
+        """
+        Function to clone a remote git repository as a local copy.
+        
+        Input
+        ----- 
+        repoName : str - valid repository in the remove database
+        repoPath : str - path of the repository
+        """
+        
         url = config.DATASHELF_REMOTE + repoName + '.git'
         repo = git.Repo.clone_from(url=url, to_path=repoPath, progress=TqdmProgressPrinter())  
         self.repositories[repoName] = repo
@@ -802,14 +1036,23 @@ class GitRepository_Manager:
         self.commit('udpate from remote')
     
     def verifyGitHash(self, repoName):
+        """
+        Function to verify the git hash code of an existing git repository
+        """
         repo = self.repositories[repoName]
         if repo.commit().hexsha != self.sources.loc[repoName, 'git_commit_hash']:
             raise RuntimeError('Source {} is inconsistent with overall database'.format(repoName))
 
     def updateGitHash(self, repoName):
+        """
+        Function to update the git hash code in the sources.csv by the repo hash code
+        """
         self.sources.loc[repoName,'git_commit_hash'] = self[repoName].commit().hexsha
         
     def setActive(self, repoName):
+        """
+        Function to set a reposity active
+        """
         self[repoName].git.refresh()
         
     def isSource(self, sourceID):

@@ -1,9 +1,10 @@
 ##!/usr/bin/env python3
 # -*- coding: utf-8 -*-
 """
-Created on Fri Mar  1 14:15:56 2019
+Core contains some very basic functions that are used within the package
+in various locations and tools.
 
-@author: and
+@author: Andreas Geiges
 """
 
 import time
@@ -62,6 +63,20 @@ LOG['tableIDs'] = list()
 ur.add_context(c)
 
 def _update_meta(metaDict):
+    """
+    Private funcion to update the meta data of a datatable
+    
+
+    Parameters
+    ----------
+    metaDict : dict
+        new data to overwrite.
+
+    Returns
+    -------
+    metaDict : dict
+
+    """
     
     for key in list(metaDict.keys()):
         if (metaDict[key] is np.nan) or metaDict[key] == '':
@@ -81,12 +96,35 @@ def _createDatabaseID(metaDict):
 
 
 def osIsWindows():
+    """
+    Checkes if operating system is windows based
+    
+
+    Returns
+    -------
+    bool
+
+    """
     if (config.OS == 'win32') | (config.OS == "Windows"):
         return True
     else:
         return False
 
 def getUnit(string):
+    """
+    Return the pint unit for a given unit string. Compared to the original
+    pint this functions replaces special characters $ € and % by a string 
+    reprentation.
+
+    Parameters
+    ----------
+    string : str
+        unit string (e.g. "km / s" or "€  / capita")
+
+    Returns
+    -------
+    unit : pint unit
+    """
     if string is None:
         string = ''
     else:
@@ -94,6 +132,19 @@ def getUnit(string):
     return ur(string)
 
 def getUnitWindows(string):
+    """
+    Equivalent version of getUnit  but adapted for windows system.
+    
+    Parameters
+    ----------
+    string : str
+        unit string (e.g. "km / s" or "€  / capita")
+
+    Returns
+    -------
+    unit : pint unit
+
+    """
     if string is None:
         string = ''
     else:
@@ -106,13 +157,47 @@ if osIsWindows():
 
 
 def getTimeString():
+    """
+    Return formated time string.
+
+    Returns
+    -------
+    time string : str
+
+    """
     return time.strftime("%Y/%m/%d-%I:%M:%S")
 
 def getDateString():
+    """
+    Return formated date string.
+
+    Returns
+    -------
+    date string : str
+
+    """
     return time.strftime("%Y/%m/%d")
 
 def conversionFactor(unitFrom, unitTo, context =None):
-    
+    """
+    Return the conversion factor from one unit to another.
+
+    Parameters
+    ----------
+    unitFrom : str
+        Original unit to convert.
+    unitTo : str
+        Unit to which it original unit should be converted.
+    context : str, optional
+        For some conversions, a specifice context is needed. Currently, only
+        GWPAR4 is implemented. The default is None.
+
+    Returns
+    -------
+    TYPE
+        DESCRIPTION.
+
+    """ 
     if context is None:
         return getUnit(unitFrom).to(getUnit(unitTo)).m
     elif context == 'GWPAR4':
@@ -187,6 +272,21 @@ def get_dimension_extend(table_iterable, dimensions):
     
 
 def get_meta_collection(table_iterable, dimensions):
+    """
+
+    Parameters
+    ----------
+    table_iterable : list of tables
+        DESCRIPTION.
+    dimensions : list of dimentions
+        DESCRIPTION.
+
+    Returns
+    -------
+    metaCollection : TYPE
+        DESCRIPTION.
+
+    """
 
     
     metaCollection = dict()

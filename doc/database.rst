@@ -1,4 +1,4 @@
-Database
+CSV-based Database
 **************************
 
 .. automodule:: datatoolbox.database
