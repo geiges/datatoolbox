@@ -68,6 +68,35 @@ def test_findp():
     
     assert len(inv.variable.unique()) ==2
     
+    
+def test_table_logging():
+    # create tempory table in DB
+    table = dt.getTable('Numbers|Ones__Historic__Numbers_2020')
+    tableNew = table*2
+    tableNew.meta.update(table.meta)
+    tableNew.meta.update({'category':'Twos'})
+    dt.commitTable(tableNew, 'test table')
+    def test_analysis():
+
+        table = dt.getTable('Numbers|Twos__Historic__Numbers_2020')
+        print(table.sum())
+
+    # run to save all required table for the analysis
+    dt.core.DB.startLogTables()
+    test_analysis()
+    dt.core.DB.stopLogTables()
+    dt.core.DB.save_logged_tables()
+    
+    # remove table form database
+    dt.removeTable('Numbers|Twos__Historic__Numbers_2020')
+    
+    #run analysis with missing table, but locally stored
+    test_analysis()    
+    
+    #cleanup 
+    import shutil
+    shutil.rmtree('data')
+    
 if __name__ == '__main__':
     test_commit_new_table()
     test_validate_ID()
@@ -77,3 +106,4 @@ if __name__ == '__main__':
     test_commit_mutliple_tables()
     test_delete_mutliple_tables()
     test_delete_source()
+    test_table_logging()

@@ -351,7 +351,7 @@ class _EmissionModulePIK():
         if close_writer:
             writer.close()
 #        Excel.open('pandas_positioning.xlsx')
-    #%%
+
 class Excel():
     
     def open(filePath):
@@ -359,13 +359,13 @@ class Excel():
             os.system('libreoffice ' + filePath )
         elif config.OS == 'Darwin':
             os.system('open -a "Microsoft Excel" ' + filePath )
-    #%%
+
 class _Xarray():
 
     to_Xarray = core.to_XDataArray
         
  
-    #%%    
+#%%    
     
 class IAMC_PYAM():
     

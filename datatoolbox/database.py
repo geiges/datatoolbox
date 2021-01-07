@@ -5,7 +5,7 @@ CSV and git-based database to store year-country data in a multi-user
 setup
 """
 
-import pandas as pd
+
 import os 
 import git
 import tqdm
@@ -14,6 +14,9 @@ import copy
 import types
 from collections import defaultdict
 from pathlib import Path
+
+import pandas as pd
+import numpy as np
 
 from . import config
 from .data_structures import Datatable, TableSet, read_csv
@@ -119,7 +122,7 @@ class Database():
         """
         Shows the most inmportant information about the status of the database
         """
-        #%%
+        
         print('######## Database informations: #############')
         print('Your database is located at: ' + self.path)
         print('Number of tables: {}'.format(len(self.inventory)))  
@@ -130,7 +133,7 @@ class Database():
 #        root_directory = Path(os.path.join(config.PATH_TO_DATASHELF, 'rawdata'))
 #        print('Size of raw_data: {:2.2f} MB'.format(sum(f.stat().st_size for f in root_directory.glob('**/*') if f.is_file() )/1e6))
         print('#############################################')
-        #%%
+        
     def sourceInfo(self):
         """ 
         Returns a list of available sources and meta data
@@ -269,14 +272,14 @@ class Database():
     def _getTableFileName(self, ID):
         """
         For compatibility to windows based sytems, the pipe '|' symbols is replaces
-        by double underscore '__' for the csv filename
+        by double underscore '__' for the csv filename.
         """
         return ID.replace('|','-').replace('/','-') + '.csv'
 
     
     def getTable(self, ID):
         """
-        Method to return the datatable for the given tableID
+        Method to return the datatable for the given tableID.
         
         Input
         -----
@@ -288,8 +291,23 @@ class Database():
         if config.logTables:
             core.LOG['tableIDs'].append(ID)
 
-        filePath = self._getTableFilePath(ID)
-        return read_csv(filePath)
+
+        if self._tableExists(ID):
+            # load table from database
+            
+            filePath = self._getTableFilePath(ID)
+            return read_csv(filePath)
+        else:
+            #try to load locally from data
+            
+            if os.path.exists('data'):
+                fileName = self._getTableFileName(ID)
+                filePath = os.path.join('data', fileName)
+                
+                if os.path.exists(filePath):
+                    return read_csv(filePath)
+                else:
+                    raise(BaseException('Table {} not found'.format(ID)))
 
     def getTables(self, iterIDs):
         """
@@ -342,7 +360,47 @@ class Database():
         newly loaded
         """
         core.LOG['tableIDs'] = list()
+    
+    def save_logged_tables(self,
+                           folder='data'):
+        """
+        Creates a local data directory that can be used to run
+        the logges analysis indepenedly.
+        
 
+        Parameters
+        ----------
+        folder : str, optional
+            DESCRIPTION. The default is 'data'.
+
+        Returns
+        -------
+        None.
+
+        """
+        #create folder if required
+        if ~os.path.exists(folder):
+            os.mkdir(folder)
+        #save tables to disk
+        self.saveTablesToDisk(folder, core.LOG['tableIDs'])
+        if config.DEBUG:
+            print('{} tables stored to directory {}'.format(
+                len(core.LOG['tableIDS']), folder))
+        
+        
+    def saveTablesToDisk(self, folder, IDList):
+        """ 
+        Function to save a list of tables to disk as csv files.
+        """
+        from shutil import copyfile
+        import os 
+
+        for ID in IDList:
+            pathToFile = self._getTableFilePath(ID)
+            print()
+            copyfile(pathToFile, folder + '/' + os.path.basename(pathToFile))
+          
+            
     def isSource(self, sourceID):
         """
         Checks is the source is in the database
@@ -649,7 +707,7 @@ class Database():
         - columns are propper years
         - index is not duplicated
         """
-        if not pd.np.issubdtype(datatable.values.dtype, pd.np.number):
+        if not np.issubdtype(datatable.values.dtype, np.number):
             
             raise(BaseException('Sorry, data of table {} is needed to be numeric'.format(datatable)))            
             
@@ -771,7 +829,7 @@ class Database():
             dataTable = self.getTable(setup['dataID'])
             ins._writeData(setup, dataTable)
 
-    #%% database mangement
+    #database mangement
     
     def _checkTablesOnDisk(self):
         notExistingTables = list()
@@ -782,18 +840,7 @@ class Database():
         
         return notExistingTables
                 
-    def saveTablesToDisk(self, folder, IDList):
-        """ 
-        Function to save a list of tables to disk as csv files.
-        """
-        from shutil import copyfile
-        import os 
-
-        for ID in IDList:
-            pathToFile = self._getTableFilePath(ID)
-            print()
-            copyfile(pathToFile, folder + '/' + os.path.basename(pathToFile))
-            
+      
     def importSourceFromRemote(self, remoteName):
         """
         This functions imports (git clone) a remote dataset and creates a local
