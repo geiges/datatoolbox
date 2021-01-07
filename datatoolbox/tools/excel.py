@@ -950,3 +950,175 @@ class ExcelWriter():
 #            
 #            REG_FIND_ROWS.search(setup['timeIdxList'])
             
+def createExcelInventory():
+    #%%
+    import datatoolbox as dt
+    import xlwings as xl
+    import pandas as pd
+    import time
+    import os
+    import tqdm
+    import math
+    xl.books.open(dt.config.PATH_TO_DATASHELF + '/excel_inventory/main.xlsx')
+    try:
+        wb = xl.books.open(dt.config.PATH_TO_DATASHELF + '/excel_inventory/main.xlsx')
+    except:
+        wb = xl.books.add()
+    try:
+        sht = wb.sheets.add('Sources')
+    except:
+        sht = wb.sheets['Sources']
+    row = 6
+    sheets = dict()
+    sht.range('B2').value = 'Datatoolbox Inventory - ' + time.strftime("%Y/%m/%d")
+    
+    sht.range('B5').value = ['Source ID', 'Licence', 'Collected by', 'Url']
+    sht.range('B5:E5').color = (0,104,204)
+#    sht.range('B2').value
+    for sourceID, source_data in tqdm.tqdm(dt.sourceInfo().iterrows()):
+        
+        sht.range('B'+str(row)).add_hyperlink('#{}!A1'.format(sourceID),sourceID)
+        sht.range('C'+str(row)).value =  source_data.loc[ ['licence', 'collected_by', 'source_url']].values
+        try:
+            sheets[sourceID] = wb.sheets.add(sourceID, after=1)
+        except:
+            sheets[sourceID] = wb.sheets[sourceID]
+        sheets[sourceID].range('A1').add_hyperlink('#Sources!A1','back to Index')
+        sheets[sourceID].range('B2').value = sourceID + ' - Inventory'
+        
+        
+        path = dt.config.PATH_TO_DATASHELF + 'excel_inventory/sources/'
+        file_name = sourceID + '.xlsx'
+        link = 'file://' + os.path.join(path + file_name) + '#Inventory!A1'
+        
+        sheets[sourceID].range('D2').add_hyperlink(link,'detailed inventory...')
+        
+        
+        data_source = dt.find(source=sourceID)
+#        pathways = list(data_source.pathway.unique())
+        entities = sorted(list(data_source.variable.unique()))
+        
+        sheets[sourceID].range((5,2)).value = ['Variable', 'Entity', 'Category', 'Historic', 'Modeled']
+        sheets[sourceID].range((5,2), (5,6)).color = (0,102,204)
+        
+        data_to_excel = pd.DataFrame(columns = ['Variable', 'Entity', 'Category', 'Historic', 'Modeled'])
+        for index, entity in enumerate(entities):
+#            
+##            categories = sorted(list(dt.findp(source=sourceID).category.unique()))
+            mask = data_source.variable == entity
+            data = data_source.loc[data_source.index[mask],:]
+            data_to_excel.loc[index,['Variable', 'Entity', 'Category']] = data.loc[data.index[0],['variable', 'entity', 'category']].values
+            
+            hist_scen = [x for x in data.pathway.unique() if ('Hist' in x) or ('hist' in x)]  
+            data_to_excel.loc[index,['Historic']] = '{} hist pathways'.format(len(hist_scen)) 
+            
+            other_scen = [x for x in data.pathway.unique() if ('Hist' in x) or ('hist' in x)]  
+            data_to_excel.loc[index,['Modeled']] = '{} other pathways'.format(len(data.pathway.unique()) - len(hist_scen)) 
+            
+        sheets[sourceID].range((6,2)).value = data_to_excel.values    
+        sheets[sourceID].range((6,2), (30,6)).autofit()
+        
+        if row % 2 == 0:
+            sht.range('B{0}:E{0}'.format(row)).color = (153,204,255)
+        else:
+            sht.range('B{0}:E{0}'.format(row)).color = (204,229,255)
+        
+        row +=1    
+#        dsf
+        #_create_source_inventory(sourceID)
+
+    sht.autofit()
+                    #%%
+def _create_source_inventory(sourceID):
+    #%%
+    import os 
+    import datatoolbox as dt
+    import xlwings as xl
+    import pandas as pd
+    import time
+    path = dt.config.PATH_TO_DATASHELF + '/excel_inventory/sources/'
+    file_name = sourceID + '.xlsx'
+    try:
+        wb = xl.books.open(os.path.join(path, file_name))
+    except:
+        wb = xl.books.add()
+        wb.save(os.path.join(path, file_name))
+    try:
+        sht = wb.sheets.add('Inventory')
+    except:
+        sht = wb.sheets['Inventory']
+    sheets = dict()
+    path_link = dt.config.PATH_TO_DATASHELF + 'excel_inventory/'
+    file_name_link = 'main.xlsx'
+    link = 'file://' + os.path.join(path_link + file_name_link) + '#{}!A1'.format(sourceID)
+        
+    sht.range('A1').add_hyperlink(link,'back to Main inventory')
+    sht.range('B2').value = sourceID
+    sht.range('D2').value = ['Created:', time.strftime("%Y/%m/%d")]
+    sht.range('D3').value = ['Licence:', dt.sourceInfo().loc[sourceID,'licence']]
+    
+    sht.range('B5').value = 'Pathways:'
+    sht.range('B5:G5').color = (0,104,208)
+    data_source = dt.find(source=sourceID)
+    row = 6
+    for pathway in sorted(list(data_source.pathway.unique())):
+        excel_pathway_string = pathway.replace('|','').replace('-','_').replace('.','')
+        sht.range('B'+str(row)).add_hyperlink('#{}!A1'.format(excel_pathway_string[:30]),excel_pathway_string)
+        if row % 2 == 0:
+            sht.range('B{0}:G{0}'.format(row)).color = (153,204,255)
+        else:
+            sht.range('B{0}:G{0}'.format(row)).color = (204,229,255)
+        
+             
+        try:
+            sheets[excel_pathway_string] = wb.sheets.add(excel_pathway_string[:30], after=1)
+        except:
+            sheets[excel_pathway_string] = wb.sheets[excel_pathway_string[:30]]
+            
+        
+        mask = data_source.pathway == pathway
+        data = data_source.loc[data_source.index[mask],:]
+        sheets[excel_pathway_string].range('B4').value = ['Entity', 'Category']
+        sheets[excel_pathway_string].range('B5').value = data.sort_values(by='variable').loc[:,['entity', 'category']].values
+        sheets[excel_pathway_string].range('D4').value = data.sort_values(by='variable').loc[:,['unit']]
+        
+        sheets[excel_pathway_string].autofit()
+        sheets[excel_pathway_string].range('A1').add_hyperlink('#Inventory!A1','back to Index')
+        sheets[excel_pathway_string].range('B2').value = [excel_pathway_string, ' - Inventory - ']
+        sheets[excel_pathway_string].range('D4').value = 'Table ID'
+        sheets[excel_pathway_string].range((4,2), (4,5)).color = (0,102,204)
+        row +=1
+    sht.autofit()
+    wb.save(os.path.join(path, file_name))
+    #wb.close()
+    xl.Range('B1').add_hyperlink('file://Book2.xlsx#Sheet2!A1',"Sheet2")
+
+#import xlwings as xw
+#from xlwings import Book, Range
+#from datetime import datetime
+#import numpy as np
+#wb = Book('Book2')
+#Range('A2').value = 12
+#Range('A1').expand('table').value
+#Range('B1').value = [[1],[2],[3],[4],[5]]
+#Range('B').value
+#
+#xw.Range('B2').value = 222
+#xw.Range('A2').expand('table').value     
+#xw.Range('A2').expand('down').value    
+#xw.Range('A2').options(ndim=2).value
+#    
+#
+##%%
+#app = xw.apps.active
+#wb = app.books.active
+#sht = wb.sheets.active
+#
+#used_range = sht.used_range.address
+#
+#Range(used_range).expand('table').value
+#
+#xw.Range('B1').add_hyperlink('[Book2]Sheet2!$A$1',"Sheet2")
+#xw.Range('B1').add_hyperlink(':Sheet2.A1',"Sheet2")
+#xw.Range('B1').add_hyperlink('file:///Users/andreasgeiges/Documents/Book2.xlsx#Sheet2!A1',"Sheet2")
+# 
