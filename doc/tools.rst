@@ -1,22 +1,12 @@
-Tools
-**************************
+Datatoolbox - tools
+=======================================
 
-for pandas
-^^^^^^^^^^
-.. automodule:: datatoolbox.tools.pandas
-   :members:
 
-for excel
-^^^^^^^^^^^
-.. automodule:: datatoolbox.tools.excel
-   :members:
+.. toctree::
+  :maxdepth: 2
 
-for xarray
-^^^^^^^^^^^
-.. automodule:: datatoolbox.tools.xarray
-   :members:
+  excel
+  matplotlib  
+  pandas
+  xarray
 
-for matplotlib
-^^^^^^^^^^^^^^^
-.. automodule:: datatoolbox.tools.matplotlib
-   :members:

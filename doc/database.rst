@@ -1,5 +1,8 @@
 CSV-based Database
 **************************
 
-.. automodule:: datatoolbox.database
-   :members:
+.. toctree::
+  :maxdepth: 3
+
+  database_database
+  database_gitrepomanager
