@@ -6,8 +6,8 @@ Naming convention for entities used in for datatoolbox
 
 #%% Emissions
 emission_entities = set([
-    'Emissions|KYOTOGHG_AR4',
-    'Emissions|KYOTOGHG_AR5',
+    'Emissions|KYOTOGHG_AR4', # EM|KYO_AR4
+    'Emissions|KYOTOGHG_AR5', # EM|KYO_AR4
     'Emissions|BC',
     'Emissions|CO2',
     'Emissions|CH4',
@@ -23,36 +23,35 @@ emission_entities = set([
 
 #%% Energy (production if not otherwise stated)
 energy_entities = set([
-    'Primary_Energy',
-    'Secondary_Energy',
-    'Final_Energy',
-    'Electric_Energy', 
-    'Electric_Energy|Capacity',
-    'Heat_Energy', 
-    'Heat_Energy|Capacity',])
+    'Primary_Energy',           # PE
+    'Secondary_Energy',         # SE
+    'Final_Energy',             # FE 
+    'Electric_Energy',          # ELCT 
+    'Electric_Energy|Capacity', # ELCT_CAP
+    'Heat_Energy',              # HEAT
+    'Heat_Energy|Capacity',])   # HEAT_CAP
 
 #%% Economic enitites
 economic_entities = set([
     'GDP|PPP|constant',
     'GDP|PPP|current',
     'GDP|MER',
-    'Investment',
-    'Subsidies',
+    'Investment',   # INV 
+    'Subsidies',    
     'Price',
-    'Exports',
-    'Imports',
-    'Value_Added',
-    'Value_Lost',
-    'Population',
-    'Demand',
-    'Production'])
+    'Capital_Costs'
+    'Exports',      # EXP
+    'Imports',      # IMP
+    'Value_Added',  # VAL_ADD 
+    'Value_Lost',   # VA_LO 
+    'Population'])  # POP
 
 #%% Other entities
 other_entities = set([
     'Area',
     'Count',
-    'GMT'
-    'Climate_radiative_forcing'])
+    'Global_Mean_Temperature' # GMT
+    'Climate_Radiative_Forcing']) # CRF)
 
 entities = set.union(emission_entities, 
                      energy_entities,
@@ -69,4 +68,4 @@ entities = set.union(emission_entities,
 # Storage
 # Losses
 # Total (implied?)
-
+# Emissions
