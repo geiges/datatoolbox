@@ -127,7 +127,12 @@ class Datatable(pd.DataFrame):
         datatable
             DESCRIPTION.
         """
-        return read_excel(filepath,sheetNames= [sheetName()])
+        if sheetName is None:
+            sheetNames = None
+        else:
+            sheetNames= [sheetNames]
+        return read_excel(filepath,
+                          sheetNames=sheetNames)
        
     def _to_xarray(self):
         

@@ -13,6 +13,7 @@ from . import pandas
 from . import excel
 from . import xarray
 from . import matplotlib
+#from . import pyam
 
 #from . import py_magicc_tools
 

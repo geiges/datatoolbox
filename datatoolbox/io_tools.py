@@ -19,6 +19,7 @@ from . import util
 from . import mapping as mapp
 
 
+ 
 from . import greenhouse_gas_database as gh
 GHG_data = gh.GreenhouseGasTable()
 from .data_structures import Datatable,TableSet
@@ -34,13 +35,13 @@ SP_ARG = 3
 TI_ARG = 2
 DT_ARG = 4
 
-
+from datatoolbox.tools.excel import ExcelReader
 
 #%% Functions
 
 from .tools import excel as _xls
 
-excelIdx2PandasIdx = _xls.excel_to_pandas_idx
+excel_to_pandas_idx = _xls.excel_to_pandas_idx
 getAllSheetNames   = _xls.getAllSheetNames
 
 
@@ -348,7 +349,7 @@ if __name__ == '__main__':
 #    ex.setup(**{'spaceIdxList': ('I42', 'I42')})
 #    value = ex.gatherData() 
 #    
-#    excelIdx2PandasIdx('AB12')    
+#    excel_to_pandas_idx('AB12')    
     
     #%%
     from shutil import copyfile

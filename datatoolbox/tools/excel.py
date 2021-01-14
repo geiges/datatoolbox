@@ -349,10 +349,40 @@ def compare_excel_files(file1, file2, eps=1e-6):
 
 
 def excel_to_pandas_idx(index):
+    """
+    Conversion from Excel Row-Col sting to pandas index
+    
+    E.g. excel_to_pandas_idx('B3')
+
+    Parameters
+    ----------
+    index : str
+        Excel index
+
+    Returns
+    -------
+    tuple coordinate index
+
+    """
     [alpha, num, _] = re.split(r'(\d+)',index)    
     return (int(num)-1, alphaCol2Num(alpha))
 
 def getAllSheetNames(filePath):
+    """
+    Retrive all sheetnames of the given excel file path.
+    
+
+    Parameters
+    ----------
+    filePath : str
+        Path of excel file to get sheet names.
+
+    Returns
+    -------
+    sheetNameList : list of str
+        
+
+    """
     xlFile = pd.ExcelFile(filePath)
     sheetNameList = xlFile.sheet_names
     xlFile.close()
@@ -633,7 +663,7 @@ class ExcelReader():
             
             if 'Idx' in key:
                 # conversion of index
-                setattr(self, key, [excelIdx2PandasIdx(x) for x in kwargs[key]])
+                setattr(self, key, [excel_to_pandas_idx(x) for x in kwargs[key]])
             else:
                 setattr(self, key, kwargs[key])
         if hasattr(self,'df'):
@@ -660,7 +690,7 @@ class ExcelReader():
                 self.df = pd.read_excel(os.path.join(self.filePath, self.fileName), sheet_name=self.sheetName, header=None)
         elif core.config.DEBUG:
             print('use loaded df')
-        return self.df.iloc[excelIdx2PandasIdx(excelIdx)]             
+        return self.df.iloc[excel_to_pandas_idx(excelIdx)]             
 
     def getAllData(self):
         return self.df
@@ -951,6 +981,15 @@ class ExcelWriter():
 #            REG_FIND_ROWS.search(setup['timeIdxList'])
             
 def createExcelInventory():
+    """
+    Create a excel inventory of the current data base. The excel files will be 
+    placed in the directory of the database (see config.PATH_TO_DATASHELF)
+
+    Returns
+    -------
+    None.
+
+    """
     #%%
     import datatoolbox as dt
     import xlwings as xl
@@ -975,7 +1014,7 @@ def createExcelInventory():
     sht.range('B5').value = ['Source ID', 'Licence', 'Collected by', 'Url']
     sht.range('B5:E5').color = (0,104,204)
 #    sht.range('B2').value
-    for sourceID, source_data in tqdm.tqdm(dt.sourceInfo().iterrows()):
+    for sourceID, source_data in tqdm.tqdm(dt.sourceInfo().loc['SDG_DB_2019':,:].iterrows()):
         
         sht.range('B'+str(row)).add_hyperlink('#{}!A1'.format(sourceID),sourceID)
         sht.range('C'+str(row)).value =  source_data.loc[ ['licence', 'collected_by', 'source_url']].values
@@ -1025,12 +1064,12 @@ def createExcelInventory():
         
         row +=1    
 #        dsf
-        #_create_source_inventory(sourceID)
+        _create_source_inventory(sourceID)
 
     sht.autofit()
-                    #%%
+#%%
 def _create_source_inventory(sourceID):
-    #%%
+    #%
     import os 
     import datatoolbox as dt
     import xlwings as xl
@@ -1090,8 +1129,8 @@ def _create_source_inventory(sourceID):
         row +=1
     sht.autofit()
     wb.save(os.path.join(path, file_name))
-    #wb.close()
-    xl.Range('B1').add_hyperlink('file://Book2.xlsx#Sheet2!A1',"Sheet2")
+    wb.close()
+    #xl.Range('B1').add_hyperlink('file://Book2.xlsx#Sheet2!A1',"Sheet2")	
 
 #import xlwings as xw
 #from xlwings import Book, Range
@@ -1122,3 +1161,16 @@ def _create_source_inventory(sourceID):
 #xw.Range('B1').add_hyperlink(':Sheet2.A1',"Sheet2")
 #xw.Range('B1').add_hyperlink('file:///Users/andreasgeiges/Documents/Book2.xlsx#Sheet2!A1',"Sheet2")
 # 
+    
+def read_active_excel_sheet():
+    """
+    Read the entire active excel sheet to a pandas dataframe.
+    
+    Return pandas.Dataframe
+    """
+    import xlwings as xw
+    app = xw.apps.active
+    book = app.books.active
+    sheet = book.sheets[0]
+    df = pd.DataFrame(sheet.used_range.value)
+    return df

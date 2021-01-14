@@ -5,6 +5,7 @@ Created on Tue Dec 22 09:34:50 2020
 
 @author: ageiges
 """
+import numpy as np
 
 def yearsColumnsOnly(index):
     """

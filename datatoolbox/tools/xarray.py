@@ -14,7 +14,23 @@ from datatoolbox import core
 
     
 def to_XDataSet(tableSet, dimensions):
-    
+    """
+    Convert datatoolbox tableSet to a xarray data set
+
+    Parameters
+    ----------
+    tableSet : datatoolbox.Tableset
+        DESCRIPTION.
+    dimensions : list of str
+        Full dimensions of the xarray array. Other remaining dimensions will be
+        added as dict like elements.
+
+    Returns
+    -------
+    dSet : xarray.Dataset
+        DESCRIPTION.
+
+    """
     dimSize, dimList = core.get_dimension_extend(tableSet, dimensions= ['region', 'time'])
     
     dimensions= ['region', 'time']
