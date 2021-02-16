@@ -15,23 +15,7 @@ MODULE_PATH = os.path.dirname(__file__)
 if OS == 'Darwin':
     import matplotlib
     matplotlib.use("TkAgg")
-#%% Personal setup
-if not os.path.isfile(os.path.dirname(__file__) + '/settings/personal.py'):
-    from .admin import create_initial_config, create_empty_datashelf
-    modulePath =  os.path.dirname(__file__) + '/'
-    CRUNCHER, PATH_TO_DATASHELF, DB_READ_ONLY, DEBUG = create_initial_config(modulePath)
-    #create_empty_datashelf(PATH_TO_DATASHELF)
-    TEST_ENV = True
-else:
-    from .settings.personal import CRUNCHER, PATH_TO_DATASHELF, DB_READ_ONLY, DEBUG
-    TEST_ENV = False
 
-
-try:
-    import xarray as xr
-    AVAILABLE_XARRAY = True
-except:
-    AVAILABLE_XARRAY = False   
  
 
 #%% general setup
@@ -73,6 +57,35 @@ INVENTORY_FIELDS = ['variable',
                     'unit'
                     ]
 
+SOURCE_META_FIELDS = ['SOURCE_ID',
+                      'collected_by',
+                      'date',
+                      'source_url',
+                      'licence',
+                      'git_commit_hash']
+
+#%% Personal setup
+if not os.path.isfile(os.path.dirname(__file__) + '/settings/personal.py'):
+    from .admin import create_initial_config, create_empty_datashelf
+    modulePath =  os.path.dirname(__file__) + '/'
+    CRUNCHER, PATH_TO_DATASHELF, DB_READ_ONLY, DEBUG = create_initial_config(modulePath)
+    create_empty_datashelf(PATH_TO_DATASHELF, 
+                           MODULE_PATH,
+                           SOURCE_META_FIELDS,
+                           INVENTORY_FIELDS,
+                           force_new=True)
+    TEST_ENV = True
+else:
+    from .settings.personal import CRUNCHER, PATH_TO_DATASHELF, DB_READ_ONLY, DEBUG
+    TEST_ENV = False
+
+
+try:
+    import xarray as xr
+    AVAILABLE_XARRAY = True
+except:
+    AVAILABLE_XARRAY = False   
+    
 
 META_DECLARATION = '### META ###\n'
 DATA_DECLARATION = '### DATA ###\n'
@@ -90,12 +103,7 @@ PATH_PINT_DEFINITIONS = os.path.join(MODULE_PATH, 'pint_definitions.txt')
 SOURCE_FILE   =  os.path.join(PATH_TO_DATASHELF, 'sources.csv')
 
 
-SOURCE_META_FIELDS = ['SOURCE_ID',
-                      'collected_by',
-                      'date',
-                      'source_url',
-                      'licence',
-                      'git_commit_hash']
+
 
 SOURCE_SUB_FOLDERS = ['tables',
                       'raw_data'

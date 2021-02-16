@@ -9,17 +9,24 @@ import os
 import pandas as pd
 import platform
 OS = platform.system()
-from . import config
+#from . import config
 #from datatoolbox import config
 import git
 import shutil
 import datatoolbox as dt
 
 
-def create_empty_datashelf(pathToDataself):
+def create_empty_datashelf(pathToDataself, 
+                           MODULE_PATH,
+                           SOURCE_META_FIELDS,
+                           INVENTORY_FIELDS,
+                           force_new=False):
     from pathlib import Path
     import os
     path = Path(pathToDataself)
+    
+    if force_new:
+        shutil.rmtree(path)
     path.mkdir(parents=True,exist_ok=True)
     
     # add subfolders database
@@ -29,18 +36,18 @@ def create_empty_datashelf(pathToDataself):
     
     #create mappings
     os.makedirs(os.path.join(pathToDataself, 'mappings'),exist_ok=True)
-    shutil.copyfile(os.path.join(config.MODULE_PATH, 'data/regions.csv'),
+    shutil.copyfile(os.path.join(MODULE_PATH, 'data/regions.csv'),
                     os.path.join(pathToDataself, 'mappings/regions.csv'))
-    shutil.copyfile(os.path.join(config.MODULE_PATH, 'data/continent.csv'),
+    shutil.copyfile(os.path.join(MODULE_PATH, 'data/continent.csv'),
                     os.path.join(pathToDataself, 'mappings/continent.csv'))
-    shutil.copyfile(os.path.join(config.MODULE_PATH, 'data/country_codes.csv'),
+    shutil.copyfile(os.path.join(MODULE_PATH, 'data/country_codes.csv'),
                     os.path.join(pathToDataself, 'mappings/country_codes.csv'))    
     
-    sourcesDf = pd.DataFrame(columns = config.SOURCE_META_FIELDS)
+    sourcesDf = pd.DataFrame(columns = SOURCE_META_FIELDS)
     filePath= os.path.join(pathToDataself, 'sources.csv')
     sourcesDf.to_csv(filePath)
     
-    inventoryDf = pd.DataFrame(columns = config.INVENTORY_FIELDS)
+    inventoryDf = pd.DataFrame(columns = INVENTORY_FIELDS)
     filePath= os.path.join(pathToDataself, 'inventory.csv')
     inventoryDf.to_csv(filePath)
     git.Repo.init(pathToDataself)
