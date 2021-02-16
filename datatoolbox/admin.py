@@ -185,6 +185,7 @@ def _re_link_functions(dt):
     dt.updateExcelInput = dt.core.DB.updateExcelInput
     
 def switch_database_to_testing():
+    from . import config
 #    from datatoolbox.tools.install_support import create_initial_config
 #    
     _, sandboxPath, READ_ONLY, DEBUG = create_initial_config(config.MODULE_PATH, write_config=False)
