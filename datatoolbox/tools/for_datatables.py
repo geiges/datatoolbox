@@ -39,7 +39,7 @@ def interpolate(datatable, method="linear"):
         raise(NotImplementedError())
         
         
-def aggregate_region(table, mapping):
+def aggregate_region(table, mapping, skipna=False):
     
     table = copy(table)
     missingCountryDict = dict()
@@ -52,7 +52,7 @@ def aggregate_region(table, mapping):
         missingCountryDict[region] = list(missingCountries)
         availableCountries = set(mapping[region]).intersection(table.index)
         if len(availableCountries) >0:
-            table.loc[region,:] = table.loc[availableCountries,:].sum(axis=0, skipna=True)
+            table.loc[region,:] = table.loc[availableCountries,:].sum(axis=0, skipna=skipna)
 
     return table, missingCountryDict
 

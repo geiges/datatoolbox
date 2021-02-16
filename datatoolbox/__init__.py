@@ -25,8 +25,16 @@ from . import config
 from . import core
 from .data_structures import Datatable, TableSet, read_csv
 
-from . import database
-core.DB = database.Database()
+try:
+    from . import database
+    core.DB = database.Database()
+    db_connected = True
+except :
+    import traceback
+    print('Database connection broken. Running without database connection.')    
+    traceback.print_exc()
+    db_connected = False
+    
 from . import mapping as mapp
 from . import io_tools as io
 from . import interfaces
@@ -51,24 +59,25 @@ unitReg = core.ur
 
 ExcelReader = xls.ExcelReader # TODO make this general IO tools
 
-commitTable  = core.DB.commitTable
-commitTables = core.DB.commitTables
+if db_connected:
+    commitTable  = core.DB.commitTable
+    commitTables = core.DB.commitTables
+    
+    updateTable  = core.DB.updateTable
+    updateTables = core.DB.updateTables
+    
+    removeTable  = core.DB.removeTable
+    removeTables  = core.DB.removeTables
+    
+    find         = core.DB.getInventory
+    findp        = core.DB.findp
+    findExact    = core.DB.findExact
+    getTable     = core.DB.getTable
+    getTables    = core.DB.getTables
+    
+    isAvailable  = core.DB._tableExists
 
-updateTable  = core.DB.updateTable
-updateTables = core.DB.updateTables
-
-removeTable  = core.DB.removeTable
-removeTables  = core.DB.removeTables
-
-find         = core.DB.getInventory
-findp        = core.DB.findp
-findExact    = core.DB.findExact
-getTable     = core.DB.getTable
-getTables    = core.DB.getTables
-
-isAvailable  = core.DB._tableExists
-
-updateExcelInput = core.DB.updateExcelInput
+    updateExcelInput = core.DB.updateExcelInput
 
 insertDataIntoExcelFile = io.insertDataIntoExcelFile
 sources = _raw_sources.sources
@@ -82,19 +91,20 @@ countryDataExtract = xls.getCountryExtract
 
 executeForAll = util.forAll
 
-DBinfo = core.DB.info
-sourceInfo = core.DB.sourceInfo
-inventory = core.DB.returnInventory
-
-validate_ID = core.DB.validate_ID
-#writeMAGICC6ScenFile = tools.wr
-
-# Source management
-import_new_source_from_remote = core.DB.importSourceFromRemote
-export_new_source_to_remote   = core.DB.exportSourceToRemote
-remove_source                 = core.DB.removeSource
-push_source_to_remote         = core.DB.gitManager.push_to_remote_datashelf
-pull_source_from_remote      = core.DB.gitManager.pull_update_from_remote
+if db_connected:
+    DBinfo = core.DB.info
+    sourceInfo = core.DB.sourceInfo
+    inventory = core.DB.returnInventory
+    
+    validate_ID = core.DB.validate_ID
+    #writeMAGICC6ScenFile = tools.wr
+    
+    # Source management
+    import_new_source_from_remote = core.DB.importSourceFromRemote
+    export_new_source_to_remote   = core.DB.exportSourceToRemote
+    remove_source                 = core.DB.removeSource
+    push_source_to_remote         = core.DB.gitManager.push_to_remote_datashelf
+    pull_source_from_remote      = core.DB.gitManager.pull_update_from_remote
 
 
 # convenience functions
@@ -102,19 +112,30 @@ getTimeString = core.getTimeString
 getDateString = core.getDateString
 
 
-if config.PATH_TO_DATASHELF == os.path.join(config.MODULE_PATH, 'data/SANDBOX_datashelf'):
-    print("""
-          ################################################################
-          You are using datatoolbox with a testing database as a SANDBOX.
-          This allows for testing and initial tutorial use.
-          
-
-          For creating an empty dataase please use:
-              "datatoolbox.admin.create_empty_datashelf(pathToDatabase)"
-
-          For switching to a existing database use: 
-              "datatoolbox.admin.change_personal_config()"
+if db_connected:
+    if config.PATH_TO_DATASHELF == os.path.join(config.MODULE_PATH, 'data/SANDBOX_datashelf'):
+        print("""
+              ################################################################
+              You are using datatoolbox with a testing database as a SANDBOX.
+              This allows for testing and initial tutorial use.
               
+    
+              For creating an empty dataase please use:
+                  "datatoolbox.admin.create_empty_datashelf(pathToDatabase)"
+    
+              For switching to a existing database use: 
+                  "datatoolbox.admin.change_personal_config()"
+                  
+                  
+              ################################################################
+              """)
+else:
+     print("""
+          ################################################################
+          
+          You are using datatoolbox with no database connected
+          
+          Access functions and methods to database are not available.
               
           ################################################################
           """)

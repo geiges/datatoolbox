@@ -132,6 +132,8 @@ def read_PRIMAP_Excel(fileName, sheet_names= None, xlsFile=None):
         sheet_names = getAllSheetNames(fileName)
         
     out = TableSet()
+    if xlsFile is None:
+        xlsFile = pd.ExcelFile(fileName)
     for sheet_name in tqdm(sheet_names):
         table = _read_PRIMAP_Excel_single(fileName, sheet_name, xlsFile=xlsFile)
         out[sheet_name] = table
@@ -139,9 +141,7 @@ def read_PRIMAP_Excel(fileName, sheet_names= None, xlsFile=None):
     return out
         
 def _read_PRIMAP_Excel_single(fileName, sheet_name= 0, xlsFile=None):
-    if xlsFile is not None:
-        xlsFile = xlsFile
-    else:   
+    if xlsFile is None: 
         xlsFile = pd.ExcelFile(fileName)
     allDf = pd.read_excel(xlsFile, sheet_name = sheet_name, usecols=[0,1], index_col=0)
     #print(os.path.basename(fileName))

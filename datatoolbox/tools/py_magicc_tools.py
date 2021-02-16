@@ -107,12 +107,12 @@ if __name__ == '__main__':
 #    testData = pd.read_excel('/media/sf_Documents/data_files/IEA_trial_MAGICC.xlsx',index_col=0, sheet_name = 'IEA_SDS_18')
 #    scenFile = 'WEO_2019_15b.SCEN'
 #    testData = pd.read_excel('/media/sf_Documents/data_files/IEA_trial_MAGICC.xlsx',index_col=0, sheet_name = 'IEA_SDS_15_b')
-    scenFile = 'WEO_2019_test.SCEN'
+    scenFile = 'WEO_2019_test'
     
-    for scen in ['IEA B2DS 4', 'IEA B2DS 2 rev', 'IEA B2DS 3']:
-        scenFile = scen.replace(' ','_')+ '.SCEN'
-        testData = pd.read_excel('/media/sf_Documents/data_files/Summary_of_IEA_B2DS_pathways_for_MAGICC.xlsx',index_col=0, sheet_name = scen)
-        writeMagic6ScenFile(testData, scenFile)
+    for scen in ['WEO_2019_test.SCEN']:#['IEA B2DS 4', 'IEA B2DS 2 rev', 'IEA B2DS 3']:
+        # scenFile = scen.replace(' ','_')+ '.SCEN'
+        # testData = pd.read_excel('/media/sf_Documents/data_files/Summary_of_IEA_B2DS_pathways_for_MAGICC.xlsx',index_col=0, sheet_name = scen)
+        # writeMagic6ScenFile(testData, scenFile)
         outTemperature = run_MAGGIC6(scenFile)
         
         import matplotlib.pylab as plt

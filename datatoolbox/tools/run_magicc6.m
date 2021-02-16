@@ -8,7 +8,7 @@ scenarioFile = [scenario '.SCEN'];
 
 disp(scenario)
 disp(PRIMAP_PATH)
-%exit
+
 
 currentPath = pwd;
 
@@ -18,13 +18,16 @@ if ~ exist('PRIMAPDB', 'var')
     startup_CAT_no_clear
 end
 disp('CAT wrapper initialized')
-%scenario = 'BC';
+
 
 global para;
 para = drive_save_configuration_4MAGICC;
 if ~exist(para.magiccinputpath,'dir')
     system(['cp -r ' para.magiccpath '/input ' para.magiccinputpath])
     system(['mkdir ' para.magiccoutputpath])
+end
+if ~exist(para.magiccoutputpath,'dir')
+    system(['mkdir ' scenario])
 end
 para.runningset = 'run_general';
 para.configFileToRun = struct;

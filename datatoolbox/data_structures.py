@@ -382,7 +382,7 @@ class Datatable(pd.DataFrame):
         dfNew.meta['modified'] = core.getTimeString()
         return dfNew
         
-    def aggregate_region(self, mapping):
+    def aggregate_region(self, mapping, skipna=False):
         """ 
         This functions added the aggregates to the table according to the provided
         mapping.( See datatools.mapp.regions)
@@ -390,7 +390,7 @@ class Datatable(pd.DataFrame):
         Returns the result, but does not inplace add it.
         """
         from datatoolbox.tools.for_datatables import aggregate_region
-        return aggregate_region(self, mapping)
+        return aggregate_region(self, mapping, skipna)
     
     def interpolate(self, method="linear", add_missing_years=False):
         """
