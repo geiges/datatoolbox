@@ -43,7 +43,7 @@ def test_aggregation():
     from datatoolbox.tools.for_datatables import aggregate_region
     
     mapping= {'EU3': ['DEU', 'GBR', 'FRA']}
-    res, missingCountries = aggregate_region(df1, mapping)
+    res, missingCountries = aggregate_region(df1, mapping, skipna=True)
     
     npt.assert_array_almost_equal(res.loc['EU3',:].values, 
                                   np.array([2.3, 3.4, 6.4, 3.2]),
