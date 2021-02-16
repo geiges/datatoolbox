@@ -15,12 +15,39 @@ import git
 import shutil
 import datatoolbox as dt
 
+def create_empty_datashelf(pathToDataself,
+                           force_new = False):
+    """
+    User funciton to create a empty datashelf
 
-def create_empty_datashelf(pathToDataself, 
+    Parameters
+    ----------
+    pathToDataself : TYPE
+        DESCRIPTION.
+    force_new : TYPE, optional
+        DESCRIPTION. The default is False.
+
+    Returns
+    -------
+    None.
+
+    """
+    from . import config 
+    _create_empty_datashelf(pathToDataself, 
+                           config.MODULE_PATH,
+                           config.SOURCE_META_FIELDS,
+                           config.INVENTORY_FIELDS,
+                           force_new=force_new)
+    
+def _create_empty_datashelf(pathToDataself, 
                            MODULE_PATH,
                            SOURCE_META_FIELDS,
                            INVENTORY_FIELDS,
                            force_new=False):
+    """
+    Private function to create empty datashelf without propper 
+    init of config
+    """
     from pathlib import Path
     import os
     path = Path(pathToDataself)

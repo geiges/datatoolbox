@@ -66,10 +66,10 @@ SOURCE_META_FIELDS = ['SOURCE_ID',
 
 #%% Personal setup
 if not os.path.isfile(os.path.dirname(__file__) + '/settings/personal.py'):
-    from .admin import create_initial_config, create_empty_datashelf
+    from .admin import create_initial_config, _create_empty_datashelf
     modulePath =  os.path.dirname(__file__) + '/'
     CRUNCHER, PATH_TO_DATASHELF, DB_READ_ONLY, DEBUG = create_initial_config(modulePath)
-    create_empty_datashelf(PATH_TO_DATASHELF, 
+    _create_empty_datashelf(PATH_TO_DATASHELF, 
                            MODULE_PATH,
                            SOURCE_META_FIELDS,
                            INVENTORY_FIELDS,
