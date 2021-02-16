@@ -20,7 +20,7 @@ if not os.path.isfile(os.path.dirname(__file__) + '/settings/personal.py'):
     from .admin import create_initial_config, create_empty_datashelf
     modulePath =  os.path.dirname(__file__) + '/'
     CRUNCHER, PATH_TO_DATASHELF, DB_READ_ONLY, DEBUG = create_initial_config(modulePath)
-    create_empty_datashelf(PATH_TO_DATASHELF)
+    #create_empty_datashelf(PATH_TO_DATASHELF)
     TEST_ENV = True
 else:
     from .settings.personal import CRUNCHER, PATH_TO_DATASHELF, DB_READ_ONLY, DEBUG
