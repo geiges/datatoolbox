@@ -12,9 +12,9 @@ OS = platform.system() #'win32' , linux, #Darwin
 
 MODULE_PATH = os.path.dirname(__file__)
 
-if OS == 'Darwin':
-    import matplotlib
-    matplotlib.use("TkAgg")
+# if OS == 'Darwin':
+#     import matplotlib
+#     matplotlib.use("TkAgg")
 
  
 
