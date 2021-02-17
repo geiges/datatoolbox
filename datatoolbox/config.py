@@ -76,7 +76,7 @@ if not os.path.isfile(os.path.dirname(__file__) + '/settings/personal.py'):
                            force_new=True)
     TEST_ENV = True
 else:
-    from .settings.personal import CRUNCHER, PATH_TO_DATASHELF, DB_READ_ONLY, DEBUG
+    from .settings.personal import CRUNCHER, PATH_TO_DATASHELF, DB_READ_ONLY, DEBUG, AUTOLOAD_SOURCES
     TEST_ENV = False
 
 

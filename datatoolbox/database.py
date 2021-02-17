@@ -297,18 +297,38 @@ class Database():
             
             filePath = self._getTableFilePath(ID)
             return read_csv(filePath)
-        else:
-            #try to load locally from data
+        
+        elif os.path.exists('data'):
+            fileName = self._getTableFileName(ID)
+            filePath = os.path.join('data', fileName)
             
-            if os.path.exists('data'):
-                fileName = self._getTableFileName(ID)
-                filePath = os.path.join('data', fileName)
+            if os.path.exists(filePath):
+                return read_csv(filePath)
+            
                 
-                if os.path.exists(filePath):
-                    return read_csv(filePath)
-                else:
-                    raise(BaseException('Table {} not found'.format(ID)))
-
+        
+        if config.AUTOLOAD_SOURCES:
+            # trying to import sources from remote on demand
+            source = self._getSourceFromID(ID)
+            
+            try: 
+                if config.DEBUG:
+                    print('Trying to import source {}'.format(source))
+                    self.importSourceFromRemote(source)
+                    
+                    print('Successfully imported {}'.format(source))
+                    
+                    if self._tableExists(ID):
+                    # load table from database
+                    
+                        filePath = self._getTableFilePath(ID)
+                        return read_csv(filePath)
+            except:
+                if config.DEBUG:
+                    print('Failed to import source {}'.format(source))
+        
+        raise(BaseException('Table {} not found'.format(ID)))
+        
     def getTables(self, iterIDs):
         """
         Method to return multiple datatables at once as a dictionary like 

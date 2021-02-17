@@ -211,6 +211,27 @@ def _re_link_functions(dt):
     
     dt.updateExcelInput = dt.core.DB.updateExcelInput
     
+def set_autoload_source(boolean):
+    from . import config
+    config.AUTOLOAD_SOURCES = boolean
+    
+    fin = open(os.path.join(config.MODULE_PATH, 'settings','personal.py'), 'r')
+    lines = fin.readlines()
+    fin.close()
+    # os.makedirs(os.path.join(config.MODULE_PATH, 'settings'),exist_ok=True)
+    fout = open(os.path.join(config.MODULE_PATH, 'settings','personal.py'), 'w')
+    
+    for line in lines:
+        if line.startswith('AUTOLOAD'):
+            outLine = 'AUTOLOAD_SOURCES = {}'.format(boolean)
+        else:
+            outLine = line
+            
+        fout.write(outLine)
+    
+    fout.close()
+    
+    
 def switch_database_to_testing():
     from . import config
 #    from datatoolbox.tools.install_support import create_initial_config
