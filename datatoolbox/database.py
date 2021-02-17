@@ -314,15 +314,15 @@ class Database():
             try: 
                 if config.DEBUG:
                     print('Trying to import source {}'.format(source))
-                    self.importSourceFromRemote(source)
+                self.importSourceFromRemote(source)
                     
-                    print('Successfully imported {}'.format(source))
-                    
-                    if self._tableExists(ID):
-                    # load table from database
-                    
-                        filePath = self._getTableFilePath(ID)
-                        return read_csv(filePath)
+                print('Successfully imported {}'.format(source))
+                
+                if self._tableExists(ID):
+                # load table from database
+                
+                    filePath = self._getTableFilePath(ID)
+                    return read_csv(filePath)
             except:
                 if config.DEBUG:
                     print('Failed to import source {}'.format(source))

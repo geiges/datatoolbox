@@ -91,7 +91,7 @@ def create_personal_setting(modulePath, OS):
         ROOT = tk.Tk()
         ROOT.withdraw()
         userName = simpledialog.askstring(title="Initials",
-                                          prompt="Enter your Initials:")
+                                          prompt="Enter your Initials or Name: ")
         print("Welcome", userName)
 
 
@@ -100,7 +100,7 @@ def create_personal_setting(modulePath, OS):
         
         def search_for_file_path ():
             currdir = os.getcwd()
-            tempdir = filedialog.askdirectory(parent=root, initialdir=currdir, title='Please select a directory')
+            tempdir = filedialog.askdirectory(parent=root, initialdir=currdir, title='Please select a directory: ')
             if len(tempdir) > 0:
                 print ("You chose: %s" % tempdir)
             return tempdir
@@ -108,8 +108,8 @@ def create_personal_setting(modulePath, OS):
         file_path_variable = search_for_file_path()
         
     else:
-        userName = input("Please enter your initials")
-        file_path_variable = input("Please enter path to datashelf")
+        userName = input("Please enter your initials: ")
+        file_path_variable = input("Please enter path to datashelf: ")
     
     fin = open(os.path.join(modulePath, 'data','personal_template.py'), 'r')
     os.makedirs(os.path.join(modulePath, 'settings'),exist_ok=True)
@@ -212,6 +212,22 @@ def _re_link_functions(dt):
     dt.updateExcelInput = dt.core.DB.updateExcelInput
     
 def set_autoload_source(boolean):
+    """
+    Admin funtion to change permanently the personal configuration "AUTOLOAD_SOURCES".
+    If set to True and if the database is connecte to a remote git repository,
+    datatoolbox is try to import missing sources if a table is loaded that is locally 
+    not available.
+
+    Parameters
+    ----------
+    boolean : bool
+        New config value.
+
+    Returns
+    -------
+    None.
+
+    """
     from . import config
     config.AUTOLOAD_SOURCES = boolean
     
