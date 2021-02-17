@@ -20,6 +20,20 @@ Authors: Andreas Geiges
 
 from .version import version as __version__
 
+
+# %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+# Version 0.4.5 patch of personal config
+from .settings import personal
+if not hasattr(personal, 'AUTOLOAD_SOURCES'):
+    
+    from .patches import patch_045_update_personal_config
+    
+    personal = patch_045_update_personal_config(personal)
+# %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+    
+
+
+
 import os
 from . import config
 from . import core

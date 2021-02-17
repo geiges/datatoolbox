@@ -221,14 +221,20 @@ def set_autoload_source(boolean):
     # os.makedirs(os.path.join(config.MODULE_PATH, 'settings'),exist_ok=True)
     fout = open(os.path.join(config.MODULE_PATH, 'settings','personal.py'), 'w')
     
+    line_found = False
     for line in lines:
         if line.startswith('AUTOLOAD'):
             outLine = 'AUTOLOAD_SOURCES = {}'.format(boolean)
+            line_found = True
         else:
             outLine = line
             
         fout.write(outLine)
     
+    if not line_found:
+        # add it to old personal config
+        outLine = 'AUTOLOAD_SOURCES = {}'.format(boolean)
+        fout.write(outLine)
     fout.close()
     
     
