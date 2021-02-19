@@ -1080,6 +1080,13 @@ class GitRepository_Manager:
         """
         self[repoName].remote('origin').pull(progress=TqdmProgressPrinter())
         self.updateGitHash(repoName)
+
+        sourceInventory = pd.read_csv(os.path.join(repoPath, 'source_inventory.csv'), index_col=0, dtype={'source_year': str})
+        self.inventory = pd.concat([
+            self.inventory[self.inventory["source"] != repoName],
+            sourceInventory
+        ])
+
         self.commit('udpate from remote')
     
     def verifyGitHash(self, repoName):
