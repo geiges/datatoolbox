@@ -3165,7 +3165,7 @@ class PRIMAP_DOWNSCALE(BaseImportTool):
         self.setup.SOURCE_ID    = "PRIMAP_DOWN_2020"
         self.setup.SOURCE_YEAR  = "2020"
         self.setup.SOURCE_NAME  = "PRIMAP_DOWN"
-        self.setup.SOURCE_PATH  = config.PATH_TO_DATASHELF + 'rawdata/PRIMAP_DOWNSCALE/'
+        self.setup.SOURCE_PATH  = os.path.join(config.PATH_TO_DATASHELF, 'rawdata/PRIMAP_DOWNSCALE/')
         
         csvFiles  = os.listdir(self.setup.SOURCE_PATH)
         csvFiles = [file for file in csvFiles if '.csv' in file]
@@ -3664,8 +3664,8 @@ class PRIMAP_HIST(BaseImportTool):
         self.setup.SOURCE_ID    = "PRIMAP_" + str(year)
         self.setup.SOURCE_NAME    = "PRIMAP"
         self.setup.SOURCE_YEAR    = str(year)
-        self.setup.SOURCE_PATH  = config.PATH_TO_DATASHELF + 'rawdata/PRIMAP/'
-        self.setup.DATA_FILE    = self.setup.SOURCE_PATH +  str(year) + '/PRIMAP-hist_' + str(version) + '.csv'
+        self.setup.SOURCE_PATH  = os.path.join(config.PATH_TO_DATASHELF, 'rawdata/PRIMAP')
+        self.setup.DATA_FILE    = os.path.join(self.setup.SOURCE_PATH,  str(year), 'PRIMAP-hist_' + str(version) + '.csv')
         self.setup.MAPPING_FILE = self.setup.SOURCE_PATH + 'mapping.xlsx'
         self.setup.LICENCE = 'CC BY-4.0'
         self.setup.URL     = 'https://dataservices.gfz-potsdam.de/pik/showshort.php?id=escidoc:4736895'
@@ -5475,10 +5475,10 @@ if __name__ == '__main__':
 #%% IAMC DATA
 
     iamc = IAMC15_2019()    
-#    tableList, excludedTables = iamc.gatherMappedData(updateTables=False)
-##    iamc.createSourceMeta()
-#    dt.commitTables(tableList, 'update IAM 1.5 data R20', iamc.meta, update=True)
-#    sad
+#     tableList, excludedTables = iamc.gatherMappedData(updateTables=False)
+# ##    iamc.createSourceMeta()
+#     dt.commitTables(tableList, 'update IAM 1.5 data R20', iamc.meta, update=True)
+#     sad
 #%% CD LINKS
 
     cdlinks = CDLINKS_2018()    

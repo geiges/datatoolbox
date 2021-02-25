@@ -13,10 +13,17 @@ from . import config
 class Regions():
     
     def __init__(self):
-        self.CAT_COUNTRIES = set(['ARE', 'ARG', 'AUS', 'BRA', 'BTN', 'CAN', 'CHE', 'CHL', 'CHN', 'CRI',
+        # 2020
+        self.CAT_COUNTRIES_2020 = set(['ARE', 'ARG', 'AUS', 'BRA', 'BTN', 'CAN', 'CHE', 'CHL', 'CHN', 'CRI',
                                    'EU28','ETH', 'GMB', 'IDN', 'IND', 'JPN', 'KAZ', 'KOR', 'MAR', 'MEX', 'NOR',
                                    'NPL', 'NZL', 'PER', 'PHL', 'RUS', 'SAU', 'SGP', 'TUR', 'UKR', 'USA',
                                    'ZAF'])
+        
+        self.CAT_COUNTRIES = set(['ARE', 'ARG', 'AUS', 'BRA', 'BTN', 'CAN', 'CHE', 'CHL', 'CHN', 'COL', 'CRI', 'DEU',
+                                  'EU27','ETH', 'GBR', 'GMB', 'IDN', 'IND', 'IRN', 'JPN', 'KAZ', 'KEN', 'KOR', 'MAR', 
+                                  'MEX', 'NGA', 'NOR', 'NPL', 'NZL', 'PER', 'PHL', 'RUS', 'SAU', 'SGP', 'TUR', 'THA', 
+                                  'UKR', 'USA', 'VNM', 'ZAF'])
+        
         self.AnnexI = set(['AUS', 'AUT', 'BLR', 'BEL', 'BGR', 'CAN', 'HRV', 'CYP', 
                        'CZE', 'DNK', 'EST', 'FIN', 'FRA', 'DEU', 'GRC', 'HUN', 
                        'ISL', 'IRL', 'ITA', 'JPN', 'LVA', 'LIE', 'LTU', 'LUX', 

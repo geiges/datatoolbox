@@ -176,7 +176,7 @@ def getDateString():
     date string : str
 
     """
-    return time.strftime("%Y/%m/%d")
+    return time.strftime("%Y_%m_%d")
 
 def conversionFactor(unitFrom, unitTo, context =None):
     """

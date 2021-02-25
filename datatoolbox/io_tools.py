@@ -123,9 +123,17 @@ def read_PRIMAP_csv(fileName):
     table.columns = table.columns.astype(int)
     return table#, data
 
-def read_PRIMAP_Excel(fileName, sheet_names= None, xlsFile=None):
+def read_PRIMAP_Excel(fileName, 
+                      sheet_names= None,
+                      sheet_name = None,
+                      xlsFile=None):
     
-    if isinstance(sheet_names, str):
+    #single sheet reading
+    if (sheet_names is None) and (sheet_name is not None):
+        return _read_PRIMAP_Excel_single(fileName, sheet_name, xlsFile)
+    
+    #single sheet reading
+    if isinstance(sheet_names, str) :
         return _read_PRIMAP_Excel_single(fileName, sheet_names, xlsFile)
     
     if sheet_names is None:

@@ -279,7 +279,7 @@ class Database():
     
     def getTable(self, ID):
         """
-        Method to return the datatable for the given tableID.
+        Method to load the datatable for the given tableID.
         
         Input
         -----
@@ -316,7 +316,9 @@ class Database():
                     print('Trying to import source {}'.format(source))
                 self.importSourceFromRemote(source)
                     
-                print('Successfully imported {}'.format(source))
+                print("""###########################################################
+                         Successfully imported source: {}
+                         ###########################################################""".format(source))
                 
                 if self._tableExists(ID):
                 # load table from database
