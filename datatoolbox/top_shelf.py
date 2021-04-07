@@ -3,9 +3,7 @@ from datatoolbox import getTable
 
 def share_of_emissions(isos, year='latest', gwp='AR4'):
     """
-    Return the pint unit for a given unit string. Compared to the original
-    pint this functions replaces special characters $ € and % by a string 
-    reprentation.
+    Calculate the share of total global emissions from a list of countries
 
     Parameters
     ----------
