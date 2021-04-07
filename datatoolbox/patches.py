@@ -26,7 +26,7 @@ def patch_045_update_personal_config(personal):
         fout.write(outLine)
     
     # add it to old personal config
-    outLine = 'AUTOLOAD_SOURCES = False'
+    outLine = 'AUTOLOAD_SOURCES = True'
     fout.write(outLine)
     fout.close()
     

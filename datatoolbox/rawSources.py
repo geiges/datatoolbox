@@ -178,7 +178,7 @@ class WDI_2018(BaseImportTool):
             tablesToCommit.append(dataTable)
         return tablesToCommit
 
-class WDI_2020(BaseImportTool):
+class WDI(BaseImportTool):
     
     def __init__(self):
 
@@ -243,7 +243,7 @@ class WDI_2020(BaseImportTool):
             metaDf = self.mapping.loc[idx]
             
             
-            print(metaDf[config.REQUIRED_META_FIELDS].isnull().all() == False)
+            # print(metaDf[config.REQUIRED_META_FIELDS].isnull().all() == False)
             #print(metaData[self.setup.INDEX_COLUMN_NAME])
             
             metaDf['source_name'] = self.setup.SOURCE_NAME
@@ -5382,7 +5382,7 @@ def UN_WPP_2019_import():
 sources = sourcesStruct()
 _sourceClasses = [IEA_World_Energy_Balance, IEA_WEB_2018, ADVANCE_DB, IAMC15_2019, IRENA2019,
                   SSP_DATA, SDG_DATA_2019, AR5_DATABASE, IEA_FUEL_2019, PRIMAP_HIST, SDG_DATA_2019,
-                  CRF_DATA, WDI_2020, APEC, WEO, VANMARLE2017, HOESLY2018, FAO, LED_2019, IMAGE15_2020]
+                  CRF_DATA, WDI, APEC, WEO, VANMARLE2017, HOESLY2018, FAO, LED_2019, IMAGE15_2020]
 
 nSourceReader = 0
 for _sourceClass in _sourceClasses:
@@ -5423,12 +5423,12 @@ if __name__ == '__main__':
 #    tableList, excludedTables = advance.gatherMappedData()
 #    dt.commitTables(tableList, 'ADVANCE DB IAM data', advance.meta)
 #%%WDI data
-    wdi = WDI_2020()    
-#    tableList = wdi.gatherMappedData(updateTables=True)
+    wdi = WDI()    
+    tableList = wdi.gatherMappedData(updateTables=True)
 #    
 ##    iea.openMappingFile()
-#    dt.commitTables(tableList, 'Added WDI 2020  data', wdi.meta, update=True)
-#    sdf
+    dt.commitTables(tableList, 'Added WDI 2020  data', wdi.meta, update=True)
+    sdf
 #%%IEA World Energy Balance
     iea19 = IEA_World_Energy_Balance(2020)
 #    iea19.createVariableMapping()
