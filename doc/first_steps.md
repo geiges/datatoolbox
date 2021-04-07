@@ -166,3 +166,11 @@ iamDataFrame = tables.to_IamDataFrame()
 
 
 ### 
+
+# Off-the-shelf Calculations
+
+The `top_shelf` module offers a series of different functions to help with
+common calculations.
+
+.. automodule:: datatoolbox.top_shelf
+   :members:
