@@ -220,7 +220,23 @@ def identifyCountry(string):
         print('not matching country found')    
         return None
             
-def convertIndexToISO(table):
+def convertIndexToISO(table, iso_type='alpha3'):
+    """
+    Convert index of a dataframe into iso codes.
+
+    Parameters
+    ----------
+    table : pandas.Dataframe or dt.DataTable
+        Index of thos table consists of country strings.
+    iso : TYPE, optional
+        Either 'alpha3', alpha2 or numISO. The default is 'alpha3'.
+
+    Returns
+    -------
+    table :  pandas.Dataframe or dt.DataTable
+        Return old dataframe with new iso index.
+
+    """
     replaceDict = dict()
     
     for idx in table.index:
@@ -229,7 +245,11 @@ def convertIndexToISO(table):
             replaceDict[idx] = iso
     table.index = table.index.map(replaceDict)           
     table = table.loc[~table.index.isna(),:]
-  
+
+    if iso_type == 'alpha2':
+        table.index = mapp.countries.codes.loc[table.index,'alpha2']
+    elif iso_type == 'numISO':
+        table.index = mapp.countries.codes.loc[table.index,'numISO'].astype(int)
     return table
 
 def addCountryNames(table):

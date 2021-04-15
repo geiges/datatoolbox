@@ -40,7 +40,7 @@ except:
 import os
 from . import config
 from . import core
-from .data_structures import Datatable, TableSet, read_csv
+from .data_structures import Datatable, TableSet, read_csv, read_excel
 
 try:
     from . import database

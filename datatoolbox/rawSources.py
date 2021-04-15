@@ -3657,7 +3657,7 @@ class IMAGE15_2020(BaseImportTool):
     
 class PRIMAP_HIST(BaseImportTool):
     
-    def __init__(self, version="v2.1_09-Nov-2019", year=2019):
+    def __init__(self, version="v2.2_19-Jan-2021", year=2021):
 
         self.setup = setupStruct()
         
@@ -3666,9 +3666,9 @@ class PRIMAP_HIST(BaseImportTool):
         self.setup.SOURCE_YEAR    = str(year)
         self.setup.SOURCE_PATH  = os.path.join(config.PATH_TO_DATASHELF, 'rawdata/PRIMAP')
         self.setup.DATA_FILE    = os.path.join(self.setup.SOURCE_PATH,  str(year), 'PRIMAP-hist_' + str(version) + '.csv')
-        self.setup.MAPPING_FILE = self.setup.SOURCE_PATH + 'mapping.xlsx'
+        self.setup.MAPPING_FILE = os.path.join(self.setup.SOURCE_PATH, 'mapping.xlsx')
         self.setup.LICENCE = 'CC BY-4.0'
-        self.setup.URL     = 'https://dataservices.gfz-potsdam.de/pik/showshort.php?id=escidoc:4736895'
+        self.setup.URL     = 'https://zenodo.org/record/4479172'
 
         
 #        self.setup.INDEX_COLUMN_NAME = 'SeriesCode'
@@ -3762,14 +3762,26 @@ class PRIMAP_HIST(BaseImportTool):
         
         tablesToCommit  = []
         for idx, metaDf in self.mapping.iterrows():
-            print(idx)
             
+              
             metaDict = metaDf.to_dict()
             metaDict.update(
                 source_name=self.setup.SOURCE_NAME,
                 source_year=self.setup.SOURCE_YEAR,
             )
             
+            
+            if pd.isnull(metaDict['entity']):
+                print('skipping: ' + idx)
+                continue
+            else:
+                print('processing: ' +idx)  
+                
+            for key in metaDict.keys():
+                if pd.isnull(metaDict[key]):
+                    metaDict[key] = ''
+            # if metaDict['entity'] == 'Emissions|KYOTOGHG':
+            #     dfgs
             if not updateTables:
                 metaDict = dt.core._update_meta(metaDict)
                 tableID = dt.core._createDatabaseID(metaDict)
@@ -3781,6 +3793,9 @@ class PRIMAP_HIST(BaseImportTool):
                     
             metaDict['original code'] = idx
 
+            if idx not in self.data.index:
+                print('skipping :' + idx)
+                continue
             dataframe = (
                 self.data.loc[idx,:].set_index('country').drop(self.setup.COLUMNS_TO_DROP, axis=1)
                 .astype(float)
@@ -5402,9 +5417,10 @@ if config.DEBUG:
 
 if __name__ == '__main__':
 #%% PRIMAP HIST
-    primap = PRIMAP_HIST(2019)
-#    tableList, excludedTables = primap.gatherMappedData()
-#    dt.commitTables(tableList, 'PRIMAP 2019 update', primap.meta)
+    primap = PRIMAP_HIST(version="v2.2_19-Jan-2021", year=2021)
+    tableList, excludedTables = primap.gatherMappedData()
+    dt.commitTables(tableList, 'PRIMAP 2021 cimooit', primap.meta)
+    asd
 #%% PRIMAP DOWNSCALE
     primap_down = PRIMAP_DOWNSCALE()
 #    tableList, excludedTables = primap_down.gatherMappedData()
