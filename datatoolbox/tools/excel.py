@@ -688,8 +688,8 @@ class ExcelReader():
                 self.df = pd.read_excel(self.xlsFile, sheet_name=self.sheetName, header=None)
             else:
                 self.df = pd.read_excel(os.path.join(self.filePath, self.fileName), sheet_name=self.sheetName, header=None)
-        elif core.config.DEBUG:
-            print('use loaded df')
+        # elif core.config.DEBUG:
+            # print('use loaded df')
         return self.df.iloc[excel_to_pandas_idx(excelIdx)]             
 
     def getAllData(self):

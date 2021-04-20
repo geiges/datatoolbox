@@ -1048,8 +1048,10 @@ class GitRepository_Manager:
             return 
 
         origin = repo.create_remote("origin", config.DATASHELF_REMOTE + repoName + ".git")
+        origin.push(refspec="master:origin")
         origin.fetch()
 
+        # TODO maybe switch next two commands
         repo.heads.master.set_tracking_branch(origin.refs.master)
         origin.push(repo.heads.master)
     
