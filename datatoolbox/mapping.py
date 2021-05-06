@@ -317,7 +317,7 @@ def getMembersOfRegion(context, regionID):
 def getValidSpatialIDs():
     return regions.validIDs + countries.countries + special_regions
     
-def getSpatialID(descriptor):
+def getSpatialID(descriptor, iso_type = 'alpha3'):
     """
     returns the spatial ID (ISO3) for a given desciptor that 
     can be string or in
@@ -327,13 +327,19 @@ def getSpatialID(descriptor):
         for codeCol in countries.nameColumns:
             mask = countries.codes[codeCol]==descriptor
             if np.sum(mask) == 1:
-                return countries.codes.index[mask][0]
+                if iso_type =='alpha3':
+                    return countries.codes.index[mask][0]
+                elif iso_type  in ['alpha2', 'numISO'] :
+                    return countries.codes.loc[mask,iso_type][0]
     else:
         #numeric search
         for codeCol in countries.numericColumns:
             mask = countries.codes[codeCol]==descriptor
             if np.sum(mask) == 1:
-                return countries.codes.index[mask][0]
+                if iso_type =='alpha3':
+                    return countries.codes.index[mask][0]
+                elif iso_type  in ['alpha2', 'numISO'] :
+                    return countries.codes.loc[mask,iso_type][0]
 
 def nameOfCountry(coISO):
     try:
