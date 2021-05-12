@@ -50,7 +50,7 @@ economic_entities = set([
 other_entities = set([
     'Area',
     'Count',
-    'Global_Mean_Temperature' # GMT
+    'GMT' # Global Mean Temperature 
     'Climate_Radiative_Forcing']) # CRF)
 
 entities = set.union(emission_entities, 

@@ -889,7 +889,9 @@ class IEA_World_Energy_Balance(BaseImportTool):
         self.data = self.data.set_index(self.data['combined'])#.drop('combined',axis=1)
 
     def loadSpatialMapping(self,):
-        return pd.read_excel(self.setup.MAPPING_FILE, sheet_name='spatial')
+        return pd.read_excel(self.setup.MAPPING_FILE, 
+                             sheet_name='spatial',
+                             index_col=0)
     
     def loadVariableMapping(self,):
         mapping = dict()
@@ -4468,9 +4470,10 @@ class FAO(BaseImportTool):
     def loadData(self):
         
         for i, fileKey in enumerate(self.setup.DATA_FILE.keys()):
-#            print(fileKey)
+            
             file = self.setup.DATA_FILE[fileKey]
-            temp = pd.read_csv(file, encoding='utf8', engine='python',  index_col = None, header =0)
+            print(file)
+            temp = pd.read_csv(file,  engine='python',  index_col = None, header =0)
             temp.Element = temp.Element.apply(lambda x: fileKey + x )
             if i == 0:
                 self.data = temp
@@ -4780,7 +4783,8 @@ class ENERDATA(BaseImportTool):
         elif year == 2020:
             self.setup.DATA_FILE    = os.path.join(self.setup.SOURCE_PATH, 'export_enerdata_1137124_050510.xlsx')
             self.setup.DATA_FILE    = os.path.join(self.setup.SOURCE_PATH, 'export_enerdata_1137124_113516.xlsx')
-        
+        elif year == 2021:
+            self.setup.DATA_FILE    = os.path.join(self.setup.SOURCE_PATH, 'export_enerdata_1137124_094807.xlsx')
 #        self.setup.DATA_FILE    = os.path.join(self.setup.SOURCE_PATH, 'export_enerdata_1137124_112738.xlsx')
         self.setup.MAPPING_FILE =  os.path.join(self.setup.SOURCE_PATH,'mapping_' + str(year) + '.xlsx')
         self.setup.LICENCE = ' Restricted use in the Brown 2 Green project only'
@@ -4805,6 +4809,11 @@ class ENERDATA(BaseImportTool):
 
     def loadData(self):
         self.data = pd.read_excel(self.setup.DATA_FILE,   index_col = None, header =0, na_values='n.a.')
+        
+        # fix doouble entry of solar
+        mask = (self.data.loc[:,'Item code'] == 'edvpd') & (self.data.loc[:,'Unit'] == 'Mtoe')
+        ind_to_dropp = self.data.index[mask]
+        self.data = self.data.drop(ind_to_dropp)
         
         self.data.loc[:,'region'] = self.data.loc[:,self.setup.REGION_COLUMN_NAME]
         self.data.loc[:,'entity'] = self.data.loc[:,self.setup.VARIABLE_COLUMN_NAME]
@@ -4934,7 +4943,7 @@ class ENERDATA(BaseImportTool):
    
     
 #%%
-class CAT_Paris_Sector_Rolllout(BaseImportTool):
+class CAT_Paris_Sector_Rollout(BaseImportTool):
    
     def __init__(self):
         self.setup = setupStruct()
@@ -5418,21 +5427,21 @@ if config.DEBUG:
 if __name__ == '__main__':
 #%% PRIMAP HIST
     primap = PRIMAP_HIST(version="v2.2_19-Jan-2021", year=2021)
-    tableList, excludedTables = primap.gatherMappedData()
-    dt.commitTables(tableList, 'PRIMAP 2021 cimooit', primap.meta)
-    asd
+    # tableList, excludedTables = primap.gatherMappedData()
+    # dt.commitTables(tableList, 'PRIMAP 2021 cimooit', primap.meta)
+    # asd
 #%% PRIMAP DOWNSCALE
     primap_down = PRIMAP_DOWNSCALE()
 #    tableList, excludedTables = primap_down.gatherMappedData()
 #    dt.commitTables(tableList, 'PRIMAP DOWNSCALING 2020', primap_down.meta)
 #    asdf1s
 #%% CRF data
-    crf_data = CRF_DATA(2020)
+    crf_data = CRF_DATA(2021)
     #iea = IEA2016()
-#    tableList = crf_data.gatherMappedData()
-#    crf_data.createSourceMeta()
-#    dt.commitTables(tableList, 'CRF_data_2020', crf_data.meta, update=True)
-#    sdf
+    # tableList = crf_data.gatherMappedData()
+    # crf_data.createSourceMeta()
+    # dt.commitTables(tableList, 'CRF_data_2021', crf_data.meta, update=True)
+    # sdf
 #%% ADVANCE DB
     advance = ADVANCE_DB()
 #    iea = IEA2016()
@@ -5440,17 +5449,18 @@ if __name__ == '__main__':
 #    dt.commitTables(tableList, 'ADVANCE DB IAM data', advance.meta)
 #%%WDI data
     wdi = WDI()    
-    tableList = wdi.gatherMappedData(updateTables=True)
-#    
-##    iea.openMappingFile()
-    dt.commitTables(tableList, 'Added WDI 2020  data', wdi.meta, update=True)
-    sdf
+#     tableList = wdi.gatherMappedData(updateTables=True)
+# #    
+# ##    iea.openMappingFile()
+#     dt.commitTables(tableList, 'Added WDI 2020  data', wdi.meta, update=True)
+#     sdf
 #%%IEA World Energy Balance
-    iea19 = IEA_World_Energy_Balance(2020)
+    iea = IEA_World_Energy_Balance(2020)
 #    iea19.createVariableMapping()
 #    iea19.addSpatialMapping()
-#    tableList, excludedTables = iea19.gatherMappedData(updateTables=True)
-#    dt.commitTables(tableList, 'IEA2020 World balance update', iea19.meta,update=True)
+    tableList, excludedTables = iea.gatherMappedData(updateTables=True)
+    sdf
+    dt.commitTables(tableList, 'IEA2020 World balance update', iea.meta,update=True)
 #    sdf
 #    iea16 = IEA2016()
 #    iea18 = IEA_WEB_2018()
@@ -5512,8 +5522,8 @@ if __name__ == '__main__':
 #%% SSPDB 2013
     
     ssp2013 = SSP_DATA()
-    tableList, excludedTables = ssp2013.gatherMappedData(updateTables=True)
-    dt.commitTables(tableList, 'SSP Database data added', ssp2013.meta, update=True)
+    # tableList, excludedTables = ssp2013.gatherMappedData(updateTables=True)
+    # dt.commitTables(tableList, 'SSP Database data added', ssp2013.meta, update=True)
 #    for countryCode in tableList[0].index:
 #        country = pycountry.countries.get(name = countryCode)
 #        if country is not None:
@@ -5532,9 +5542,9 @@ if __name__ == '__main__':
     
 #%% FAO
     fao = FAO(2020)
-#    tableList, excludedTables = fao.gatherMappedData(updateTables=True)
-#    dt.commitTables(tableList, 'FAO  data added', fao.meta, update=True)  
-    
+    # tableList, excludedTables = fao.gatherMappedData(updateTables=True)
+    # dt.commitTables(tableList, 'FAO data updated', fao.meta, update=True)  
+    # df
 #%% APEC
     apec = APEC(2019)
 #    tableList, excludedTables = apec.gatherMappedData()
@@ -5553,12 +5563,12 @@ if __name__ == '__main__':
 #    tableList, excludedTables = enerdata.gatherMappedData(updateTables=True)
 #    dt.commitTables(tableList, 'enerdata data updated', enerdata.meta, update=True)  
     #%%
-    enerdata = ENERDATA(2020)
-#    tableList2020, excludedTables = enerdata.gatherMappedData(updateTables=True)
-#    dt.commitTables(tableList2020, 'enerdata data updated', enerdata.meta, update=True)  
+    enerdata = ENERDATA(2021)
+    # tableList2020, excludedTables = enerdata.gatherMappedData(updateTables=True)
+    # dt.commitTables(tableList2020, 'enerdata 2021 update', enerdata.meta, update=True)  
     
 #%% CAT Paris sector Rollout
-    cat_psr = CAT_Paris_Sector_Rolllout()
+    cat_psr = CAT_Paris_Sector_Rollout()
 #    tableList, excludedTables = cat_psr.gatherMappedData()
 #    dt.commitTables(tableList, 'CAT PSR data', cat_psr.meta, update=False)  
     #%%

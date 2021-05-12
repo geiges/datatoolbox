@@ -1070,6 +1070,34 @@ class TableSet(dict):
     def sources(self):
         return list(self.inventory.source.unique())
 
+    def sum(self, new_meta= {}):
+        """
+        This will sum up all tables in the tableSet if units do allow it. The user
+        needs to make sure that the computation does make sense. 
+        
+        If meta data is provided, the new table will be updated using this meta
+
+        Returns
+        -------
+        resultTable : TYPE
+            DESCRIPTION.
+
+        """
+        keyList = list(self.keys())
+        
+        #copy first element
+        resultTable = self[keyList[0]].copy()
+        
+        # loop over remainen elements
+        for key in keyList[1:]:
+            resultTable  =resultTable +  self[key]
+         
+            
+        #updating with new meta data if provided
+        resultTable.meta.update(new_meta)
+            
+        return resultTable
+        
     def to_LongTable(self):
         tables = []
 
