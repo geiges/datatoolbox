@@ -104,7 +104,7 @@ if db_connected:
     export_new_source_to_remote   = core.DB.exportSourceToRemote
     remove_source                 = core.DB.removeSource
     push_source_to_remote         = core.DB.gitManager.push_to_remote_datashelf
-    pull_source_from_remote      = core.DB.gitManager.pull_update_from_remote
+    pull_source_from_remote      = core.DB.pull_update_from_remote
 
 
 # convenience functions
