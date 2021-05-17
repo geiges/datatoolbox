@@ -26,6 +26,32 @@ from . import io_tools as io
 from . import util
 from . import core
 
+# helper funtions
+def restore_source(repoName):
+    """
+    Restores the data respository based on the last working git hash in the inventory file.
+    After a successfulr restorations, datatoolbox need to be imported from scratch. For notebooks
+    the restart of the kernal might be required.
+
+    Parameters
+    ----------
+    repoName : str
+        Source ID.
+
+    Returns
+    -------
+    None.
+
+    """
+    
+    #gitManager = GitRepository_Manager(config)
+    #sources   = gitManager.sources
+    sources = pd.read_csv(config.SOURCE_FILE, index_col='SOURCE_ID')
+    git_hash = sources.git_commit_hash.loc[repoName]
+    repoPath = os.path.join(config.PATH_TO_DATASHELF,  'database', repoName)
+    git_repo = git.Repo(repoPath)
+    git_repo.git.execute(['git', 'reset', '--hard', git_hash])
+            
 class Database():
     """
     CSV based database that uses git for as distributed version control system.
@@ -887,6 +913,8 @@ class Database():
         self.inventory = new_inventory
         
         self._gitCommit('udpate from remote')
+        
+        
         
 #%%
 class GitRepository_Manager:
