@@ -12,6 +12,7 @@ import tqdm
 import time
 import copy
 import types
+import traceback
 from collections import defaultdict
 from pathlib import Path
 
@@ -325,8 +326,10 @@ class Database():
                 
                     filePath = self._getTableFilePath(ID)
                     return read_csv(filePath)
-            except:
+            except Exception:
+                
                 if config.DEBUG:
+                    print(traceback.format_exc())
                     print('Failed to import source {}'.format(source))
         
         raise(BaseException('Table {} not found'.format(ID)))
@@ -1077,9 +1080,18 @@ class GitRepository_Manager:
         repoName : str - valid repository in the remove database
         repoPath : str - path of the repository
         """
-        
-        url = config.DATASHELF_REMOTE + repoName + '.git'
-        repo = git.Repo.clone_from(url=url, to_path=repoPath, progress=TqdmProgressPrinter())  
+        try:
+            print('Try cloning source via ssh')
+            url = config.DATASHELF_REMOTE + repoName + '.git'
+            repo = git.Repo.clone_from(url=url, to_path=repoPath, progress=TqdmProgressPrinter())  
+        except:
+            
+            print('Failed... Try Cloning source via https:')
+            url = config.DATASHELF_REMOTE + repoName + '.git'
+            repo = git.Repo.clone_from(url=url, to_path=repoPath, progress=TqdmProgressPrinter())
+            
+            
+                    
         self.repositories[repoName] = repo
 
         # Update source file
