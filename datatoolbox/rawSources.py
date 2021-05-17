@@ -505,7 +505,7 @@ class IEA_FUEL_DETAILED_2019(BaseImportTool):
         return mapping
 
     def loadSpatialMapping(self,):
-        return pd.read_excel(self.setup.MAPPING_FILE, sheet_name='spatial')
+        return pd.read_excel(self.setup.MAPPING_FILE, sheet_name='spatial', index_col=0)
     
     
     def loadData(self):
@@ -592,7 +592,7 @@ class IEA_FUEL_DETAILED_2019(BaseImportTool):
                     metaDict[key] = self.mapping['FLOW (kt of CO2)'].loc[flow,key]
                 
                 print(metaDict)
-                tableID = dt.core._createDatabaseID(metaDict)
+                tableID = dt.core._createDatabaseID(dt.core._update_meta(metaDict))
                 #print(tableID)
                 if not updateTables:
                     if dt.core.DB.tableExist(tableID):
