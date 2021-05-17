@@ -1087,7 +1087,7 @@ class GitRepository_Manager:
         except:
             
             print('Failed... Try Cloning source via https:')
-            url = config.DATASHELF_REMOTE + repoName + '.git'
+            url = config.DATASHELF_REMOTE_HTTPS + repoName + '.git'
             repo = git.Repo.clone_from(url=url, to_path=repoPath, progress=TqdmProgressPrinter())
             
             
