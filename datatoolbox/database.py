@@ -893,6 +893,26 @@ class Database():
         print('export successful: ({})'.format( config.DATASHELF_REMOTE +  sourceID))
         
 
+    def pull_update_from_remote(self, repoName):
+        """
+        Updates the local data repository by the newest version on the remote repository
+        
+
+        Parameters
+        ----------
+        repoName : str
+            Source ID string to identify which source repository should be updated.
+
+        Returns
+        -------
+        None.
+
+        """
+        new_inventory = self.gitManager.pull_update_from_remote(repoName,self.inventory)
+        self.inventory = new_inventory
+        
+        self._gitCommit('udpate from remote')
+        
 #%%
 class GitRepository_Manager:
     """
@@ -1103,7 +1123,7 @@ class GitRepository_Manager:
 
         return repo
         
-    def pull_update_from_remote(self, repoName):
+    def pull_update_from_remote(self, repoName, old_inventory):
         """
         This function used git pull an updated remote source dataset to the local
         database.
@@ -1116,7 +1136,15 @@ class GitRepository_Manager:
         """
         self[repoName].remote('origin').pull(progress=TqdmProgressPrinter())
         self.updateGitHash(repoName)
-        self.commit('udpate from remote')
+        repoPath = os.path.join(self.PATH_TO_DATASHELF,  'database', repoName)
+        sourceInventory = pd.read_csv(os.path.join(repoPath, 'source_inventory.csv'), index_col=0, dtype={'source_year': str})
+        new_inventory = pd.concat([
+            old_inventory[old_inventory["source"] != repoName],
+            sourceInventory
+        ])
+
+        
+        return new_inventory
     
     def verifyGitHash(self, repoName):
         """
