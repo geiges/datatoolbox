@@ -1,3 +1,5 @@
+
+
 # Datatoolbox - First steps
 
 Using datatoolbox requires to components to run in parallel. Datatoolbox itself is a python packages that contains all the functionality, structure and access to data. 
@@ -111,6 +113,34 @@ Finds datatables that match the search string exactly
 res = dt.findExact(entity = "Emissions|CO2", source='IAMC15_2019_R2')
 print(res.entity.unique())
 ```
+## Handling sources:
+
+Import a new source form remote (e.g. gitlab)
+
+```
+dt.import_new_source_from_remote(source_id)
+```
+
+Export a new source to the remote repository
+
+```
+dt.export_new_source_to_remote(source_Id)
+```
+
+Update local existing source:
+
+```
+dt.pull_source_from_remote(source_id)
+```
+
+Update remote source with your new local data
+
+```
+dt.push_source_to_remote(source_id)
+```
+
+
+
 ## Access data tables
 
 Tables are accessed by their ID, given by the inventory index returning a Datatable
@@ -141,7 +171,35 @@ A Datatable is a pandas Dataframe with addition restrictions and functionalities
 ```
 print(dt.core.DB._getTableFilePath(table.ID))
 ```
-#%% DataSet
+## Handling and changing tables
+
+Creating a new table 
+
+```
+new_table = dt.Datatable(columns = range(2000,2011),
+             			 index = ['IDN','FRA']
+             			 meta = {'entity' : 'Population',
+                    		   	 'scenario' : 'Historic',
+                    			 'source' : 'ORGANISATION_20XX',
+                    			 'unit' : 'thousands'}
+            			 )
+```
+
+Commit table to database (storing to the database locally)
+
+```
+#one table
+dt.commitTable(table, message ='commit message for git')
+
+#multiple tables
+tables = [table1, table2]
+dt.commitTables(tables, message= "Commiting nutiple tables")
+```
+
+
+
+## DataSet 
+
 ```
 print(type(tables))
 ```

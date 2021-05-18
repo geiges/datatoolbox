@@ -207,7 +207,7 @@ class Database():
         self.inventory.drop(tableID, inplace=True)
 #        self.gitManager.updatedRepos.add('main')
     
-    def getInventory(self, **kwargs):
+    def findc(self, **kwargs):
         """
         Method to search through the inventory. kwargs can be all inventory entires
         (see config.INVENTORY_FIELDS).
@@ -269,7 +269,7 @@ class Database():
         table.graph = types.MethodType(plot_query_as_graph, table)
         table.short = types.MethodType(shorten_find_output, table)
         return table
-
+    
     
     def findExact(self, **kwargs):
         """

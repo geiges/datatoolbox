@@ -38,6 +38,7 @@ except:
 
 
 import os
+import deprecated as _deprecated
 from . import config
 from . import core
 from .data_structures import Datatable, TableSet, read_csv, read_excel
@@ -86,7 +87,8 @@ if db_connected:
     removeTable  = core.DB.removeTable
     removeTables  = core.DB.removeTables
     
-    find         = core.DB.getInventory
+    find         = _deprecated.deprecated(core.DB.findc, version='0.4.7', reason="Will be removed, please use finc instead")
+    findc        = core.DB.findc
     findp        = core.DB.findp
     findExact    = core.DB.findExact
     getTable     = core.DB.getTable

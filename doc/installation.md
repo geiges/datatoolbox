@@ -30,13 +30,13 @@ import datatoolbox as dt
 dt.admin.create_empty_datashelf('/your/path/on/local/hard_disk')
 ```
 
-This created an empty database that can be linked to datatoolbox. This link is one by creating you personal setting including you name and the same path to the database folder on you hard disk.
+This created an empty database that can be linked to datatoolbox. This link is one by creating you personal setting including you name and the same path to the database folder on you hard disk without quotation marks.
 
 ```
 dt.admin.change_personal_config()
 ```
 
-
+![](figures/config_input.png)
 
 ### 2) Set up remote Access
 

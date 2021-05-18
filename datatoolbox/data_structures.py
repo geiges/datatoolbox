@@ -742,127 +742,38 @@ class TableSet(dict):
         if IDList is not None:
             for tableID in IDList:
                 self.add(core.DB.getTable(tableID))
+    
+    def __getitem__(self, key):
+        item = super(TableSet, self).__getitem__(key)
+        
+        #load datatable if necessary
+        if item is None:
+            item = core.DB.getTable(key)
+            self[key] = item
+        
+        return item
+
+    def __setitem__(self, key, datatable):
+        super(TableSet, self).__setitem__(key, datatable)
+        
+        if datatable.ID is None:
+            try:
+                datatable.generateTableID()
+            except:
+#                print('Could not generate ID, key used instead')
+                datatable.ID = key
+        self.inventory.loc[datatable.ID, "key"] = key
+        self.inventory.loc[datatable.ID, config.INVENTORY_FIELDS] = [datatable.meta.get(x,None) for x in config.INVENTORY_FIELDS]
+    
         
         
-    @classmethod
-    def from_list(cls,
-                  tableList):
-        """
-        Create tableSet form list of datatables.
 
-        Parameters
-        ----------
-        cls : TYPE
-            DESCRIPTION.
-        tableList : list
-            List of datatables.
-
-        Returns
-        -------
-        tableSet : tableset
-            DESCRIPTION.
-
-        """
-        tableSet = cls()
-        for table in tableList:
-            tableSet.add(table)
     
-        return tableSet
-    
-            
-    def to_xarray(self, dimensions):
-        """
-        Convert tableset to and xarray with the given dimenions.
-        Requires xarray installed
 
-        Parameters
-        ----------
-        dimensions : list of str
-            List of xarray dimensions.
-
-        Returns
-        -------
-        xr.xarray
-            DESCRIPTION.
-
-        """
-        if not config.AVAILABLE_XARRAY:
-            raise(BaseException('module xarray not available'))
-        return core.to_XDataArray(self, dimensions)
-       
-    def to_xset(self, dimensions = ['region', 'time']):
-        """
-        Convert table set to an xarray data set.
-
-        Parameters
-        ----------
-        dimensions : list, optional
-            DESCRIPTION. The default is ['region', 'time'].
-
-        Returns
-        -------
-        xr.Dataset
-            DESCRIPTION.
-
-        """
-        dimensions = ['region', 'time']
-        if not config.AVAILABLE_XARRAY:
-            raise(BaseException('module xarray not available'))
-        return core.to_XDataSet(self, dimensions)
-    
-    def to_list(self):
-        """
-        Convert to list of tables
-
-        Returns
-        -------
-        list
-            List of datatables.
-
-        """
-        return [ self[key] for key in self.keys()]
-    
     def __iter__(self):
         return iter(self.values())
     
-    def add(self, datatables=None, tableID=None):
-        """
-        Add new tables to table set. Either datatables or table IDs should be given.
 
-        Parameters
-        ----------
-        datatables : list of datatables, optional
-            DESCRIPTION. The default is None.
-        tableID : TYPE, optional
-            DESCRIPTION. The default is None.
-
-        Returns
-        -------
-        None.
-
-        """
-        
-        # assert only on parameter is None
-        assert not ((datatables is None) and (tableID is None))
-        
-        if datatables is not None:
-            
-            if isinstance(datatables, list):
-                self._add_list(datatables)
-                
-            elif isinstance(datatables, TableSet):
-                self._add_TableSet(datatables)
-                
-            elif isinstance(datatables, Datatable):
-                self._add_single_table(datatables)
-                
-            else:
-                 print('Data type not recognized.')
-            
-        elif tableID is not None:
-            self._add_tableID(tableID)
-            
-            
             
     def _add_list(self, tableList):
         for table in tableList:
@@ -904,7 +815,71 @@ class TableSet(dict):
         # update data
         self[tableKey] = pd.concat([self[tableKey] , table])
             
+    def add(self, datatables=None, tableID=None):
+        """
+        Add new tables to table set. Either datatables or table IDs should be given.
 
+        Parameters
+        ----------
+        datatables : list of datatables, optional
+            DESCRIPTION. The default is None.
+        tableID : TYPE, optional
+            DESCRIPTION. The default is None.
+
+        Returns
+        -------
+        None.
+
+        """
+        
+        # assert only on parameter is None
+        assert not ((datatables is None) and (tableID is None))
+        
+        if datatables is not None:
+            
+            if isinstance(datatables, list):
+                self._add_list(datatables)
+                
+            elif isinstance(datatables, TableSet):
+                self._add_TableSet(datatables)
+                
+            elif isinstance(datatables, Datatable):
+                self._add_single_table(datatables)
+                
+            else:
+                 print('Data type not recognized.')
+            
+        elif tableID is not None:
+            self._add_tableID(tableID)
+          
+    
+    def convert(self, newUnit):
+        """
+        Convert all tables to a new Unit. Returns a copy of the old tableSet
+
+        Parameters
+        ----------
+        newUnit : TYPE
+            DESCRIPTION.
+
+        Returns
+        -------
+        None.
+
+        """
+        tables = self.copy()
+        
+        for tableKey in tables.keys():
+            
+            tables[tableKey].convert(newUnit)
+            tables[tableKey].meta['unit'] = newUnit
+            tables.inventory.loc[tableKey,'unit'] = newUnit
+            
+        return tables
+    
+    def copy(self):
+        return copy(self)
+    
     def remove(self, tableID):
         """
         Remove table form tableSet.
@@ -953,6 +928,31 @@ class TableSet(dict):
             
         return newTableSet
 
+    @classmethod
+    def from_list(cls,
+                  tableList):
+        """
+        Create tableSet form list of datatables.
+
+        Parameters
+        ----------
+        cls : TYPE
+            DESCRIPTION.
+        tableList : list
+            List of datatables.
+
+        Returns
+        -------
+        tableSet : tableset
+            DESCRIPTION.
+
+        """
+        tableSet = cls()
+        for table in tableList:
+            tableSet.add(table)
+    
+        return tableSet
+    
     def aggregate_to_region(self, mapping):
         """ 
         This functions added the aggregates to the output according to the provided
@@ -963,29 +963,7 @@ class TableSet(dict):
         return util.aggregate_tableset_to_region(self, mapping)
         
         
-    def __getitem__(self, key):
-        item = super(TableSet, self).__getitem__(key)
-        
-        #load datatable if necessary
-        if item is None:
-            item = core.DB.getTable(key)
-            self[key] = item
-        
-        return item
-
-    def __setitem__(self, key, datatable):
-        super(TableSet, self).__setitem__(key, datatable)
-        
-        if datatable.ID is None:
-            try:
-                datatable.generateTableID()
-            except:
-#                print('Could not generate ID, key used instead')
-                datatable.ID = key
-        self.inventory.loc[datatable.ID, "key"] = key
-        self.inventory.loc[datatable.ID, config.INVENTORY_FIELDS] = [datatable.meta.get(x,None) for x in config.INVENTORY_FIELDS]
-    
-
+ 
     
     def to_excel(self, 
                  fileName, 
@@ -1097,6 +1075,69 @@ class TableSet(dict):
         resultTable.meta.update(new_meta)
             
         return resultTable
+
+            
+    def to_xarray(self, dimensions=None):
+        """
+        Convert tableset to and xarray with the given dimenions.
+        Requires xarray installed
+
+        Parameters
+        ----------
+        dimensions : list of str
+            List of xarray dimensions.
+
+        Returns
+        -------
+        xr.xarray
+            DESCRIPTION.
+
+        """
+        if dimensions is None:
+            dimensions = ['region', 'time']
+            for col in config.ID_FIELDS + ['unit']:
+                if len(self.inventory.loc[:,col].unique()) > 1:
+                    dimensions.append(col)
+                    
+        if "unit" in dimensions:
+            raise(BaseException('Different units in dataset can not be merged in one xarray'))
+        
+        if not config.AVAILABLE_XARRAY:
+            raise(BaseException('module xarray not available'))
+        return core.to_XDataArray(self, dimensions)
+       
+    def to_xset(self, dimensions = ['region', 'time']):
+        """
+        Convert table set to an xarray data set.
+
+        Parameters
+        ----------
+        dimensions : list, optional
+            DESCRIPTION. The default is ['region', 'time'].
+
+        Returns
+        -------
+        xr.Dataset
+            DESCRIPTION.
+
+        """
+        dimensions = ['region', 'time']
+        if not config.AVAILABLE_XARRAY:
+            raise(BaseException('module xarray not available'))
+        return core.to_XDataSet(self, dimensions)
+    
+    def to_list(self):
+        """
+        Convert to list of tables
+
+        Returns
+        -------
+        list
+            List of datatables.
+
+        """
+        return [ self[key] for key in self.keys()]
+    
         
     def to_LongTable(self):
         tables = []
