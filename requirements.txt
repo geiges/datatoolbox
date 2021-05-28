@@ -1,4 +1,4 @@
-pandas>=0.24,<1.1
+pandas>=1.0
 numpy
 gitpython
 openscm-units
@@ -8,7 +8,7 @@ fuzzywuzzy
 tqdm
 matplotlib
 openpyxl
-pyam-iamc<=0.8.0
+pyam-iamc>=0.8
 hdx-python-country
 networkx >=2.4.0
 xarray
