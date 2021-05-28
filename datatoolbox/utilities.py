@@ -9,8 +9,8 @@ def shorten_find_output(dataframe):
 
 
 def get_data_trees(**kwargs):
-    find = core.DB.getInventory
-    results = find(**kwargs)
+    findc = core.DB.findc
+    results = findc(**kwargs)
     return _process_query(results)
     
 
