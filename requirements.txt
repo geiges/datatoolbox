@@ -2,7 +2,7 @@ pandas>=0.24,<1.1
 numpy
 gitpython
 openscm-units
-pint==0.11
+pint>=0.11
 pycountry
 fuzzywuzzy
 tqdm

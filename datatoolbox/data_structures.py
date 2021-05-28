@@ -676,7 +676,7 @@ class Datatable(pd.DataFrame):
             out.values[:] *= newUnit.m
         else:
             out = Datatable(super(Datatable, self).__rtruediv__(other))
-            out.meta['unit'] = (core.getUnit(self.meta['unit'])**-1).u
+            out.meta['unit'] = str((core.getUnit(self.meta['unit'])**-1).u)
             out.meta['source'] = 'calculation'
         return out
     
