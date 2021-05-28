@@ -56,14 +56,14 @@ def test_delete_source():
     dt.core.DB.removeSource('XYZ_2020')
     
 def test_findp():
-    inv = dt.findp(variable = 'Emissions|CO2|Total',
-                  source='SOURCE_A_2020')    
+    inv = dt.findp(variable = 'Numbers|Ones',
+                   source='Numbers_2020')    
     
     
     assert len(inv.variable.unique()) ==1
     
-    inv = dt.findp(variable = 'Emissions|CO2|**',
-                  source='SOURCE_A_2020')    
+    inv = dt.findp(variable = 'Numbers**',
+                   source='Numbers_2020')    
     
     
     assert len(inv.variable.unique()) ==2
