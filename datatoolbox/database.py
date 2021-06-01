@@ -213,17 +213,17 @@ class Database():
         (see config.INVENTORY_FIELDS).
         """
         
-        table = self.inventory.copy()
         # loop over all keys of kwargs to filter based on all of them
-        for key in kwargs.keys():
-            
-            mask = self.inventory[key].str.contains(kwargs[key], regex=False)
-            mask[pd.isna(mask)] = False
-            mask = mask.astype(bool)
-            table = table.loc[mask].copy()
+        mask = True
+        for key, val in kwargs.items():
+            mask &= self.inventory[key].str.contains(val, regex=False, na=False)
+
+        table = (
+            self.inventory if mask is True else self.inventory.loc[mask]
+        ).copy()
         
         # test to add function to a instance (does not require class)
-        table.graph = types.MethodType( plot_query_as_graph, table )
+        table.graph = types.MethodType(plot_query_as_graph, table)
         table.short = types.MethodType(shorten_find_output, table)
         table.to_pyam = types.MethodType(to_pyam, table)
         return table
@@ -264,7 +264,9 @@ class Database():
         if level is not None:
             keep &= self.inventory['variable'].str.count(r"\|") == level
 
-        table = self.inventory.loc[keep]
+        table = pd.DataFrame(
+            self.inventory if keep is True else self.inventory.loc[keep]
+        )
 
         # test to add function to a instance (does not require class)
         table.graph = types.MethodType(plot_query_as_graph, table)
