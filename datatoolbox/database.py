@@ -1091,20 +1091,23 @@ class GitRepository_Manager:
         
     def create_remote_repo(self, repoName):
         """
-        Function to create a remove git repoisitoy from an existing local repo
+        Function to create a remote git repository from an existing local repo
         """
         repo = self[repoName]
+
         if 'origin' in repo.remotes:
-            print('remote origin already exists, skip')
-            return 
+            # remote origin has been configured already, but re-push anyway, since this
+            # could have been a connectivity issue
+            origin = repo.remotes.origin
+        else:
+            origin = repo.create_remote("origin", config.DATASHELF_REMOTE + repoName + ".git")
 
-        origin = repo.create_remote("origin", config.DATASHELF_REMOTE + repoName + ".git")
-        origin.push(refspec="master:origin")
+        branch = repo.heads.master
+        origin.push(branch, progress=TqdmProgressPrinter())
+
+        # Update references on remote
         origin.fetch()
-
-        # TODO maybe switch next two commands
-        repo.heads.master.set_tracking_branch(origin.refs.master)
-        origin.push(repo.heads.master)
+        branch.set_tracking_branch(origin.refs.master)
     
     def push_to_remote_datashelf(self, repoName):
         """
@@ -1117,7 +1120,7 @@ class GitRepository_Manager:
         function. TODO
 
         """
-        self[repoName].remote('origin').push(progress=TqdmProgressPrinter())
+        self[repoName].remotes.origin.push(progress=TqdmProgressPrinter())
         
     def clone_source_from_remote(self, repoName, repoPath):
         """
@@ -1133,13 +1136,10 @@ class GitRepository_Manager:
             url = config.DATASHELF_REMOTE + repoName + '.git'
             repo = git.Repo.clone_from(url=url, to_path=repoPath, progress=TqdmProgressPrinter())  
         except:
-            
             print('Failed... Try Cloning source via https:')
             url = config.DATASHELF_REMOTE_HTTPS + repoName + '.git'
             repo = git.Repo.clone_from(url=url, to_path=repoPath, progress=TqdmProgressPrinter())
-            
-            
-                    
+
         self.repositories[repoName] = repo
 
         # Update source file
