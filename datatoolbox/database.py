@@ -863,8 +863,7 @@ class Database():
             shutil.rmtree(sourcePath, ignore_errors=False, onerror=None)
         self.gitManager.sources = self.gitManager.sources.drop(sourceID, axis=0)
         self.sources            = self.gitManager.sources
-        tableIDs = self.inventory.index[self.inventory.source==sourceID]
-        self.inventory = self.inventory.drop(tableIDs, axis=0)
+        self.inventory = self.inventory.loc[self.inventory.source != sourceID]
 #        self.gitManager.updatedRepos.add('main')
         self._gitCommit(sourceID + ' deleted')
     
@@ -904,8 +903,7 @@ class Database():
         self.gitManager.clone_source_from_remote(remoteName, repoPath)
 
         sourceInventory = pd.read_csv(os.path.join(repoPath, 'source_inventory.csv'), index_col=0, dtype={'source_year': str})
-        for idx in sourceInventory.index:
-            self.inventory.loc[idx,:] = sourceInventory.loc[idx,:]
+        self.inventory = self.inventory.append(sourceInventory, verify_integrity=True)
         self._gitCommit('imported ' + remoteName)
 
     def exportSourceToRemote(self, sourceID):
