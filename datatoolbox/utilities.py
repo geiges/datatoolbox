@@ -270,4 +270,5 @@ def plot_query_as_graph(results, savefig_path=None):
 #                 figsize=[5,6],
                  savefig_path=savefig_path)
 
-    
+def to_pyam(results):
+    return core.DB.getTables(results.index).to_pyam()
