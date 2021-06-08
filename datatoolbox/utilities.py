@@ -1,9 +1,43 @@
+import os
 import networkx as nx
 import pandas as pd
 import matplotlib.pyplot as plt
 from . import core
+from . import config
 
-#
+
+openers = dict()
+
+operation_systems_supported = ['Linux', 'Darwin']
+#excel
+openers['xlsx'] = dict()
+openers['xlsx']['Linux'] = 'libreoffice'
+openers['xlsx']['Darwin'] = 'open -a "Microsoft Excel"'
+
+openers['docx'] = dict()
+openers['docx']['Linux'] = 'libreoffice'
+openers['docx']['Darwin'] = 'open -a "Microsoft Word"'
+
+
+
+def open_file(path):
+    
+    suffix = path.split('.')[-1]
+    
+    if config.OS not in operation_systems_supported:
+        print('OS not supported. Currently support is restriced to ' + str(operation_systems_supported))
+        return 
+    
+    if suffix not in openers.keys():
+        print('no suiable file opener found ')
+        return
+    
+    os.system(' '.join([openers[suffix][config.OS], 
+                        path]))
+        # elif dt.config.OS == 'Darwin':
+        #     os.system('open -a "Microsoft Excel" ' + self.setup.MAPPING_FILE)
+
+
 
 def shorten_find_output(dataframe):
     pd.set_option('display.max_rows', 10)

@@ -2811,10 +2811,12 @@ class IRENA2019(BaseImportTool):
     """
     IRENA data import tool
     """
-    def __init__(self):
+    def __init__(self, year = 2019):
+        
         self.setup = setupStruct()
-        self.setup.SOURCE_ID    = "IRENA_2019"
-        self.setup.SOURCE_PATH  = config.PATH_TO_DATASHELF + 'rawdata/IRENA_2019/'
+        self.setup.SOURCE_ID    = "IRENA_" + str(year)
+        self.setup.year = year
+        self.setup.SOURCE_PATH  = config.PATH_TO_DATASHELF + 'rawdata/IRENA_/' + str(year)
         self.setup.DATA_FILE    = self.setup.SOURCE_PATH + 'IRENA_RE_electricity_statistics.xlsx'
         self.setup.MAPPING_FILE = self.setup.SOURCE_PATH + 'mapping.xlsx'
         self.setup.LICENCE = 'open source'
@@ -2835,7 +2837,7 @@ class IRENA2019(BaseImportTool):
 
     def loadData(self):
         
-        from datatools.io import ExcelReader
+        # from datatoolbox.io import ExcelReader
         setup = dict()
         setup['filePath']  = self.setup.SOURCE_PATH 
         setup['fileName']  = 'IRENA_RE_electricity_statistics.xlsx'
@@ -2849,9 +2851,9 @@ class IRENA2019(BaseImportTool):
             
             #Capacity
             setup['sheetName'] = str(sheetNum)
-            setup['timeColIdx']  = ('B5', 'AL5')
-            setup['spaceRowIdx'] = ('A7', 'A198')
-            ex = ExcelReader(setup)
+            setup['timeIdxList']  = ('B5', 'AL5')
+            setup['spaceIdxList'] = ('A7', 'A198')
+            ex = dt.io.ExcelReader(setup)
             df = ex.gatherData()
             df = df.iloc[:, ~pd.isna(df.columns)]
             df = df.iloc[~pd.isna(df.index),:]
@@ -2868,9 +2870,9 @@ class IRENA2019(BaseImportTool):
             self.dataDf.loc[entity] = [metaDict, df]
         
             #Production
-            setup['timeColIdx']  = ('AO5', 'BU5')
-            setup['spaceRowIdx'] = ('A7', 'A198')
-            ex = ExcelReader(setup)
+            setup['timeIdxList']  = ('AO5', 'BU5')
+            setup['spaceIdxList'] = ('A7', 'A198')
+            ex = dt.io.ExcelReader(setup)
             df = ex.gatherData()
             df = df.iloc[:, ~pd.isna(df.columns)]
             df = df.iloc[~pd.isna(df.index),:]
@@ -2957,8 +2959,8 @@ class IRENA2019(BaseImportTool):
             #print(metaData[self.setup.INDEX_COLUMN_NAME])
             
             
-            metaDict = {key : metaDf[key] for key in config.REQUIRED_META_FIELDS}           
-            
+            metaDict = {key : metaDf[key] for key in {'entity', 'scenario', 'source_name', 'unit'}}           
+            metaDict['source_year'] = self.setup.year
             metaDict['original code'] = idx
             metaDict['unitTo'] = metaDf['unitTo']
             #metaDict['original name'] = metaDf['Indicator Name']
@@ -5458,19 +5460,10 @@ if __name__ == '__main__':
     iea = IEA_World_Energy_Balance(2020)
 #    iea19.createVariableMapping()
 #    iea19.addSpatialMapping()
-    tableList, excludedTables = iea.gatherMappedData(updateTables=True)
-    sdf
-    dt.commitTables(tableList, 'IEA2020 World balance update', iea.meta,update=True)
-#    sdf
-#    iea16 = IEA2016()
-#    iea18 = IEA_WEB_2018()
-#    iea18.addSpatialMapping()
-#    tableList, excludedTables = iea18.gatherMappedData(updateTables=True)
-#    dt.commitTables(tableList, 'IEA2018 World balance update', iea18.meta)
-#    tableIDs = [table.ID for table in tableList]
-#    tableList = [dt.tools.cleanDataTable(table) for table in tableList]
-#    dt.updateTables( tableIDs[0:1], tableList[0:1], 'update of tables')
-#    dt.updateTables( [table.ID], [table], 'update of tables')
+    # tableList, excludedTables = iea.gatherMappedData(updateTables=True)
+    # sdf
+    # dt.commitTables(tableList, 'IEA2020 World balance update', iea.meta,update=True)
+
 #%% IEA emissions
     ieaEmissions = IEA_FUEL_2019()
 #    tableList, excludedTables = ieaEmissions.gatherMappedData(updateTables=True)
@@ -5482,8 +5475,8 @@ if __name__ == '__main__':
 #    dt.commitTables(tableList, 'IEA fuel emission detailed data', ieaEmissions.meta, update=True)
     
 #%% IRENA data
-    irena19 = IRENA2019()
-#    tableList = irena19.gatherMappedData()
+    irena19 = IRENA2019(2021)
+    tableList = irena19.gatherMappedData()
 #    dt.commitTables(tableList, 'IRENA 2019 new data', irena19.meta)
 #    dt.updateTables()
 #%% SDG_DB data

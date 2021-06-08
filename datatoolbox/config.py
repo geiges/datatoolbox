@@ -84,8 +84,18 @@ try:
     import xarray as xr
     AVAILABLE_XARRAY = True
 except:
-    AVAILABLE_XARRAY = False   
     
+    AVAILABLE_XARRAY = False   
+    if DEBUG:
+        print('xarray not available: Use "pip install xarray" to install')
+try:
+    import docx 
+    AVAILABLE_DOCX =True
+except:
+    AVAILABLE_DOCX = False   
+    if DEBUG:
+        print('xarray not available: Use "pip install python-docx" to install')
+        
 
 META_DECLARATION = '### META ###\n'
 DATA_DECLARATION = '### DATA ###\n'
