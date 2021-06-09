@@ -12,6 +12,7 @@ from datatoolbox.data_structures import Datatable
 from datatoolbox.util import isUnit, yearsColumnsOnly
 
 from collections import defaultdict
+from functools import reduce
 import pandas as pd
 import os
 import time
@@ -469,13 +470,13 @@ class IEA_FUEL_2018(BaseImportTool):
 
 
 
-class IEA_FUEL_DETAILED_2019(BaseImportTool):
+class IEA_CO2_FUEL_DETAILED_2019(BaseImportTool):
     """
     IEA World fuel emissions detail version
     """
     def __init__(self):
         self.setup = setupStruct()
-        self.setup.SOURCE_ID    = "IEA_CO2_FUEL_2019"
+        self.setup.SOURCE_ID    = "IEA_CO2_FUEL_DETAILED_2019"
         self.setup.SOURCE_PATH  = config.PATH_TO_DATASHELF + 'rawdata/IEA_CO2_FUEL_2019/'
         self.setup.DATA_FILE    = self.setup.SOURCE_PATH + 'WOLRD_CO2_emissions_fuel_2019_detailed.csv'
         self.setup.MAPPING_FILE = self.setup.SOURCE_PATH + 'mapping_detailed.xlsx'
@@ -585,7 +586,7 @@ class IEA_FUEL_DETAILED_2019(BaseImportTool):
                 
                 metaDict['entity'] = '|'.join([self.mapping['FLOW (kt of CO2)'].mapping.loc[flow],
                                               self.mapping['PRODUCT'].mapping.loc[product]])
-                metaDict['scenario']  = 'historic'
+                metaDict['scenario']  = 'Historic'
                 metaDict['category']  = ''
                 
                 for key in [ 'unit', 'unitTo']:
@@ -860,18 +861,27 @@ class IEA_World_Energy_Balance(BaseImportTool):
     """
     IEA World balance data import 
     """
-    def __init__(self, year = 2020):
+    def __init__(self, year=2020, detailed=False):
+        self.detailed = detailed
+
         self.setup = setupStruct()
-        self.setup.SOURCE_ID    = "IEA_WEB_" + str(year)
-        self.setup.SOURCE_PATH  = config.PATH_TO_DATASHELF + 'rawdata/IEA_WEB_' + str(year) +'/'
-        self.setup.DATA_FILE    = self.setup.SOURCE_PATH + 'World_Energy_Balances_' + str(year) +'_clean.csv'
-        self.setup.MAPPING_FILE = self.setup.SOURCE_PATH + 'mapping.xlsx'
+        if not self.detailed:
+            self.setup.SOURCE_ID    = "IEA_WEB_" + str(year)
+            self.setup.SOURCE_PATH  = config.PATH_TO_DATASHELF + 'rawdata/IEA_WEB_' + str(year) +'/'
+            self.setup.DATA_FILE    = self.setup.SOURCE_PATH + 'World_Energy_Balances_' + str(year) +'_clean.csv'
+            self.setup.MAPPING_FILE = self.setup.SOURCE_PATH + 'mapping.xlsx'
+        else:
+            self.setup.SOURCE_ID    = "IEA_WEB_DETAILED_" + str(year)
+            self.setup.SOURCE_PATH  = config.PATH_TO_DATASHELF + 'rawdata/IEA_WEB_' + str(year) +'/'
+            self.setup.DATA_FILE    = self.setup.SOURCE_PATH + 'WEB_' + str(year) +'_detailed.csv'
+            self.setup.MAPPING_FILE = self.setup.SOURCE_PATH + 'mapping_detailed.xlsx'
+        
         self.setup.LICENCE = 'restricted'
         self.setup.URL     = 'https://webstore.iea.org/world-energy-balances-' + str(year)
-        
+
         self.setup.INDEX_COLUMN_NAME = ['FLOW', 'PRODUCT']
         self.setup.SPATIAL_COLUM_NAME = 'COUNTRY'
-        self.setup.COLUMNS_TO_DROP = [ 'PRODUCT','FLOW','combined']
+        self.setup.COLUMNS_TO_DROP = [ 'PRODUCT','FLOW']
         
         if not(os.path.exists(self.setup.MAPPING_FILE)):
             self.createVariableMapping()
@@ -881,12 +891,13 @@ class IEA_World_Energy_Balance(BaseImportTool):
 
         self.createSourceMeta()
 
-
     def loadData(self):
-        self.data = pd.read_csv(self.setup.DATA_FILE, encoding='utf8', engine='python', index_col = None, header =0, na_values=['x','c','..'], sep=';')
-        self.data['combined'] = self.data[self.setup.INDEX_COLUMN_NAME].apply(lambda x: '_'.join(x.str.strip()), axis=1)
-        
-        self.data = self.data.set_index(self.data['combined'])#.drop('combined',axis=1)
+        if not self.detailed:
+            self.data = pd.read_csv(self.setup.DATA_FILE, encoding='utf8', engine='python', index_col = None, header =0, na_values=['x','c','..'], sep=';')
+        else:
+            cols = pd.read_csv(self.setup.DATA_FILE, encoding="ISO-8859-1", header=0, skiprows=1, nrows=0).columns
+            self.data = pd.read_csv(self.setup.DATA_FILE, encoding="ISO-8859-1", header=0, skiprows=[1], na_values=["x", "..", "c"])
+            self.data.columns = cols[:3].append(self.data.columns[3:])
 
     def loadSpatialMapping(self,):
         return pd.read_excel(self.setup.MAPPING_FILE, 
@@ -897,9 +908,7 @@ class IEA_World_Energy_Balance(BaseImportTool):
         mapping = dict()
         
         for variableName in self.setup.INDEX_COLUMN_NAME:
-            mapping[variableName] = pd.read_excel(self.setup.MAPPING_FILE, sheet_name=variableName,index_col=0)
-            notNullIndex = mapping[variableName].index[~mapping[variableName].isna().mapping]
-            mapping[variableName] = mapping[variableName].loc[notNullIndex]
+            mapping[variableName] = pd.read_excel(self.setup.MAPPING_FILE, sheet_name=variableName,index_col=0).dropna(subset=["mapping"])
         
         return mapping
         
@@ -909,11 +918,7 @@ class IEA_World_Energy_Balance(BaseImportTool):
         if not hasattr(self, 'data'):        
             self.loadData()
         
-        
-        import numpy as np
- 
         writer = pd.ExcelWriter(self.setup.MAPPING_FILE,
-                    engine='xlsxwriter',
                     datetime_format='mmm d yyyy hh:mm:ss',
                     date_format='mmmm dd yyyy')       
         
@@ -924,7 +929,7 @@ class IEA_World_Energy_Balance(BaseImportTool):
             self.availableSeries = pd.DataFrame(index=index)
             self.mapping = pd.DataFrame(index=index, columns = ['mapping'])
 
-            self.mapping.to_excel(writer, engine='openpyxl', sheet_name=column)
+            self.mapping.to_excel(writer, sheet_name=column)
 
         #spatial mapping
         column = self.setup.SPATIAL_COLUM_NAME
@@ -940,7 +945,7 @@ class IEA_World_Energy_Balance(BaseImportTool):
             if coISO is not None:
                 self.mapping.loc[region,'mapping'] = coISO
         
-        self.mapping.to_excel(writer, engine='openpyxl', sheet_name='spatial')
+        self.mapping.to_excel(writer, sheet_name='spatial')
         
         writer.close()
 
@@ -961,60 +966,91 @@ class IEA_World_Energy_Balance(BaseImportTool):
         excludedTables['error'] = list()
         excludedTables['exists'] = list()
         
-        for product in self.mapping['PRODUCT'].index:
-            mask = self.data['PRODUCT'] == product
+        for flow in self.mapping['FLOW'].index:
+            mask = self.data['FLOW'] == flow
             tempDataMo = self.data.loc[mask]
+
+            flow_name, unit, unitTo = (
+                self.mapping['FLOW'].loc[flow, ["mapping", "unit", "unitTo"]]
+            )
+
+            product_map = {}
             
-            for flow in self.mapping['FLOW'].index:
+            for product in self.mapping['PRODUCT'].index:
+                mask = tempDataMo['PRODUCT'] == product
 #                metaDict['scenario'] = scenario + '|' + model
-                mask = tempDataMo['FLOW'] == flow
                 tempDataMoSc = tempDataMo.loc[mask]
                 
-                
-                metaDict['entity'] = '|'.join([self.mapping['FLOW'].mapping.loc[flow],
-                                              self.mapping['PRODUCT'].mapping.loc[product]])
-                metaDict['scenario']  = 'Historic'
-                metaDict['category']  = ''
-                
-                
+                product_name = self.mapping['PRODUCT'].mapping.loc[product]
+                metaDict = dict(
+                    source=self.setup.SOURCE_ID,
+                    entity=f"{flow_name}|{product_name}",
+                    scenario="Historic",
+                    category="",
+                    unit=unit,
+                    unitTo=unitTo,
+                )
                 
                 print(metaDict)
                 metaDict = dt.core._update_meta(metaDict)
                 tableID = dt.core._createDatabaseID(metaDict)
                 
-                
-                for key in [ 'unit', 'unitTo']:
-                    metaDict[key] = self.mapping['FLOW'].loc[flow,key]
-                    
-                if not updateTables:
-                    if dt.core.DB.tableExist(tableID):
-                        excludedTables['exists'].append(tableID)
-                        continue
-
-
-                    
-                if len(tempDataMoSc.index) > 0:
-
-                    dataframe = tempDataMoSc.set_index(self.setup.SPATIAL_COLUM_NAME)
-                    if spatialSubSet:
-                        spatIdx = dataframe[self.setup.SPATIAL_COLUM_NAME].isin(spatialSubSet)
-                        dataframe = tempDataMoSc.loc[spatIdx]
-                    
-                    dataframe = dataframe.drop(self.setup.COLUMNS_TO_DROP, axis=1)
-                    dataframe = dataframe.dropna(axis=1, how='all').astype(float)
-        
-                    validSpatialRegions = self.spatialMapping.index[~self.spatialMapping.mapping.isnull()]
-                    dataframe = dataframe.loc[validSpatialRegions,:]
-                    dataframe.index = self.spatialMapping.mapping[~self.spatialMapping.mapping.isnull()]
-
-                    
-                    dataTable = Datatable(dataframe, meta=metaDict)
-                    # possible required unit conversion
-                    if not pd.isna(metaDict['unitTo']):
-                        dataTable = dataTable.convert(metaDict['unitTo'])
-                    tablesToCommit.append(dataTable)
-                else:
+                if len(tempDataMoSc.index) == 0:
                     excludedTables['empty'].append(tableID)
+                    continue
+
+                dataframe = tempDataMoSc.set_index(self.setup.SPATIAL_COLUM_NAME)
+                if spatialSubSet:
+                    spatIdx = dataframe[self.setup.SPATIAL_COLUM_NAME].isin(spatialSubSet)
+                    dataframe = tempDataMoSc.loc[spatIdx]
+                
+                dataframe = dataframe.drop(self.setup.COLUMNS_TO_DROP, axis=1)
+                dataframe = dataframe.dropna(axis=1, how='all').astype(float)
+    
+                validSpatialRegions = self.spatialMapping.index[~self.spatialMapping.mapping.isnull()]
+                dataframe = dataframe.loc[validSpatialRegions,:]
+                dataframe.index = self.spatialMapping.mapping[~self.spatialMapping.mapping.isnull()]
+
+                dataTable = Datatable(dataframe, meta=metaDict)
+                # possible required unit conversion
+                if 'unitTo' in metaDict:
+                    dataTable = dataTable.convert(metaDict['unitTo'])
+                
+                product_map[product] = dataTable
+
+                if not updateTables and dt.core.DB.tableExist(tableID):
+                    excludedTables['exists'].append(tableID)
+                    continue
+
+                tablesToCommit.append(dataTable)
+
+            aggregate = self.mapping["PRODUCT"].get("aggregate")
+            if aggregate is not None:
+                for agg_name in aggregate.dropna().unique():
+                    components = aggregate.index[aggregate == agg_name]
+                    interpolated_tables = (
+                        product_map[c].interpolate()
+                        for c in components
+                        if c in product_map
+                    )
+                    # dt.Datatable.add has not been mapped through the unit machinery,
+                    # so we get pd.DataFrames here
+                    df = reduce(
+                        lambda x, y: x.add(y, fill_value=0.),
+                        interpolated_tables,
+                        next(interpolated_tables)
+                    )
+                    meta = dict(
+                        source=self.setup.SOURCE_ID,
+                        entity=f"{flow_name}|{agg_name}",
+                        scenario="Historic",
+                        category="",
+                        aggregation=", ".join(self.mapping["PRODUCT"].loc[components, "mapping"]),
+                        unit=unit if pd.isna(unitTo) else unitTo,
+                        unitTo=unitTo,
+                    )
+                    dataTable = dt.Datatable(df, meta=dt.core._update_meta(meta))
+                    tablesToCommit.append(dataTable)
 
         return tablesToCommit, excludedTables
     
@@ -5459,7 +5495,6 @@ if __name__ == '__main__':
 #    iea19.createVariableMapping()
 #    iea19.addSpatialMapping()
     tableList, excludedTables = iea.gatherMappedData(updateTables=True)
-    sdf
     dt.commitTables(tableList, 'IEA2020 World balance update', iea.meta,update=True)
 #    sdf
 #    iea16 = IEA2016()
@@ -5477,7 +5512,7 @@ if __name__ == '__main__':
 #    dt.commitTables(tableList, 'IEA fuel emission data', ieaEmissions.meta, update=True)
 #    ddsa
 #%% IEA emissions detailed
-    ieaEmissions_detailed = IEA_FUEL_DETAILED_2019()
+    ieaEmissions_detailed = IEA_CO2_FUEL_DETAILED_2019()
 #    tableList, excludedTables = ieaEmissions_detailed.gatherMappedData(updateTables=True)
 #    dt.commitTables(tableList, 'IEA fuel emission detailed data', ieaEmissions.meta, update=True)
     
