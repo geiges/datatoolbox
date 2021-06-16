@@ -164,7 +164,13 @@ def add_figure(doc,
      
     os.remove(path)
     
-   
+def highlight_runs(para, 
+                   index_to_highlight,
+                   color = WD_COLOR_INDEX.YELLOW):
+    
+    for idx in index_to_highlight:
+        para.runs[idx].font.highlight_color=color
+        
 def _crop_png(file):
     def bbox(im):
         a = np.array(im)[:,:,:3]  # keep RGB only

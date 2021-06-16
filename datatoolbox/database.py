@@ -52,7 +52,31 @@ def restore_source(repoName):
     repoPath = os.path.join(config.PATH_TO_DATASHELF,  'database', repoName)
     git_repo = git.Repo(repoPath)
     git_repo.git.execute(['git', 'reset', '--hard', git_hash])
-            
+    
+def unique(table, field=None):
+    #%%
+    unique_dict = dict()
+    max_len = 0
+    if field is None:
+        fields = config.ID_FIELDS
+    else:
+        fields = [field]
+    
+    for var in fields:
+        unique_dict[var] = table.loc[:,var].unique()
+        max_len = max(max_len, len(unique_dict[var]))
+    unique_data = pd.DataFrame(index = range(max_len),
+                              columns = fields,
+                              data = '').astype(str)
+    
+    for var in fields:
+        len_data = len(unique_dict[var])
+        unique_data.loc[unique_data.index[:len_data],var] = unique_dict[var]
+    with pd.option_context('display.max_rows', None, 'display.max_columns', None):  # more options can be specified also
+        print(unique_data)
+    #%%
+    
+        
 class Database():
     """
     CSV based database that uses git for as distributed version control system.
@@ -268,6 +292,8 @@ class Database():
         # test to add function to a instance (does not require class)
         table.graph = types.MethodType(plot_query_as_graph, table)
         table.short = types.MethodType(shorten_find_output, table)
+        table.unique = types.MethodType(unique, table)
+        
         return table
     
     
