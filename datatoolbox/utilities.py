@@ -1,6 +1,5 @@
 import os
 import networkx as nx
-import pandas as pd
 import matplotlib.pyplot as plt
 from . import core
 from . import config
@@ -40,14 +39,12 @@ def open_file(path):
 
 
 def shorten_find_output(dataframe):
-    pd.set_option('display.max_rows', 10)
-    pd.set_option('display.max_columns', 5)
-    pd.set_option('display.width', 1000)
     return dataframe.reset_index(drop=True).drop(['scenario', 'model', 'category', 'entity', 'source_year', 'source_name', 'unit'], axis=1)
 
+
 def get_data_trees(**kwargs):
-    find = core.DB.getInventory
-    results = find(**kwargs)
+    findc = core.DB.findc
+    results = findc(**kwargs)
     return _process_query(results)
     
 
@@ -307,4 +304,5 @@ def plot_query_as_graph(results, savefig_path=None):
 #                 figsize=[5,6],
                  savefig_path=savefig_path)
 
-    
+def to_pyam(results):
+    return core.DB.getTables(results.index).to_pyam()

@@ -199,7 +199,7 @@ def _re_link_functions(dt):
     dt.removeTable = dt.core.DB.removeTable
     dt.removeTables = dt.core.DB.removeTables
     
-    dt.find         = dt.core.DB.getInventory
+    dt.findc        = dt.core.DB.findc
     dt.findp        = dt.core.DB.findp
     dt.findExact    = dt.core.DB.findExact
     dt.getTable     = dt.core.DB.getTable

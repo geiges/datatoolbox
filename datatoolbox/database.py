@@ -21,7 +21,7 @@ import numpy as np
 
 from . import config
 from .data_structures import Datatable, TableSet, read_csv
-from .utilities import plot_query_as_graph, shorten_find_output
+from .utilities import plot_query_as_graph, shorten_find_output, to_pyam
 from . import mapping as mapp
 from . import io_tools as io
 from . import util
@@ -237,18 +237,20 @@ class Database():
         (see config.INVENTORY_FIELDS).
         """
         
-        table = self.inventory.copy()
         # loop over all keys of kwargs to filter based on all of them
-        for key in kwargs.keys():
-            
-            mask = self.inventory[key].str.contains(kwargs[key], regex=False)
-            mask[pd.isna(mask)] = False
-            mask = mask.astype(bool)
-            table = table.loc[mask].copy()
+        mask = True
+        for key, val in kwargs.items():
+            mask &= self.inventory[key].str.contains(val, regex=False, na=False)
+
+        table = (
+            self.inventory if mask is True else self.inventory.loc[mask]
+        ).copy()
         
         # test to add function to a instance (does not require class)
-        table.graph = types.MethodType( plot_query_as_graph, table )
+        table.graph = types.MethodType(plot_query_as_graph, table)
         table.short = types.MethodType(shorten_find_output, table)
+        table.unique = types.MethodType(unique, table)
+        table.to_pyam = types.MethodType(to_pyam, table)
         return table
 
     def findp(self, level=None, regex=False, **filters):
@@ -287,13 +289,15 @@ class Database():
         if level is not None:
             keep &= self.inventory['variable'].str.count(r"\|") == level
 
-        table = self.inventory.loc[keep]
+        table = pd.DataFrame(
+            self.inventory if keep is True else self.inventory.loc[keep]
+        )
 
         # test to add function to a instance (does not require class)
         table.graph = types.MethodType(plot_query_as_graph, table)
         table.short = types.MethodType(shorten_find_output, table)
         table.unique = types.MethodType(unique, table)
-        
+        table.to_pyam = types.MethodType(to_pyam, table)
         return table
     
     
@@ -311,6 +315,7 @@ class Database():
         # test to add function to a instance (does not require class)
         table.graph = types.MethodType( plot_query_as_graph, table )
         table.short = types.MethodType(shorten_find_output, table)
+        table.to_pyam = types.MethodType(to_pyam, table)
         return table
     
     def _getTableFilePath(self,ID):
@@ -889,8 +894,7 @@ class Database():
             shutil.rmtree(sourcePath, ignore_errors=False, onerror=None)
         self.gitManager.sources = self.gitManager.sources.drop(sourceID, axis=0)
         self.sources            = self.gitManager.sources
-        tableIDs = self.inventory.index[self.inventory.source==sourceID]
-        self.inventory = self.inventory.drop(tableIDs, axis=0)
+        self.inventory = self.inventory.loc[self.inventory.source != sourceID]
 #        self.gitManager.updatedRepos.add('main')
         self._gitCommit(sourceID + ' deleted')
     
@@ -930,8 +934,7 @@ class Database():
         self.gitManager.clone_source_from_remote(remoteName, repoPath)
 
         sourceInventory = pd.read_csv(os.path.join(repoPath, 'source_inventory.csv'), index_col=0, dtype={'source_year': str})
-        for idx in sourceInventory.index:
-            self.inventory.loc[idx,:] = sourceInventory.loc[idx,:]
+        self.inventory = self.inventory.append(sourceInventory, verify_integrity=True)
         self._gitCommit('imported ' + remoteName)
 
     def exportSourceToRemote(self, sourceID):
@@ -1117,20 +1120,23 @@ class GitRepository_Manager:
         
     def create_remote_repo(self, repoName):
         """
-        Function to create a remove git repoisitoy from an existing local repo
+        Function to create a remote git repository from an existing local repo
         """
         repo = self[repoName]
+
         if 'origin' in repo.remotes:
-            print('remote origin already exists, skip')
-            return 
+            # remote origin has been configured already, but re-push anyway, since this
+            # could have been a connectivity issue
+            origin = repo.remotes.origin
+        else:
+            origin = repo.create_remote("origin", config.DATASHELF_REMOTE + repoName + ".git")
 
-        origin = repo.create_remote("origin", config.DATASHELF_REMOTE + repoName + ".git")
-        origin.push(refspec="master:origin")
+        branch = repo.heads.master
+        origin.push(branch, progress=TqdmProgressPrinter())
+
+        # Update references on remote
         origin.fetch()
-
-        # TODO maybe switch next two commands
-        repo.heads.master.set_tracking_branch(origin.refs.master)
-        origin.push(repo.heads.master)
+        branch.set_tracking_branch(origin.refs.master)
     
     def push_to_remote_datashelf(self, repoName):
         """
@@ -1143,7 +1149,7 @@ class GitRepository_Manager:
         function. TODO
 
         """
-        self[repoName].remote('origin').push(progress=TqdmProgressPrinter())
+        self[repoName].remotes.origin.push(progress=TqdmProgressPrinter())
         
     def clone_source_from_remote(self, repoName, repoPath):
         """
@@ -1159,13 +1165,10 @@ class GitRepository_Manager:
             url = config.DATASHELF_REMOTE + repoName + '.git'
             repo = git.Repo.clone_from(url=url, to_path=repoPath, progress=TqdmProgressPrinter())  
         except:
-            
             print('Failed... Try Cloning source via https:')
             url = config.DATASHELF_REMOTE_HTTPS + repoName + '.git'
             repo = git.Repo.clone_from(url=url, to_path=repoPath, progress=TqdmProgressPrinter())
-            
-            
-                    
+
         self.repositories[repoName] = repo
 
         # Update source file
