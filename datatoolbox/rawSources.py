@@ -3393,6 +3393,155 @@ class PRIMAP_DOWNSCALE(BaseImportTool):
             #%%
         return tablesToCommit, excludedTables
     
+class AIM15_2020(BaseImportTool):
+    
+    def __init__(self):
+
+        self.setup = setupStruct()
+        
+        self.setup.SOURCE_ID    = "AIM15_2020"
+        self.setup.SOURCE_NAME    = "AIM15"
+        self.setup.SOURCE_YEAR    = "2020"
+        self.setup.SOURCE_PATH  = config.PATH_TO_DATASHELF + 'rawdata/AIM15_2020/'
+        self.setup.DATA_FILE    = self.setup.SOURCE_PATH + '201029_SSP12_19_26_base_AIM.xlsx'
+        self.setup.MAPPING_FILE = self.setup.SOURCE_PATH + 'mapping.xlsx'
+        self.setup.LICENCE = '?' # TODO
+        self.setup.URL     = '?' # TODO
+
+        self.setup.COLUMNS_TO_DROP = ['model', 'scenario', 'variable', 'unit']
+
+        self.createSourceMeta()
+                
+        if not(os.path.exists(self.setup.MAPPING_FILE)):
+            self.createVariableMapping()
+        else:
+            self.mapping = pd.read_excel(self.setup.MAPPING_FILE, sheet_name=VAR_MAPPING_SHEET, index_col=0)
+
+    def createVariableMapping(self):
+        with pd.ExcelWriter(
+            self.setup.MAPPING_FILE,
+            engine='xlsxwriter',
+            datetime_format='mmm d yyyy hh:mm:ss',
+            date_format='mmmm dd yyyy'
+        ) as writer:
+
+            if not hasattr(self, 'data'):
+                self.loadData()
+            
+            meta = self.data.loc[
+                ~self.data.index.duplicated(keep='first'),
+                ['model', 'scenario', 'variable', 'unit']
+            ]
+
+            variable = (
+                meta['variable']
+                .str.replace(" ", "_")
+                .replace({
+                    "Emissions|Kyoto Gases": "Emissions|KYOTOGHG"
+                })
+            )
+            variable_components = variable.str.split('|')
+            two_component_entity = variable_components.str[0].isin(["Emissions", "GDP"])
+            entity = variable_components.str[:2].str.join('|').where(two_component_entity, variable_components.str[0])
+            category = variable_components.str[2:].str.join('|').where(two_component_entity, variable_components.str[1:].str.join('|'))
+
+            self.mapping = (
+                meta
+                .assign(
+                    source=self.setup.SOURCE_ID,
+                    variable=variable,
+                    entity=entity,
+                    category=category,
+                    unit=(
+                        # ['Mt CO2/yr', 'EJ/yr', 'billion US$2005/yr', 'million',
+                        #  'US$2005/t CO2', 'US$2005/GJ', 'Mt CH4/yr', 'Mt CO2-equiv/yr',
+                        #  'kt N2O/yr', 'million Ha', 'Index (2005 = 1)', 'Mt BC/yr',
+                        #  'Mt CO/yr', 'Mt NO2/yr', 'Mt OC/yr', 'Mt SO2/yr', 'EJ',
+                        #  't DM/ha/yr', 'million t DM/yr', 'kcal/cap/day', 'million m3/yr',
+                        #  'Mt NH3/yr', 'Mt VOC/yr', 'US$2005/MWh', 'GW', '1000 ha', '1000 t',
+                        #  't/ha', 'billion US$2005', 1, 'Percentage (1=1%)', 'million Ha/yr',
+                        #  'Mt/yr', 'Index (2010 = 1)', 'US$2005/kW', 'years',
+                        #  'US$2005/kW/yr', 'ppm', 'W/m2', ' °C', 'ppb', 'Tg N/yr']
+                        meta['unit']
+                        .replace({
+                            'Mt CO2-equiv/yr': 'Mt CO2eq/yr',
+                            'MtCO2eq/year': 'Mt CO2eq/yr',
+                            'kt HFC134a-equiv/yr': 'kt HFC134aeq/yr',
+                            'EJ_final': 'EJ',
+                            'EJ_primary': 'EJ',
+                            'Index (2005 = 1)': '1',
+                            'Index (2010 = 1)': '1',
+                            'Percentage (1=1%)': '%',
+                        })
+                        .str.replace('US$2005', 'USD2005', regex=False)
+                        .str.replace('m2', 'm**2', regex=False)
+                        .str.replace('m3', 'm**3', regex=False)
+                        .str.replace('million Ha', 'million ha', regex=False)
+                        .str.replace(' OR local currency.*$', '', flags=re.IGNORECASE) # ?? TODO
+                    )
+                )
+                .dropna() # drops some AGMIP variables
+            )
+
+            problematic_units = pd.Series(self.mapping.unit.unique())[lambda s: ~s.map(isUnit)]
+            if not problematic_units.empty:
+                print("problematic units:", ", ".join(problematic_units))
+
+            self.mapping.to_excel(writer, sheet_name=VAR_MAPPING_SHEET)
+        
+    def loadData(self):
+         self.data = pd.read_excel(self.setup.DATA_FILE, sheet_name="Sheet1")
+         self.data.set_axis(self.data.columns[:5].str.lower().append(self.data.columns[5:]), axis=1, inplace=True)
+         self.data.set_index(self.data['model'] + '_' + self.data['scenario'] + '_' + self.data['variable'], inplace=True)
+         
+    def gatherMappedData(self, spatialSubSet = None, updateTables = False):
+        excludedTables = defaultdict(list)
+        
+        # loading data if necessary
+        if not hasattr(self, 'data'):
+            self.loadData()        
+        
+        tablesToCommit  = []
+        for idx, metaDf in self.mapping.iterrows():
+            metaDict = metaDf.to_dict()
+            metaDict.update(
+                source_name=self.setup.SOURCE_NAME,
+                source_year=self.setup.SOURCE_YEAR,
+            )
+            
+            metaDict = dt.core._update_meta(metaDict)
+            tableID = dt.core._createDatabaseID(metaDict)
+
+            if not updateTables and dt.core.DB.tableExist(tableID):
+                excludedTables['exists'].append(tableID)
+                print('table exists')
+                print(tableID)
+                continue
+
+            dataframe = (
+                self.data.loc[[idx],:].set_index('region').drop(self.setup.COLUMNS_TO_DROP, axis=1)
+                .astype(float)
+                .dropna(axis=1, how='all')
+            )
+
+            if not dataframe.index.is_unique:
+                print(f"Table {tableID} has non-unique regions, skipping")
+                continue
+
+            try:
+                dataTable = Datatable(dataframe, meta=metaDict)
+            except pint.errors.UndefinedUnitError as exc:
+                print(f"Undefined unit `{exc.args[0]}` for table {tableID}, skipping")
+                excludedTables['error'].append(tableID)
+                continue
+            
+            # possible required unit conversion
+            if not pd.isna(metaDict.get('unitTo')):
+                dataTable = dataTable.convert(metaDict['unitTo'])
+            tablesToCommit.append(dataTable)
+        
+        return tablesToCommit, excludedTables
+
 class LED_2019(BaseImportTool):
     
     def __init__(self):
@@ -3481,6 +3630,11 @@ class LED_2019(BaseImportTool):
                     )
                 )
             )
+
+            problematic_units = pd.Series(self.mapping.unit.unique())[lambda s: ~s.map(isUnit)]
+            if not problematic_units.empty:
+                print("problematic units:", ", ".join(problematic_units))
+
             self.mapping.to_excel(writer, sheet_name=VAR_MAPPING_SHEET)
         
     def loadData(self):
