@@ -9,6 +9,7 @@ import datatoolbox as dt
 import numpy as np
 
 
+
 def test_creation():
     metaDict = {'source' : 'TEST',
                 'entity' : 'values',
@@ -130,6 +131,67 @@ def test_consistent_meta():
     assert 'model' not in df.meta.keys()
     assert 'description' not in df.meta.keys()
     
+def test_csv_write():
+    
+    #%%
+    df = dt.Datatable(data=np.asarray([[2.2,3.4 ],
+                                       [2.3,  3.4]]
+                                       ), 
+                    meta={'source' : 'TEST',
+                          'entity' : 'Area',
+                          'category': 'Forestery',
+                          'scenario' : 'Historic',
+                          'unit' : 'm'}, 
+                    columns = [2010, 2012], 
+                    index = ['ARG', 'DEU'])
+    
+    df.to_csv('temp.csv')
+    
+    fid = open('temp.csv')
+    
+    content = fid.readlines()
+    
+    fid.close()
+    
+    exp = ['### META ###\n', 
+           'ID,Area|Forestery__Historic__TEST\n', 
+           'category,Forestery\n', 
+           'entity,Area\n', 
+           'pathway,Historic\n', 
+           'scenario,Historic\n', 
+           'source,TEST\n', 
+           'unit,m\n', 
+           'variable,Area|Forestery\n', 
+           '### DATA ###\n', 
+           'region,2010,2012\n', 
+           'ARG,2.2,3.4\n', 
+           'DEU,2.3,3.4\n']
+    
+    for obs_line, exp_line in zip(content, exp):
+        assert obs_line == exp_line
+    
+    #%%'
+def test_loss_less_csv_write_read():
+    #%%
+    df = dt.Datatable(data=np.asarray([[2.2,3.4 ],
+                                       [2.3,  3.4]]
+                                       ), 
+                    meta={'source' : 'TEST',
+                          'entity' : 'Area',
+                          'category': 'Forestery',
+                          'scenario' : 'Historic',
+                          'unit' : 'm'}, 
+                    columns = [2010, 2012], 
+                    index = ['ARG', 'DEU'])
+    
+    df.to_csv('temp.csv')
+    
+    obs = dt.read_csv('temp.csv')
+    
+    # assert (df == obs).all()
+    from pandas.testing import assert_frame_equal
+    assert assert_frame_equal(df, obs) is None
+    
     #%%
     
 if __name__ == '__main__':    
@@ -137,4 +199,6 @@ if __name__ == '__main__':
     test_append()
     test_clean()
     test_consistent_meta()
+    test_csv_write()
+    test_loss_less_csv_write_read()
     

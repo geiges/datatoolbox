@@ -15,6 +15,7 @@ import types
 import traceback
 from collections import defaultdict
 from pathlib import Path
+import shutil
 
 import pandas as pd
 import numpy as np
@@ -334,6 +335,8 @@ class Database():
         """
         return ID.replace('|','-').replace('/','-') + '.csv'
 
+    def _get_source_path(self, sourceID):
+        return  os.path.join(config.PATH_TO_DATASHELF, 'database', sourceID)
     
     def getTable(self, ID):
         """
@@ -583,7 +586,35 @@ class Database():
                 
         self._gitCommit(message)
         
+    def update_mapping_file(self, 
+                            sourceID, 
+                            mapping_file_path,
+                            sourceMetaDict = None):
+        """
+        adds mapping file to database
 
+        Parameters
+        ----------
+        source : TYPE
+            DESCRIPTION.
+        ID : TYPE
+            DESCRIPTION.
+        mapping : TYPE
+            DESCRIPTION.
+            """
+        if not core.DB.isSource(sourceMetaDict['SOURCE_ID']):
+            if sourceMetaDict is None:
+                raise(BaseException('Source meta can not be None'))
+            core.DB._addNewSource(sourceMetaDict)
+
+        source_path = self._get_source_path(sourceID)
+        # for key in mapping.keys():
+        dest_file_path = os.path.join(source_path, 'mapping.xlsx')
+        shutil.copyfile(mapping_file_path, dest_file_path)
+            # mapping[key].to_csv(file_path)
+        
+        self.gitManager.gitAddFile(sourceID, dest_file_path)
+        
     def updateTable(self, oldTableID, newDataTable, message):
         """
         Specific method to update the data of an existing table
@@ -888,7 +919,7 @@ class Database():
         """
         Function to remove an entire source from the database. 
         """
-        import shutil
+        
         if self.sourceExists(sourceID):
             sourcePath = os.path.join(config.PATH_TO_DATASHELF, 'database', sourceID)
             shutil.rmtree(sourcePath, ignore_errors=False, onerror=None)

@@ -74,6 +74,10 @@ class BaseImportTool():
         elif dt.config.OS == 'Darwin':
             os.system('open -a "Microsoft Excel" ' + self.setup.DATA_FILE )
 
+    def open_source_website(self):
+        import webbrowser
+        webbrowser.open (self.meta['source_url'])
+
     def createSourceMeta(self):
         self.meta = {'SOURCE_ID': self.setup.SOURCE_ID,
                       'collected_by' : config.CRUNCHER,
@@ -2852,9 +2856,9 @@ class IRENA2019(BaseImportTool):
         self.setup = setupStruct()
         self.setup.SOURCE_ID    = "IRENA_" + str(year)
         self.setup.year = year
-        self.setup.SOURCE_PATH  = config.PATH_TO_DATASHELF + 'rawdata/IRENA_/' + str(year)
-        self.setup.DATA_FILE    = self.setup.SOURCE_PATH + 'IRENA_RE_electricity_statistics.xlsx'
-        self.setup.MAPPING_FILE = self.setup.SOURCE_PATH + 'mapping.xlsx'
+        self.setup.SOURCE_PATH  = config.PATH_TO_DATASHELF + 'rawdata/IRENA_' + str(year)
+        self.setup.DATA_FILE    = os.path.join(self.setup.SOURCE_PATH, 'IRENA_RE_electricity_statistics.xlsx')
+        self.setup.MAPPING_FILE = os.path.join(self.setup.SOURCE_PATH, 'mapping.xlsx')
         self.setup.LICENCE = 'open source'
         self.setup.URL     = 'http://www.irena.org/IRENADocuments/IRENA_RE_electricity_statistics_-_Query_tool.xlsm'
         
@@ -4823,7 +4827,7 @@ class ENERDATA(BaseImportTool):
             self.setup.DATA_FILE    = os.path.join(self.setup.SOURCE_PATH, 'export_enerdata_1137124_113516.xlsx')
         elif year == 2021:
             self.setup.DATA_FILE    = os.path.join(self.setup.SOURCE_PATH, 'export_enerdata_1137124_094807.xlsx')
-#        self.setup.DATA_FILE    = os.path.join(self.setup.SOURCE_PATH, 'export_enerdata_1137124_112738.xlsx')
+            self.setup.DATA_FILE    = os.path.join(self.setup.SOURCE_PATH, 'export_enerdata_2021_06_16.xlsx')
         self.setup.MAPPING_FILE =  os.path.join(self.setup.SOURCE_PATH,'mapping_' + str(year) + '.xlsx')
         self.setup.LICENCE = ' Restricted use in the Brown 2 Green project only'
         self.setup.URL     = 'https://www.enerdata.net/user/?destination=services.html'
@@ -5497,8 +5501,8 @@ if __name__ == '__main__':
 #    iea19.createVariableMapping()
 #    iea19.addSpatialMapping()
 
-    tableList, excludedTables = iea.gatherMappedData(updateTables=True)
-    dt.commitTables(tableList, 'IEA2020 World balance update', iea.meta,update=True)
+    # tableList, excludedTables = iea.gatherMappedData(updateTables=True)
+    # dt.commitTables(tableList, 'IEA2020 World balance update', iea.meta,update=True)
 #    sdf
 #    iea16 = IEA2016()
 #    iea18 = IEA_WEB_2018()
@@ -5522,7 +5526,7 @@ if __name__ == '__main__':
     
 #%% IRENA data
     irena19 = IRENA2019(2021)
-    tableList = irena19.gatherMappedData()
+    # tableList = irena19.gatherMappedData()
 #    dt.commitTables(tableList, 'IRENA 2019 new data', irena19.meta)
 #    dt.updateTables()
 #%% SDG_DB data
@@ -5580,10 +5584,10 @@ if __name__ == '__main__':
 #    dt.commitTables(tableList, 'WEO  data updated', weo.meta, update=True)  
     
 #%% FAO
-    fao = FAO(2020)
-    # tableList, excludedTables = fao.gatherMappedData(updateTables=True)
-    # dt.commitTables(tableList, 'FAO data updated', fao.meta, update=True)  
-    # df
+    fao = FAO(2021)
+    tableList, excludedTables = fao.gatherMappedData(updateTables=True)
+    dt.commitTables(tableList, 'FAO data 2021', fao.meta, update=True)  
+    df
 #%% APEC
     apec = APEC(2019)
 #    tableList, excludedTables = apec.gatherMappedData()
@@ -5598,9 +5602,10 @@ if __name__ == '__main__':
 #    tableList, excludedTables = vanmarle.gatherMappedData()
 #    dt.commitTables(tableList, 'vanmarle data updated', vanmarle.meta, update=False)  
 #%% Enerdata
-    enerdata = ENERDATA(2019)
-#    tableList, excludedTables = enerdata.gatherMappedData(updateTables=True)
-#    dt.commitTables(tableList, 'enerdata data updated', enerdata.meta, update=True)  
+    enerdata = ENERDATA(2021)
+    tableList, excludedTables = enerdata.gatherMappedData(updateTables=True)
+    sdf
+    dt.commitTables(tableList, 'enerdata data updated 16-06-21', enerdata.meta, update=True)  
     #%%
     enerdata = ENERDATA(2021)
     # tableList2020, excludedTables = enerdata.gatherMappedData(updateTables=True)
@@ -5611,7 +5616,7 @@ if __name__ == '__main__':
 #    tableList, excludedTables = cat_psr.gatherMappedData()
 #    dt.commitTables(tableList, 'CAT PSR data', cat_psr.meta, update=False)  
     #%%
-    sdf
+    # sdf
     i = 66
     
     table19 = tableList[i]

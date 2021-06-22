@@ -106,11 +106,12 @@ def test_to_long_table():
               7: '#2'},
             'model': {0: '', 1: '', 2: '', 3: '', 4: '', 5: '', 6: '', 7: ''},
              'unit': {0: 'm', 1: 'm', 2: 'm', 3: 'm', 4: 'km', 5: 'km', 6: 'km', 7: 'km'},
+             2009: {0: np.nan, 1: np.nan, 2: np.nan, 3: np.nan, 4: 1.0, 5: 2.3, 6: 1.1, 7: np.nan},
              2010: {0: 1.0, 1: 2.3, 2: 1.3, 3: np.nan, 4: np.nan, 5: np.nan, 6: np.nan, 7: np.nan},
              2012: {0: 2.2, 1: np.nan, 2: np.nan, 3: 3.4, 4: 2.2, 5: np.nan, 6: np.nan, 7: 3.3},
-             2009: {0: np.nan, 1: np.nan, 2: np.nan, 3: np.nan, 4: 1.0, 5: 2.3, 6: 1.1, 7: np.nan}}
+             }
             )
-    exp = exp.loc[:,longTable.columns]
+    # exp = exp.loc[:,longTable.columns]
     
     assert (longTable.values[~pd.isna(longTable)] == exp.values[~pd.isna(exp)]).all()
 

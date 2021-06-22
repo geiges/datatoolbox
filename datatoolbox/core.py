@@ -94,6 +94,24 @@ def _createDatabaseID(metaDict):
     
     return config.ID_SEPARATOR.join([metaDict[key] for key in config.ID_FIELDS])
 
+def csv_writer(filename, 
+               dataframe,
+               meta,
+               index=0):
+    fid = open(filename,'w', encoding='utf-8')
+    fid.write(config.META_DECLARATION)
+    
+    for key, value in sorted(meta.items()):
+#            if key == 'unit':
+#                value = str(value.u)
+        fid.write(key + ',' + str(value) + '\n')
+    
+    fid.write(config.DATA_DECLARATION)
+    if index == 0:
+        dataframe.to_csv(fid, sep = ',')
+    elif index is None:
+        dataframe.to_csv(fid,index=None,sep = ';')
+    fid.close()
 
 def osIsWindows():
     """
@@ -244,8 +262,8 @@ def get_dimension_extend(table_iterable, dimensions):
     given a set of datatables
     """
     fullIdx = dict()
-    for dim in dimensions:
-        fullIdx[dim] = set()
+    # for dim in dimensions:
+    #     fullIdx[dim] = set()
 
     for table in table_iterable:
         
@@ -256,6 +274,10 @@ def get_dimension_extend(table_iterable, dimensions):
 #                metaDict[metaKey].add(metaValue)
             
         for dim in dimensions:
+            
+            if dim not in fullIdx.keys():
+                fullIdx[dim] = set()
+                
             if dim == 'region':
                 fullIdx[dim] = fullIdx[dim].union(table.index)
             elif dim == 'time':

@@ -285,17 +285,21 @@ class Datatable(pd.DataFrame):
         else:
             assert fileName[-4:]  == '.csv'
         
-        fid = open(fileName,'w', encoding='utf-8')
-        fid.write(config.META_DECLARATION)
+#         fid = open(fileName,'w', encoding='utf-8')
+#         fid.write(config.META_DECLARATION)
         
-        for key, value in sorted(self.meta.items()):
-#            if key == 'unit':
-#                value = str(value.u)
-            fid.write(key + ',' + str(value) + '\n')
+#         for key, value in sorted(self.meta.items()):
+# #            if key == 'unit':
+# #                value = str(value.u)
+#             fid.write(key + ',' + str(value) + '\n')
         
-        fid.write(config.DATA_DECLARATION)
-        super(Datatable, self).to_csv(fid)
-        fid.close()
+#         fid.write(config.DATA_DECLARATION)
+#         super(Datatable, self).to_csv(fid)
+#         fid.close()
+        
+        core.csv_writer(fileName,
+                        pd.DataFrame(self),
+                        self.meta)
 
     def to_pyam(self, **kwargs):
         """
@@ -951,7 +955,8 @@ class TableSet(dict):
         return util.aggregate_tableset_to_region(self, mapping)
         
         
- 
+    
+        #%%
     
     def to_excel(self, 
                  fileName, 
@@ -1064,7 +1069,53 @@ class TableSet(dict):
             
         return resultTable
 
-            
+ 
+    def to_csv(self,
+               filename):
+        """
+        Conversion to multi-csv
+
+        Parameters
+        ----------
+        filename : TYPE
+            DESCRIPTION.
+
+        Returns
+        -------
+        None.
+
+        """
+        #%%
+        self = dt.getTables(dt.findp(source='ENERDATA**').index)
+        
+        
+        meta_columns = ['region'] + dt.config.INVENTORY_FIELDS
+        long = self.to_LongTable(meta_list = meta_columns)
+        
+        single_meta = dict()
+        multi_meta  = list()
+        columns_to_drop = list()
+        
+        for column in meta_columns:
+            unique_entries = long.loc[:,column].unique()
+            if len(unique_entries) == 1:
+                if unique_entries[0] != '':
+                    single_meta[column] = unique_entries[0]
+                
+                columns_to_drop.append(column)
+            else:
+                multi_meta.append(column)
+        long = long.drop(columns_to_drop, axis = 1)
+        
+        metaDict = dict()
+        metaDict.update(single_meta)
+        metaDict.update({'meta_columns' : multi_meta})
+        
+        core.csv_writer(filename, 
+                        long,
+                        metaDict,
+                        index=None)
+        #%%           
     def to_xarray(self, dimensions=None):
         """
         Convert tableset to and xarray with the given dimenions.
@@ -1127,21 +1178,22 @@ class TableSet(dict):
         return [ self[key] for key in self.keys()]
     
         
-    def to_LongTable(self):
+    def to_LongTable(self, meta_list = ['variable', 'region','scenario', 'model', 'unit']):
         tables = []
 
         for variable, df in self.items():
             if df.empty:
                 continue
-            
+            inp_dict = dict()    
+            for metaKey in meta_list:
+                if metaKey == 'region':
+                    inp_dict[metaKey] = df.index
+                else:
+                    inp_dict[metaKey] = df.meta.get(metaKey, '')
+                
             try:
-                df = df.assign(
-                    region=df.index,
-                    variable=df.meta['variable'],
-                    unit=df.meta['unit'],
-                    scenario=df.meta["scenario"],
-                    model=df.meta.get("model", "")
-                ).reset_index(drop=True)
+                df = df.assign(**inp_dict).reset_index(drop=True)
+                
             except KeyError as exc:
                 raise AssertionError(f"meta of {variable} does not contain {exc.args[0]}")
  
@@ -1150,8 +1202,8 @@ class TableSet(dict):
         long_df = pd.concat(tables, ignore_index=True, sort=False)
         
         # move id columns to the front
-        id_cols = pd.Index(['variable', 'region', 'scenario', 'model', 'unit'])
-        long_df = long_df[id_cols.union(long_df.columns)]
+        id_cols = pd.Index(meta_list)
+        long_df = long_df[list(id_cols) + list( long_df.columns.difference(id_cols))]
         long_df = pd.DataFrame(long_df)
         return long_df
 

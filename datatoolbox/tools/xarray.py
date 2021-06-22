@@ -13,7 +13,7 @@ from datatoolbox import core
 
 
     
-def to_XDataSet(tableSet, dimensions):
+def to_XDataSet(tableSet, dimensions=['region', 'time']):
     """
     Convert datatoolbox tableSet to a xarray data set
 
@@ -31,9 +31,9 @@ def to_XDataSet(tableSet, dimensions):
         DESCRIPTION.
 
     """
-    dimSize, dimList = core.get_dimension_extend(tableSet, dimensions= ['region', 'time'])
+    dimSize, dimList = core.get_dimension_extend(tableSet, dimensions= dimensions)
     
-    dimensions= ['region', 'time']
+    # dimensions= ['region', 'time']
     
     dSet = xr.Dataset(coords = {key: val for (key, val) in zip(dimensions, dimList)})
     
