@@ -72,7 +72,7 @@ SOURCE_META_FIELDS = ['SOURCE_ID',
 
 
 #%% Personal setup
-if not os.path.isfile(os.path.join(CONFIG_DIR,' personal.py')):
+if not os.path.isfile(os.path.join(CONFIG_DIR, 'personal.py')):
     from .admin import create_initial_config, _create_empty_datashelf
     modulePath =  os.path.dirname(__file__) + '/'
     CRUNCHER, PATH_TO_DATASHELF, DB_READ_ONLY, DEBUG = create_initial_config(MODULE_PATH,
@@ -87,7 +87,7 @@ else:
     # from .settings.personal import CRUNCHER, PATH_TO_DATASHELF, DB_READ_ONLY, DEBUG, AUTOLOAD_SOURCES
     
     #importng CRUNCHER, PATH_TO_DATASHELF, DB_READ_ONLY, DEBUG, AUTOLOAD_SOURCES
-    exec(open(os.path.join(CONFIG_DIR,' personal.py')).read())
+    exec(open(os.path.join(CONFIG_DIR, 'personal.py')).read())
     TEST_ENV = False
 
 
