@@ -30,6 +30,16 @@ try:
         from .patches import patch_045_update_personal_config
         
         personal = patch_045_update_personal_config(personal)
+        
+    # Version path 0.4.7
+    
+    
+except:
+    pass
+
+try:
+    from .patches import patch_047_move_config_file
+    patch_047_move_config_file()
 except:
     pass
 # %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
