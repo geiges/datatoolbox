@@ -59,6 +59,7 @@ from . import interfaces
 from . import util as util
 from . import admin as admin
 from . import templates
+from . import utilities as _util 
 
 from . import rawSources as _raw_sources
 
@@ -101,7 +102,10 @@ if db_connected:
 insertDataIntoExcelFile = io.insertDataIntoExcelFile
 sources = _raw_sources.sources
 
+# get country ISO code
 getCountryISO = util.getCountryISO
+
+# open_file = _util.open_file
 
 conversionFactor = core.conversionFactor
 
