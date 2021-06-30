@@ -127,8 +127,7 @@ def create_initial_config(module_path,
                           write_config=True):
     import git
     fin = open(os.path.join(module_path, 'data','personal_template.py'), 'r')
-    #create directory
-    os.makedirs(config_path, exist_ok=True)
+    
     
     
     DEBUG = False
@@ -137,6 +136,8 @@ def create_initial_config(module_path,
     git.Repo.init(sandboxPath)
     
     if write_config:
+        #create directory
+        os.makedirs(config_path, exist_ok=True)
         fout = open(os.path.join(config_path, 'personal.py'), 'w')
         for line in fin.readlines():
             outLine = line.replace('/PPP/PPP', sandboxPath)
@@ -260,7 +261,9 @@ def switch_database_to_testing():
     from . import config
 #    from datatoolbox.tools.install_support import create_initial_config
 #    
-    _, sandboxPath, READ_ONLY, DEBUG = create_initial_config(config.MODULE_PATH, write_config=False)
+    _, sandboxPath, READ_ONLY, DEBUG = create_initial_config(config.MODULE_PATH, 
+                                                             config_path=config.CONFIG_DIR,
+                                                             write_config=False)
 #
     if not os.path.exists(os.path.join(sandboxPath, 'sources.csv')):
 #        os.mkdir(sandboxPath)
