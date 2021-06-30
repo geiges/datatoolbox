@@ -81,7 +81,8 @@ def _create_empty_datashelf(pathToDataself,
         
 def create_personal_setting(modulePath, OS):
     
-    
+    from . import config 
+    os.makedirs(config.CONFIG_DIR, exist_ok=True)
     # Linux 
     if OS == 'Linux':
         import tkinter as tk
@@ -112,8 +113,8 @@ def create_personal_setting(modulePath, OS):
         file_path_variable = input("Please enter path to datashelf: ")
     
     fin = open(os.path.join(modulePath, 'data','personal_template.py'), 'r')
-    os.makedirs(os.path.join(modulePath, 'settings'),exist_ok=True)
-    fout = open(os.path.join(modulePath, 'settings','personal.py'), 'w')
+    
+    fout = open(os.path.join(config.CONFIG_DIR, 'personal.py'), 'w')
     
     for line in fin.readlines():
         outLine = line.replace('XX',userName).replace('/PPP/PPP', file_path_variable)
@@ -234,11 +235,10 @@ def set_autoload_source(boolean):
     from . import config
     config.AUTOLOAD_SOURCES = boolean
     
-    fin = open(os.path.join(config.MODULE_PATH, 'settings','personal.py'), 'r')
+    fin = open(os.path.join(config.CONFIG_DIR, 'personal.py'), 'r')
     lines = fin.readlines()
     fin.close()
-    # os.makedirs(os.path.join(config.MODULE_PATH, 'settings'),exist_ok=True)
-    fout = open(os.path.join(config.MODULE_PATH, 'settings','personal.py'), 'w')
+    fout = open(os.path.join(config.CONFIG_DIR, 'personal.py'), 'w')
     
     line_found = False
     for line in lines:
