@@ -71,7 +71,7 @@ from . import admin as admin
 from . import templates
 from . import utilities as _util 
 
-from . import rawSources as _raw_sources
+from . import data_readers
 
 # Predefined sets for regions and scenrarios
 from datatoolbox.sets import REGIONS, SCENARIOS

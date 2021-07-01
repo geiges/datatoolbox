@@ -464,7 +464,7 @@ class Database():
 
         """
         #create folder if required
-        if ~os.path.exists(folder):
+        if  not os.path.exists(folder):
             os.mkdir(folder)
         #save tables to disk
         self.saveTablesToDisk(folder, core.LOG['tableIDs'])
