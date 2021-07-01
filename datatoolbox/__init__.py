@@ -110,7 +110,7 @@ if db_connected:
     updateExcelInput = core.DB.updateExcelInput
 
 insertDataIntoExcelFile = io.insertDataIntoExcelFile
-sources = _raw_sources.sources
+# sources = _raw_sources.sources
 
 # get country ISO code
 getCountryISO = util.getCountryISO

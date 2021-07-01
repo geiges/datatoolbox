@@ -1,91 +1,96 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
 """
-Created on Thu Apr 30 18:18:36 2020
+Created on Tue May 18 09:03:50 2021
 
-@author: Andreas Geiges
+@author: ageiges
 """
+
+"""
+
+This tutorial covers the datatoolbox inventory and  two search functions 
+for datatables
+
+1) Inventory
+2) findp "pattern"
+3) findc "conains"
+
+"""
+
 
 import datatoolbox as dt
 
-#%% dt.find usage
-# Finds datatables that contain the search string
+#%% tutorial data
+"""
+This tutoral works based on the PRIMAP emission data set. To work with this tutorial,
+please import the data.
+"""
 
-dt.find(entity='', category='', scenario ='', source='')
+# if 'PRIMAP'
+dt.import_new_source_from_remote('PRIMAP_2019')
 
-#%% The underlying inventory
-inventory = dt.find() #returns the full inventory
-print(inventory.head())
+#%% Inventory
+"""
+The inventory is a pandas dataframe containing all available tables, each in a row.
+The index has the tableIDs and comes with the following colums : 
+['variable', 'entity', 'category', 'pathway', 'scenario', 'model', 'source', 'source_name', 'source_year', 'unit']
 
-# data os strucutures in for categories : ['entity', 'category', 'scenario', 'source']
-print(inventory.columns)
+All coulumns can be used for the later search requests.
+"""
+dt.inventory().head()
 
-# Each ID is unique is contructed as the joined string of the categories above using '|'
-# Each entry is representing a datatable with the index beeing the ID
-print(inventory.index[0:10])
 
-#%% List all data sources
-sources = list(dt.find().source.unique())
-sources.sort()
-print(sources)
+#%% Seach using patterns - findp
+"""
+Defauls is a shell style type of search suitable to be used for categories.
+"""
 
-#%% List all scenarios within a source
-res = dt.find(source='PRIMAP_2019')
-print(res.scenario.unique())
+dt.findp(source = 'PRIMAP_2019')
 
-#%% List all variables within a source
-print(res.entity.unique())
+# One star (*) is giving all results for only the following level (speparated by "|") 
+dt.findp(variable='Emissions|*',
+         source = 'PRIMAP_2019') # "Emissions|KYOTOGHG_AR4|Marine" will be excluded
 
-#%% List all Emissions|KYOTOGHG data tables 
-res = dt.find(entity = "Emissions|KYOTOGHG", source='PRIMAP_2019')
-print(res.entity.unique())
+# Two stars (**) allows for any patter for the complete rest of the string
+dt.findp(variable='Emissions|**',
+         source = 'PRIMAP_2019') # "Emissions|KYOTOGHG_AR4|Marine" will be included
 
-#%% dt.findExact
-# Finds datatables that match the search string exactly
+# One star (*) is giving all results for only the following level (speparated by "|") 
+dt.findp(variable='Emissions|*|IPCM0EL',
+         source = 'PRIMAP_2019') # "All kinds of IPCM0EL emissions, allows for different gases.
 
-# dt.find returns mutltiple matching datatables
-res = dt.find(entity = "Emissions|CO2", source='IAMC')
-print(res.entity.unique())
+# several patters are Or'd together
+dt.findp(variable=['Emissions|CO2|*', 'Emissions|CH4|*'],
+         source = 'PRIMAP_2019')
 
-# dt.find returns mutltiple matching datatables
-res = dt.findExact(entity = "Emissions|CO2", source='IAMC15_2019_R2')
-print(res.entity.unique())
+# Example finding GHG emission for certain pathways
 
-#%% Accessing the data
+dt.findp(source = 'PRIMAP_2019').pathway.unique()
 
-# tables are accessed by their ID, given by the inventory index returning a Datatable
-table = dt.getTable(inventory.index[100])
+inv = dt.findp(entity='Emissions|KYOTOGHG_AR4', 
+               pathway=['Historic|country_reported', 'Historic|third_party'],
+               source = 'PRIMAP_2019')
 
-# or given by the result dataframe
-table = dt.getTable(res.index[100])
+#%% Seach using contains - findc
+"""
+Findc uses the panfas "contains" logic to filter the inventoy. Any findc search for a "string_pattern
+can be reproduces by findp(**string_pattern**)
+"""
 
-# multiple tables can be loaded at once and returned in a tableSet (being a dictionary+)
-tables = dt.getTables(res.index[:10])
+dt.findc(variable='KYOTO', source = 'PRIMAP_2019')
+#  equals
+dt.findp(variable='**KYOTO**', source = 'PRIMAP_2019')
 
-#%% Datatable
+# Example finding Historic CO2 emission data sets
 
-print(type(table))
+res = dt.find(entity='Emissions|CO2',
+        scenario = 'Historic')
+print(res.source.unique())
+print(res.variable.unique())
 
-# A Datatable is a pandas Dataframe with additonal restrictions and functionalities
-#  - columns are integer years
-#  - the index only consists of valied region identifiers
-#  - the data is numeric
-#  - each table as meta data attached with some required varariables (see config.py)
-#  - each tables only consists of one variable with the same unit which 
-#    allows for easy unit conversion (see unit_conversion.py as tutorial)
-print(table)
 
-# each table is stored as a csv file each inf the dedicated source folder
-print(dt.core.DB._getTableFilePath(table.ID))
-
-#%% DataSet
-
-print(type(tables))
-# A TableSet is a dictionary with minor additional functionalities
-
-# interface to pyam
-iamDataFrame = tables.to_IamDataFrame()
-
-# interface to excel
-tables.to_excel('output_test.xlsx')
+res = dt.findp(entity='Emissions|CO2',
+        scenario = 'Historic**')
+print(res.source.unique())
+print(res.variable.unique())
 

@@ -102,7 +102,7 @@ class Database():
         self.inventory = pd.read_csv(self.INVENTORY_PATH, index_col=0, dtype={'source_year': str})
         self.sources   = self.gitManager.sources
         
-        self.gitManager._validateRepository('main')
+        #self.gitManager._validateRepository('main')
 
 
         if config.DEBUG:

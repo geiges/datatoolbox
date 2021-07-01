@@ -26,10 +26,17 @@ VAR_MAPPING_SHEET = 'variable_mapping'
 SPATIAL_MAPPING_SHEET = 'spatial_mapping'
 
 
+def IEA_mapping_generation():
+    path= '/media/sf_Documents/datashelf/rawdata/IEA2018/'
+    os.chdir(path)
+    df= pd.read_csv('World_Energy_Balances_2018_clean.csv',encoding="ISO-8859-1", engine='python', index_col = None, header =0, na_values='..')
+
 
 def highlight_column(s, col):
     return ['background-color: #d42a2a' if s.name in col else '' for v in s.index]
 
+#%% Import Reader Classes:
+    
 class setupStruct(object):
     pass
 
@@ -86,10 +93,23 @@ class BaseImportTool():
                       'licence': self.setup.LICENCE }
 
 
-    def update(self, updateContent=False):   
-        tableList = self.gatherMappedData(updateTables=updateContent)
-        dt.commitTables(tableList, f'update {self.__class__.__name__} data', self.meta, update=updateContent)
+    def update_database(self, 
+               tableList, 
+               updateContent=False):   
+        # tableList = self.gatherMappedData(updateTables=updateContent)
+        # dt.commitTables(tableList, f'update {self.__class__.__name__} data', self.meta, update=updateContent)
+        self.createSourceMeta()
+        dt.core.DB.update_mapping_file(self.setup.SOURCE_ID, 
+                                       self.setup.MAPPING_FILE,
+                                       self.meta)
+        
+        dt.commitTables(tableList, 
+                        f'update {self.__class__.__name__} data at {dt.getDateString} by {dt.config.CRUNCHER}', 
+                        sourceMetaDict = self.meta, 
+                        update=updateContent)
+
  
+
 
 class WDI_2018(BaseImportTool):
     
@@ -2457,7 +2477,7 @@ class CDLINKS_2018(BaseImportTool):
                         excludedTables['empty'].append(tableID)
 
         return tablesToCommit, excludedTables
-#%%
+
 class IAMC_CMIP6(BaseImportTool):
     
     def __init__(self):
@@ -2637,7 +2657,7 @@ class IAMC_CMIP6(BaseImportTool):
                         excludedTables['empty'].append(tableID)
 
         return tablesToCommit, excludedTables
-#%%
+
 class AIM_SSP_DATA_2019(BaseImportTool):
     
     def __init__(self):
@@ -2845,7 +2865,7 @@ class AIM_SSP_DATA_2019(BaseImportTool):
                         excludedTables['empty'].append(tableID)
 
         return tablesToCommit, excludedTables
-#%%
+
 class IRENA2019(BaseImportTool):
     
     """
@@ -4513,10 +4533,7 @@ class VANMARLE2017(BaseImportTool):
                                 tablesToCommit.append(table)
         return tablesToCommit, excludedTables  
                 
-        #%%
-        
-        
-        
+ 
 class APEC(BaseImportTool):
     
     """
@@ -4968,7 +4985,6 @@ class WEO(BaseImportTool):
         
         return tablesList, []
 
-#%% Enerdata
 class ENERDATA(BaseImportTool):
     def __init__(self, year = 2019):
         self.setup = setupStruct()
@@ -5138,7 +5154,6 @@ class ENERDATA(BaseImportTool):
         return tablesToCommit, excludedTables  
    
     
-#%%
 class CAT_Paris_Sector_Rollout(BaseImportTool):
    
     def __init__(self):
@@ -5284,8 +5299,8 @@ class CAT_Paris_Sector_Rollout(BaseImportTool):
                             tablesToCommit.append(table)
         return tablesToCommit, excludedTables  
 
-     
-#%%
+#%% Import functions   
+
 def HDI_import(year=2020):
     sourceMeta = {'SOURCE_ID': 'HDI_' + str(year),
                   'collected_by' : 'AG',
@@ -5523,9 +5538,7 @@ def HDI_import(year=2020):
     
     dt.commitTables([table], 'UNWPP2017 data', sourceMeta)
     
-    
-#    def 
-    #%%
+
 def UN_WPP_2019_import():
     sourceMeta = {'SOURCE_ID': 'UN_WPP2019',
                           'collected_by' : 'AG',
@@ -5596,228 +5609,50 @@ def UN_WPP_2019_import():
     dt.commitTables(tables, 'UNWPP2017 data', sourceMeta, append_data=True)
     return tables
 
-
-
-#%% 
-sources = sourcesStruct()
-_sourceClasses = [IEA_World_Energy_Balance, IEA_WEB_2018, ADVANCE_DB, IAMC15_2019, IRENA2019,
-                  SSP_DATA, SDG_DATA_2019, AR5_DATABASE, IEA_FUEL_2019, PRIMAP_HIST, SDG_DATA_2019,
-                  CRF_DATA, WDI, APEC, WEO, VANMARLE2017, HOESLY2018, FAO, LED_2019, IMAGE15_2020]
-
-nSourceReader = 0
-for _sourceClass in _sourceClasses:
-    try:
-        _source = _sourceClass()
-        sources[_source.setup.SOURCE_ID] = _source
-        nSourceReader +=1
-    except:
-        pass
-print('{} source reader found and added into "datatoolbox.sources".'.format(nSourceReader))
-        
+  
 
 if config.DEBUG:
     print('Raw sources loaded in {:2.4f} seconds'.format(time.time()-tt))
 
 
-
+#%% Import example
 if __name__ == '__main__':
-#%% PRIMAP HIST
-    primap = PRIMAP_HIST(version="v2.2_19-Jan-2021", year=2021)
-    # tableList, excludedTables = primap.gatherMappedData()
-    # dt.commitTables(tableList, 'PRIMAP 2021 cimooit', primap.meta)
-    # asd
-#%% PRIMAP DOWNSCALE
-    primap_down = PRIMAP_DOWNSCALE()
-#    tableList, excludedTables = primap_down.gatherMappedData()
-#    dt.commitTables(tableList, 'PRIMAP DOWNSCALING 2020', primap_down.meta)
-#    asdf1s
-#%% CRF data
-    crf_data = CRF_DATA(2021)
-    #iea = IEA2016()
-    # tableList = crf_data.gatherMappedData()
-    # crf_data.createSourceMeta()
-    # dt.commitTables(tableList, 'CRF_data_2021', crf_data.meta, update=True)
-    # sdf
-#%% ADVANCE DB
-    advance = ADVANCE_DB()
-#    iea = IEA2016()
-#    tableList, excludedTables = advance.gatherMappedData()
-#    dt.commitTables(tableList, 'ADVANCE DB IAM data', advance.meta)
-#%%WDI data
-    wdi = WDI()    
-#     tableList = wdi.gatherMappedData(updateTables=True)
-# #    
-# ##    iea.openMappingFile()
-#     dt.commitTables(tableList, 'Added WDI 2020  data', wdi.meta, update=True)
-#     sdf
-#%%IEA World Energy Balance
-    iea = IEA_World_Energy_Balance(2020)
-#    iea19.createVariableMapping()
-#    iea19.addSpatialMapping()
 
-    # tableList, excludedTables = iea.gatherMappedData(updateTables=True)
-    # dt.commitTables(tableList, 'IEA2020 World balance update', iea.meta,update=True)
-#    sdf
-#    iea16 = IEA2016()
-#    iea18 = IEA_WEB_2018()
-#    iea18.addSpatialMapping()
-#    tableList, excludedTables = iea18.gatherMappedData(updateTables=True)
-#    dt.commitTables(tableList, 'IEA2018 World balance update', iea18.meta)
-#    tableIDs = [table.ID for table in tableList]
-#    tableList = [dt.tools.cleanDataTable(table) for table in tableList]
-#    dt.updateTables( tableIDs[0:1], tableList[0:1], 'update of tables')
-#    dt.updateTables( [table.ID], [table], 'update of tables')
-
-#%% IEA emissions
-    ieaEmissions = IEA_FUEL_2019()
-#    tableList, excludedTables = ieaEmissions.gatherMappedData(updateTables=True)
-#    dt.commitTables(tableList, 'IEA fuel emission data', ieaEmissions.meta, update=True)
-#    ddsa
-#%% IEA emissions detailed
-    ieaEmissions_detailed = IEA_CO2_FUEL_DETAILED_2019()
-#    tableList, excludedTables = ieaEmissions_detailed.gatherMappedData(updateTables=True)
-#    dt.commitTables(tableList, 'IEA fuel emission detailed data', ieaEmissions.meta, update=True)
+    """
+    Config 
+    """
+    update_content = True
     
-#%% IRENA data
-    irena19 = IRENA2019(2021)
-    # tableList = irena19.gatherMappedData()
-#    dt.commitTables(tableList, 'IRENA 2019 new data', irena19.meta)
-#    dt.updateTables()
-#%% SDG_DB data
-    sdg2019 = SDG_DATA_2019()
-#    tableList = sdg2019.gatherMappedData()
-#    dat.commitTables(tableList, 'SDG_DB 2019 data', sdg2019.meta)    
-
-#%% AIM DATA
-
-    aim = AIM_SSP_DATA_2019()
-#    tableList, excludedTables = aim.gatherMappedData(updateTables=True)
-#    aim.createSourceMeta()
-#    dt.commitTables(tableList, 'update AIM 1.5 data R20', aim.meta, update=True)
     
-#%% IAMC DATA
-
-    iamc = IAMC15_2019()    
-#     tableList, excludedTables = iamc.gatherMappedData(updateTables=False)
-# ##    iamc.createSourceMeta()
-#     dt.commitTables(tableList, 'update IAM 1.5 data R20', iamc.meta, update=True)
-#     sad
-#%% CD LINKS
-
-    cdlinks = CDLINKS_2018()    
-#    tableList, excludedTables = cdlinks.gatherMappedData(updateTables=False)
-#    cdlinks.createSourceMeta()
-#    dt.commitTables(tableList, 'update CD Linksdata ', cdlinks.meta, update=False)
-
-#%% IAMC CMPI6
-
-    cmip6 = IAMC_CMIP6()    
-#    tableList, excludedTables = cmip6.gatherMappedData(updateTables=False)
-#    cmip6.createSourceMeta()
-#    dt.commitTables(tableList, 'added CMIP6 dataset', cmip6.meta, update=False)
-#    sadf
-#%% SSPDB 2013
+    """ 
+    Initialize class:
+    This will load the mapping file, read the data and prepare the additional
+    meta informations.
+    """
+    # reader = PRIMAP_HIST(version="v2.2_19-Jan-2021", year=2021)
+    reader = ENERDATA(year = 2021)
     
-    ssp2013 = SSP_DATA()
-    # tableList, excludedTables = ssp2013.gatherMappedData(updateTables=True)
-    # dt.commitTables(tableList, 'SSP Database data added', ssp2013.meta, update=True)
-#    for countryCode in tableList[0].index:
-#        country = pycountry.countries.get(name = countryCode)
-#        if country is not None:
-#            print(countryCode + ': ' + country.alpha_3)
-#        else:
-#            print(countryCode + ' not found')
     
-#%% AR5
-    ar5_db = AR5_DATABASE()
-#    tableList, excludedTables = ar5_db.gatherMappedData()
-#    dt.commitTables(tableList, 'AR5  data added', ar5_db.meta)
-#%% WEO
-    weo = WEO(2020)
-#    tableList, excludedTables = weo.gatherMappedData()
-#    dt.commitTables(tableList, 'WEO  data updated', weo.meta, update=True)  
+    """ 
+    Process data:
+    This will process the data according to the mapping file and fill a list of 
+    tables which are to be added to the database.
     
-#%% FAO
-    fao = FAO(2021)
-    tableList, excludedTables = fao.gatherMappedData(updateTables=True)
-    dt.commitTables(tableList, 'FAO data 2021', fao.meta, update=True)  
-    df
-#%% APEC
-    apec = APEC(2019)
-#    tableList, excludedTables = apec.gatherMappedData()
-    #dt.commitTables(tableList, 'AR5  data added', apec.meta) 
-
-#%% hoesley
-    hoesley = HOESLY2018()
-#    tableList, excludedTables = hoesley.gatherMappedData()
-#    dt.commitTables(tableList, 'Hoesley data updated', hoesley.meta, update=False)  
-#%% VANMARLE2017
-    vanmarle = VANMARLE2017()
-#    tableList, excludedTables = vanmarle.gatherMappedData()
-#    dt.commitTables(tableList, 'vanmarle data updated', vanmarle.meta, update=False)  
-#%% Enerdata
-    enerdata = ENERDATA(2021)
-    tableList, excludedTables = enerdata.gatherMappedData(updateTables=True)
-    sdf
-    dt.commitTables(tableList, 'enerdata data updated 16-06-21', enerdata.meta, update=True)  
-    #%%
-    enerdata = ENERDATA(2021)
-    # tableList2020, excludedTables = enerdata.gatherMappedData(updateTables=True)
-    # dt.commitTables(tableList2020, 'enerdata 2021 update', enerdata.meta, update=True)  
+    Excluded tables will be listed seperately for review.
+    """
+    tableList, excludedTables = reader.gatherMappedData(updateTables=update_content)
     
-#%% CAT Paris sector Rollout
-    cat_psr = CAT_Paris_Sector_Rollout()
-#    tableList, excludedTables = cat_psr.gatherMappedData()
-#    dt.commitTables(tableList, 'CAT PSR data', cat_psr.meta, update=False)  
-    #%%
-    # sdf
-    i = 66
+    # For review:
+    # tableIDs = [table.ID for table in tableList]
+    # cleanTableList = [dt.tools.cleanDataTable(table) for table in tableList]
+    """
+    Update database:
     
-    table19 = tableList[i]
-    table20 = tableList2020[i]
-    print(table19.meta['variable'])
-    table19 -table20
-        
-    #%%
-##################################################################
-#    helper funtions
-##################################################################  
-def Anne_extract()  :  
-    wdi = WDI_2018()
-    tableList = wdi.gatherMappedData()
-    LDC_list =["AGO", "BEN", "BFA", "BDI", "CAF", "TCD", "COM", "COD", "DJI", "ERI",
-      "ETH", "GMB", "GIN", "GNB", "LSO", "LBR", "MDG", "MWI", "MLI", "MRT",
-      "MOZ", "NER", "RWA", "STP", "SEN", "SLE", "SOM", "SSD", "SDN", "TZA",
-      "TGO", "UGA", "ZMB",
-      # Asia
-      "AFG", "BGD", "BTN", "KHM", "TLS", "LAO", "MMR", "NPL", "YEM",
-      # Oceania
-      "KIR", "SLB", "TUV", "VUT",
-      # The Americas
-      "HTI"]  
-    LDC_list.append('LDC')  
-    LDC_list.append('WLD')
-    #%%
-    filteredTable = list()
-    for table in tableList:
-        filteredTable.append(table.filter(LDC_list))
-    
-    writer = pd.ExcelWriter('wdi_extract.xlsx',
-                            engine='xlsxwriter',
-                            datetime_format='mmm d yyyy hh:mm:ss',
-                            date_format='mmmm dd yyyy')
-    writer.close()
-    
-    for table in filteredTable:
-    
-        if table.meta['unit'] == 'USD':
-            table = table.convert('millions USD')
-        table.to_excel('wdi_extract.xlsx', sheetName=table.generateTableID()[:30],append=True)
-    
-def IEA_mapping_generation():
-    path= '/media/sf_Documents/datashelf/rawdata/IEA2018/'
-    os.chdir(path)
-    df= pd.read_csv('World_Energy_Balances_2018_clean.csv',encoding="ISO-8859-1", engine='python', index_col = None, header =0, na_values='..')
+    This will add the tables in the list to the database and will also add the
+    mapping file to the repository.
+    """
+    reader.update_database(tableList, 
+                           updateContent=updateContent)
 
 #%%
 
