@@ -470,7 +470,7 @@ class Database():
         self.saveTablesToDisk(folder, core.LOG['tableIDs'])
         if config.DEBUG:
             print('{} tables stored to directory {}'.format(
-                len(core.LOG['tableIDS']), folder))
+                len(core.LOG['tableIDs']), folder))
         
         
     def saveTablesToDisk(self, folder, IDList):

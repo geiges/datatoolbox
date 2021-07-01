@@ -134,6 +134,7 @@ def create_initial_config(module_path,
     DEBUG = False
     READ_ONLY = True
     sandboxPath = os.path.join(module_path, 'data','SANDBOX_datashelf')
+    
     git.Repo.init(sandboxPath)
     
     if write_config:
@@ -265,10 +266,10 @@ def switch_database_to_testing():
                                                              config_path=config.CONFIG_DIR,
                                                              write_config=False)
 #
-    if not os.path.exists(os.path.join(sandboxPath, 'sources.csv')):
-#        os.mkdir(sandboxPath)
-        create_empty_datashelf(sandboxPath)
-#    if database == 'sandbox':
+    if os.path.exists(os.path.join(sandboxPath, 'sources.csv')):
+        shutil.rmtree(sandboxPath)
+    
+    create_empty_datashelf(sandboxPath)
     config.PATH_TO_DATASHELF = sandboxPath
     config.SOURCE_FILE = os.path.join(sandboxPath, 'sources.csv')
     dt.core.DB  = dt.database.Database()
