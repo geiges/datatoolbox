@@ -66,7 +66,7 @@ def set_cell_background(table,
 
 def open_word_file(file_name):
     import datatoolbox as dt
-    dt.utilities.open_file(file_name)
+    dt.util.open_file(file_name)
     
 class Document():
     
@@ -234,7 +234,7 @@ class Document():
     def open_word(self):
         self.doc.save(self.file_name)
         import datatoolbox as dt
-        dt.utilities.open_file(self.file_name)
+        dt.util.open_file(self.file_name)
     
 
 #%% Test

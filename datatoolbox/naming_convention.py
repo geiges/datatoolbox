@@ -6,6 +6,7 @@ Naming convention for entities used in for datatoolbox
 
 #%% Emissions
 emission_entities = set([
+    'Emissions|KYOTOGHG_SAR',
     'Emissions|KYOTOGHG_AR4', # EM|KYO_AR4
     'Emissions|KYOTOGHG_AR5', # EM|KYO_AR4
     'Emissions|BC',
@@ -25,11 +26,10 @@ emission_entities = set([
 energy_entities = set([
     'Primary_Energy',           # PE
     'Secondary_Energy',         # SE
+    'Secondary_Energy|Electricity',         # SE
+    'Secondary_Energy|Heat',         # SE
     'Final_Energy',             # FE 
-    'Electric_Energy',          # ELCT 
-    'Electric_Energy|Capacity', # ELCT_CAP
-    'Heat_Energy',              # HEAT
-    'Heat_Energy|Capacity',])   # HEAT_CAP
+    'Capacity']) # ELCT_CAP
 
 #%% Economic enitites
 economic_entities = set([
@@ -39,7 +39,7 @@ economic_entities = set([
     'Investment',   # INV 
     'Subsidies',    
     'Price',
-    'Capital_Costs'
+    'Capital_Costs',
     'Exports',      # EXP
     'Imports',      # IMP
     'Value_Added',  # VAL_ADD 

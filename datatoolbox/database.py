@@ -22,7 +22,6 @@ import numpy as np
 
 from . import config
 from .data_structures import Datatable, TableSet, read_csv
-from .utilities import plot_query_as_graph, shorten_find_output, to_pyam
 from . import mapping as mapp
 from . import io_tools as io
 from . import util
@@ -248,10 +247,10 @@ class Database():
         ).copy()
         
         # test to add function to a instance (does not require class)
-        table.graph = types.MethodType(plot_query_as_graph, table)
-        table.short = types.MethodType(shorten_find_output, table)
+        table.graph = types.MethodType(util.plot_query_as_graph, table)
+        table.short = types.MethodType(util.shorten_find_output, table)
         table.unique = types.MethodType(unique, table)
-        table.to_pyam = types.MethodType(to_pyam, table)
+        table.to_pyam = types.MethodType(util.to_pyam, table)
         return table
 
     def findp(self, level=None, regex=False, **filters):
@@ -295,10 +294,10 @@ class Database():
         )
 
         # test to add function to a instance (does not require class)
-        table.graph = types.MethodType(plot_query_as_graph, table)
-        table.short = types.MethodType(shorten_find_output, table)
+        table.graph = types.MethodType(util.plot_query_as_graph, table)
+        table.short = types.MethodType(util.shorten_find_output, table)
         table.unique = types.MethodType(unique, table)
-        table.to_pyam = types.MethodType(to_pyam, table)
+        table.to_pyam = types.MethodType(util.to_pyam, table)
         return table
     
     
@@ -314,9 +313,9 @@ class Database():
             table = table.loc[mask].copy()
         
         # test to add function to a instance (does not require class)
-        table.graph = types.MethodType( plot_query_as_graph, table )
-        table.short = types.MethodType(shorten_find_output, table)
-        table.to_pyam = types.MethodType(to_pyam, table)
+        table.graph = types.MethodType(util.plot_query_as_graph, table )
+        table.short = types.MethodType(util.shorten_find_output, table)
+        table.to_pyam = types.MethodType(util.to_pyam, table)
         return table
     
     def _getTableFilePath(self,ID):
