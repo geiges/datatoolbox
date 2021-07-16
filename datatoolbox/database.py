@@ -371,6 +371,10 @@ class Database():
             # trying to import sources from remote on demand
             source = self._getSourceFromID(ID)
             
+            if source in core.DB.sources.index:
+                
+                raise(BaseException('Table {} not found'.format(ID)))
+            
             try: 
                 if config.DEBUG:
                     print('Trying to import source {}'.format(source))
@@ -559,6 +563,8 @@ class Database():
         
         else:
             for dataTable in tqdm.tqdm(dataTables):
+                if config.DEBUG:
+                    print(dataTable.ID)
                 if cleanTables:
                     dataTable = util.cleanDataTable(dataTable)
                 
@@ -659,6 +665,7 @@ class Database():
             
             if oldTableID in self.inventory.index:
                 self._updateTable(oldTableID, newDataTable)
+                
             else:
                 dataTable = util.cleanDataTable(newDataTable)
                 self._addTable(dataTable)
@@ -689,7 +696,7 @@ class Database():
 
             #change inventory
             self.inventory.rename(index = {oldID: newID}, inplace = True)
-            self.add_to_inventory(newDataTable)
+        self.add_to_inventory(newDataTable)
 
 
     def validate_ID(self, ID, print_statement=True):

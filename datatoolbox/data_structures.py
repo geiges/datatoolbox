@@ -14,7 +14,7 @@ import pandas as pd
 import matplotlib.pylab as plt
 import numpy as np
 from copy import copy
-
+import ast
 from . import core
 from . import config 
 #from . import mapping as mapp
@@ -34,7 +34,7 @@ class Datatable(pd.DataFrame):
     def __init__(self, *args, **kwargs):
         
         metaData = kwargs.pop('meta', {x:'' for x in config.REQUIRED_META_FIELDS})
-
+        
         super(Datatable, self).__init__(*args, **kwargs)
 #        print(metaData)
         if metaData['unit'] is None or pd.isna(metaData['unit']):
@@ -961,8 +961,11 @@ class TableSet(dict):
         
     def to_compact_excel(self,
                          writer,
-                         sheet_name="Sheet1"):
+                         sheet_name="Sheet1",
+                         include_id=False):
         
+        use_index = include_id
+
         if isinstance(writer, pd.ExcelWriter):
             need_close = False
         else:
@@ -970,14 +973,14 @@ class TableSet(dict):
             need_close = True
             
         
-        long, metaDict = self._compact_to_long_format()
+        long, metaDict = self.to_compact_long_format(include_id)
     
         core.excel_writer(writer,
                          long,
                          metaDict,
                          sheet_name=sheet_name,
-                         index=0,
-                         engine=None)
+                         index= use_index,
+                         engine='xlsxwriter')
         
         if need_close:
             writer.close()
@@ -1097,9 +1100,25 @@ class TableSet(dict):
             
         return resultTable
 
- 
-    def _compact_to_long_format(self):
-        meta_columns = ['region'] + config.INVENTORY_FIELDS
+    def get_all_meta_keys(self):
+        meta_columns = set()
+        for key in self.keys():
+            meta = self[key].meta
+            
+            meta_columns = meta_columns.union(meta.keys())
+        return list(meta_columns)
+    
+    
+    def to_compact_long_format(self, 
+                                include_id= False):
+        
+        meta_columns = ['region'] + self.get_all_meta_keys()
+        # meta_columns = ['region'] + config.INVENTORY_FIELDS
+        if include_id:
+            meta_columns.append('ID')
+        
+                
+        
         long = self.to_LongTable(meta_list = meta_columns)
         
         single_meta = dict()
@@ -1120,6 +1139,9 @@ class TableSet(dict):
         metaDict = dict()
         metaDict.update(single_meta)
         metaDict.update({'meta_columns' : multi_meta})
+        
+        if include_id:
+            long = long.set_index('ID')
         
         return long, metaDict
 
@@ -1302,14 +1324,21 @@ class Visualization():
     def __init__(self, df):
         self.df = df
     
-    def availability(self):
-        data = np.isnan(self.df.values)
-        availableRegions = self.df.index[~np.isnan(self.df.values).any(axis=1)]
-        print(availableRegions)
+    def availability(self, regions = None):
+        
+        if regions is not None:
+            available_regions = self.df.index.intersection(regions)
+            
+            data = self.df.loc[available_regions, :]
+        else:
+            data = self.df
+            
+            availableRegions = data.index[~data.isnull().all(axis=1)]
+        #print(availableRegions)
         plt.pcolormesh(data, cmap ='RdYlGn_r')
         self._formatTimeCol()
-        self._formatSpaceCol()
-        return availableRegions
+        self._formatSpaceCol(data.index)
+        return available_regions
         
     def _formatTimeCol(self):
         years = self.df.columns.values
@@ -1320,8 +1349,11 @@ class Visualization():
         plt.xticks(xTickts+.5, years[xTickts], rotation=45)
         print(xTickts)
         
-    def _formatSpaceCol(self):
-        locations = self.df.index.values
+    def _formatSpaceCol(self, regions = None):
+        if regions is None:
+            locations = self.df.index.values
+        else:
+            locations = np.asarray(list(regions))
         
         #dt = int(len(locations) / 10)+1
         dt = 1    
@@ -1576,6 +1608,87 @@ def read_excel(fileName, sheetNames = None):
 #                print('Failed to read the sheet: {}'.format(sheet))
         
     return out
+
+def read_compact_excel(file_name, sheet_name=None):
+    #%%
+    if sheet_name is None:
+        xlFile = pd.ExcelFile(file_name)
+        sheet_names = xlFile.sheet_names
+        xlFile.close()
+
+    
+    out = TableSet()
+    for sheet in sheet_names:
+        fileContent = pd.read_excel(file_name, sheet_name=sheet, header=None)
+        metaDict = dict()
+        
+        if fileContent.loc[0, 0] != '###META###':
+            raise(BaseException('Undefined format'))
+            
+        # try:
+        if True:
+            for idx in fileContent.index[1:]:
+                key, value = fileContent.loc[idx, [0,1]]
+                if key == '###DATA###':
+                    break
+                
+                metaDict[key] = value
+            columnIdx = idx +1
+            
+
+            lDf = fileContent.loc[columnIdx+1:, :]
+            lDf.columns = fileContent.loc[columnIdx, :]
+            # lDf.index = fileContent.loc[columnIdx+1:, 0]
+            
+            if 'ID' in metaDict['meta_columns']:
+                lDf.loc[:,'ID'] = fileContent.loc[columnIdx:, 0]
+            # import json
+            # x = '[ "A","B","C" , " D"]'
+            # json.loads(metaDict['meta_columns'])
+            
+            try:
+                meta_columns = ast.literal_eval(metaDict['meta_columns'])
+            except:
+                meta_columns = metaDict['meta_columns']
+            meta_columns.remove('region')
+            for idx, line in lDf.iterrows():
+                
+                print(idx)
+                    
+                meta = { x: metaDict[x] for x in metaDict.keys() if x not in  ['meta_columns']}
+                
+                for meta_col in meta_columns:
+                    meta[meta_col] = line[meta_col]
+                region = line.loc['region']
+                ID = line.loc['ID']
+                numerical_columns = list(lDf.columns.difference(meta_columns + ['region']).astype(int))
+                
+                if ID not in out.keys():
+                    # table  = Datatable()
+                    table = Datatable(
+                                columns= numerical_columns,
+                                index= [region],                
+                                meta = meta)
+                    # print(ID)
+                    # print(meta['unit'])
+                    # print(line)
+                    
+                    table.loc[region, numerical_columns] = line.loc[numerical_columns].astype(float)
+                    out[ID] = table
+                    
+                else:
+                    line.loc[numerical_columns].astype(float)
+                    factor = core.conversionFactor(meta['unit'], out[ID].meta['unit'])
+                    out[ID].loc[region, numerical_columns] = line.loc[numerical_columns].astype(float) *factor
+                    #
+                
+                
+    return out
+            
+        # except:
+        #         print('Failed to read the sheet: {}'.format(sheet))
+
+
 #%%
 class MetaData(dict):
     

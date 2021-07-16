@@ -3651,7 +3651,7 @@ class FAO(BaseImportTool):
     def __init__(self, year=2019):
         self.setup = setupStruct()
         self.setup.SOURCE_ID    = "FAO_" + str(year)
-        self.setup.SOURCE_PATH  = config.PATH_TO_DATASHELF + 'rawdata/FAO_' + str(year) + '/'
+        self.setup.SOURCE_PATH  = os.path.join(config.PATH_TO_DATASHELF, 'rawdata/FAO_' + str(year) )
         self.setup.DATA_FILE    = {'Emissions_Land_Use_' : os.path.join(self.setup.SOURCE_PATH, 'Emissions_Land_Use_Land_Use_Total_E_All_Data.csv'),
                                    'Emissions_Agriculture_' : os.path.join(self.setup.SOURCE_PATH, 'Emissions_Agriculture_Agriculture_total_E_All_Data.csv'),
                                    'Environment_Emissions_by_Sector_' : os.path.join(self.setup.SOURCE_PATH, 'Environment_Emissions_by_Sector_E_All_Data.csv'),
@@ -4001,9 +4001,9 @@ class ENERDATA(BaseImportTool):
             self.setup.DATA_FILE    = os.path.join(self.setup.SOURCE_PATH, 'export_enerdata_1137124_113516.xlsx')
         elif year == 2021:
             self.setup.DATA_FILE    = os.path.join(self.setup.SOURCE_PATH, 'export_enerdata_1137124_094807.xlsx')
-            self.setup.DATA_FILE    = os.path.join(self.setup.SOURCE_PATH, 'export_enerdata_2021_06_16.xlsx')
+            self.setup.DATA_FILE    = os.path.join(self.setup.SOURCE_PATH, 'export_enerdata_2021_07_09.xlsx')
         self.setup.MAPPING_FILE =  os.path.join(self.setup.SOURCE_PATH,'mapping_' + str(year) + '.xlsx')
-        self.setup.LICENCE = ' Restricted use in the Brown 2 Green project only'
+        self.setup.LICENCE = ' Restricted use in the Climate Transparency Report project only'
         self.setup.URL     = 'https://www.enerdata.net/user/?destination=services.html'
         
         self.setup.REGION_COLUMN_NAME   = 'ISO code'
@@ -4648,15 +4648,19 @@ if __name__ == '__main__':
     
     # For review:
     # tableIDs = [table.ID for table in tableList]
-    # cleanTableList = [dt.tools.cleanDataTable(table) for table in tableList]
+    # cleanTableList = [dt.tools.cleanDataTable(table) for table in tableList
+    
+    # find empty tablse
+    [x.ID for x in tableList if len(x.index) ==0]
     """
     Update database:
     
     This will add the tables in the list to the database and will also add the
     mapping file to the repository.
     """
+    
     reader.update_database(tableList, 
-                           updateContent=updateContent)
+                           updateContent=update_content)
 
 #%%
 

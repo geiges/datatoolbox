@@ -174,7 +174,7 @@ def cleanDataTable(dataTable):
         )
         dataTable = dataTable.loc[dataTable.index.difference(invalidSpatialIDs)]
     
-    dataTable = dataTable.dropna(how="all", axis=1).dropna(how="all", axis=0)
+    dataTable = dataTable.dropna(how="all", axis=1).dropna(how="all", axis=0).astype(float)
 
     # clean meta data
     keysToDelete = list()
@@ -256,14 +256,17 @@ def convertIndexToISO(table, iso_type='alpha3'):
         table.index = mapp.countries.codes.loc[table.index,'numISO'].astype(int)
     return table
 
-def addCountryNames(table):
+def addCountryNames(table, as_index=False):
     names = list()
     for idx in table.index:
         if idx in mapp.countries.codes.index:
             names.append(mapp.countries.codes.loc[idx,'name'])
         else:
-            names.append('')
-    table.loc[:,'country_name'] = names
+            names.append(idx)
+    if as_index:
+        table.index = names    
+    else:
+        table.loc[:,'country_name'] = names
     return table
 
 
