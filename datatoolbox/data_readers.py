@@ -4313,11 +4313,13 @@ def HDI_import(year=2020):
                   'licence': 'open source' }
     
     SOURCE_PATH = os.path.join(dt.config.PATH_TO_DATASHELF, 'rawdata/', sourceMeta['SOURCE_ID'])
-    data = pd.read_csv(os.path.join(SOURCE_PATH, "Human Development Index (HDI).csv"), na_values='..')
+    data = pd.read_csv(os.path.join(SOURCE_PATH, "Human Development Index (HDI).csv"), na_values='..',
+                       )
+    
     
     yearColumns = dt.util.yearsColumnsOnly(data)
     
-    data = data.loc[:,yearColumns]
+    data = data.loc[:,['Country'] + yearColumns]
     
 #    regionMapping = {x:y for x,y in zip(list(data.loc[:,'Country']), list(data.loc[:,'Country'].map(lambda x : dt.getCountryISO(str(x)))))}
     regionMapping = {
@@ -4529,9 +4531,11 @@ def HDI_import(year=2020):
          'World': 'World'}
     
     data.index = data.loc[:,'Country'].map(regionMapping)
-    data = data.loc[~data.index.isnull(),:].astype(float)
+    
     
     data.index[data.index.duplicated()]
+    data = data.loc[:,yearColumns]
+    data = data.loc[~data.index.isnull(),:].astype(float)
     
     meta =  {'entity'   : 'HDI_Human_development_index',
              'scenario' : 'Historic', 
@@ -4540,7 +4544,7 @@ def HDI_import(year=2020):
     table = dt.Datatable(data, meta=meta)
     table.generateTableID()
     
-    dt.commitTables([table], 'UNWPP2017 data', sourceMeta)
+    dt.commitTables([table], 'HDI data update', sourceMeta)
     
 
 def UN_WPP_2019_import():
@@ -4621,7 +4625,7 @@ if config.DEBUG:
 
 #%% Import example
 if __name__ == '__main__':
-
+    xdfg
     """
     Config 
     """
@@ -4651,7 +4655,7 @@ if __name__ == '__main__':
     # cleanTableList = [dt.tools.cleanDataTable(table) for table in tableList
     
     # find empty tablse
-    [x.ID for x in tableList if len(x.index) ==0]
+    #[x.ID for x in tableList if len(x.index) ==0]
     """
     Update database:
     

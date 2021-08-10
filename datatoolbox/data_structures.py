@@ -17,7 +17,7 @@ from copy import copy
 import ast
 from . import core
 from . import config 
-#from . import mapping as mapp
+import traceback
 from . import util
 #from . import io_tools
 #from .tools import xarray
@@ -1579,8 +1579,12 @@ def read_excel(fileName, sheetNames = None):
                                       meta    = metaDict)
                 dataTable.generateTableID()
                 out.add(dataTable)
-            except:
-                print('Failed to read the sheet: {}'.format(sheet))
+            except Exception:
+
+                
+                if config.DEBUG:
+                    print(traceback.format_exc())
+                print('Failed to read the sheet: {}'.format(sheet))                    
         
     else:
         sheet = sheetNames[0]
@@ -1650,7 +1654,9 @@ def read_compact_excel(file_name, sheet_name=None):
                 meta_columns = ast.literal_eval(metaDict['meta_columns'])
             except:
                 meta_columns = metaDict['meta_columns']
+            # if 'region' in meta_columns:
             meta_columns.remove('region')
+                
             for idx, line in lDf.iterrows():
                 
                 print(idx)
@@ -1661,6 +1667,9 @@ def read_compact_excel(file_name, sheet_name=None):
                     meta[meta_col] = line[meta_col]
                 region = line.loc['region']
                 ID = line.loc['ID']
+                if config.DEBUG:
+                    print(f'meta columns: {meta_columns}')
+                    print(f'numerical columns: {list(lDf.columns.difference(meta_columns + ["region"]))}')
                 numerical_columns = list(lDf.columns.difference(meta_columns + ['region']).astype(int))
                 
                 if ID not in out.keys():
