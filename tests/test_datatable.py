@@ -7,7 +7,7 @@ Created on Wed May  6 09:30:40 2020
 """
 import datatoolbox as dt
 import numpy as np
-
+from pandas.testing import assert_frame_equal
 
 
 def test_creation():
@@ -81,7 +81,7 @@ def test_append():
     assert dt_merge.meta['scenario'] == "computed: scen1+scen3"
 
 def test_clean():
-    from pandas.testing import assert_frame_equal
+    
     metaDict2 = {'source' : 'TEST2',
                 'entity' : 'area',
                 'unit' : 'km'}    
@@ -192,7 +192,24 @@ def test_loss_less_csv_write_read():
     from pandas.testing import assert_frame_equal
     assert assert_frame_equal(df, obs) is None
     
+    
+    def test_loss_less_interpolate_reduce():
+        from util import df, df2
+        
+        df = df.loc[:,df.columns.sort_values()]
+        df_int = df.interpolate()
+        df_obs = df_int.reduce()
+        
+        assert assert_frame_equal(df, df_obs) is None
+        
+        df2 = df2.loc[:,df2.columns.sort_values()]
+        df_int = df2.interpolate()
+        df_obs = df_int.reduce()
+        
+        assert assert_frame_equal(df2, df_obs) is None
+        
     #%%
+    
     
 if __name__ == '__main__':    
     test_creation()

@@ -221,6 +221,48 @@ class Datatable(pd.DataFrame):
         
         return out
     
+    def reduce(self, 
+               method='linear_piece_wise',
+               eps = 1e-6):
+        """ 
+        Reduce data that is piecewise linear to the core data points (kinks).
+        """
+        
+        # assert monotonic incease of decrease
+        assert self.columns.is_monotonic
+        
+        #initial value of last year (set to first year)
+        last_year = self.columns[0]
+        last_yearly_change    = np.nan # initial value
+        
+        reduced_data = self.copy()*np.nan
+        
+        for year in self.columns[1:]:
+            #assert year == last_year+1
+            n_years = year - last_year
+            
+            change= self.loc[:,year] - self.loc[:,last_year]
+            
+            # find where is a kink
+            idx = (change - last_yearly_change*n_years).abs() > eps
+            
+            reduced_data.loc[idx, last_year] = self.loc[idx,last_year]
+            
+            # overwrite last values
+            last_yearly_change = change / n_years
+            last_year = year
+        
+        # set first and last values
+        for coISO in self.index:
+            value_columns = self.columns[self.loc[coISO,:].notna()]
+            idx_min = value_columns.min()
+            idx_max = value_columns.max()
+            reduced_data.loc[coISO, idx_min] = self.loc[coISO,idx_min]
+            reduced_data.loc[coISO, idx_max] = self.loc[coISO,idx_max]
+            
+            #%%
+        return reduced_data
+    
     def to_excel(self, fileName = None, sheetName = "Sheet0", writer = None, append=False):
         """
         Save datatable to excel.
