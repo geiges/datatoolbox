@@ -79,9 +79,9 @@ class Datatable(pd.DataFrame):
         if kwargs:
             idf = idf.filter(**kwargs)
 
-        assert len(idf.variables()) == 1, (
+        assert len(idf.variable) == 1, (
             f"Datatables cannot represent more than one variable, "
-            f"but there are {', '.join(idf.variables())}"
+            f"but there are {', '.join(idf.variable)}"
         )
 
         def extract_unique_values(df, fields, ignore):
