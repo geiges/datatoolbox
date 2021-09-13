@@ -14,7 +14,7 @@ import matplotlib.pyplot as plt
 import pandas as pd
 
 import docx
-from docx import Document
+# from docx import Document
 from docx.shared import Inches
 from docx.enum.text import WD_ALIGN_PARAGRAPH, WD_COLOR_INDEX
 
@@ -31,139 +31,7 @@ alignments = {
     'center' : WD_ALIGN_PARAGRAPH.CENTER,
     'block' : WD_ALIGN_PARAGRAPH.JUSTIFY,
     'justify' : WD_ALIGN_PARAGRAPH.JUSTIFY}
-#%% Functions
 
-def create_document():
-    doc = Document()
-    return doc
-
-
-def add_heading(doc, string, level):
-    doc.add_heading(string,level=level)
-    
-    
-def add_table(pandas_table, 
-              heading, 
-              document,
-              float_format = '{:2.1f}%'):
-    
-    add_paragraph(document)
-    n_col = len(pandas_table.columns)+1
-    table = document.add_table(1, n_col)
-    cells = table.rows[0].cells
-    a, b = cells[0], cells[-1]
-    a.merge(b)
-    cells[0].text = heading
-    
-    # populate header row --------
-    heading_cells = table.add_row().cells
-    for i, col in enumerate(pandas_table.columns):
-        heading_cells[i+1].text = str(col)
-    # heading_cells[1].0text = 'Oil'
-    # heading_cells[2].text = 'Gas'
-    # heading_cells[3].text = 'Nuclear'
-    # heading_cells[4].text = 'Renewables'
-    for ind in pandas_table.index:
-        cells = table.add_row().cells
-        cells[0].text = str(ind)
-        for i, col in enumerate(pandas_table.columns):
-            value = pandas_table.loc[ind, col]
-            if isinstance(value, float):
-                cells[i+1].text = float_format.format(value)
-            else:
-                cells[i+1].text = str(value)
-    table.style = 'Light Grid Accent 1'
-
-
-def add_to_paragraph(para, 
-                     text, 
-                     style =None,
-                     highlight_color=False):
-
-    if not text.endswith(' '):
-        text = text + ' '
-        
-
-    run =  para.add_run(text)
-    if style == 'italic':
-       run.italic = True
-    
-    elif style == 'bold':
-        run.bold = True
-        
-    if highlight_color==True:
-        run.font.highlight_color=WD_COLOR_INDEX.YELLOW
-        
-    return run
-
-def add_paragraph(document, 
-                  scentences = None,
-                  alignment='left'):
-    """
-    
-
-    Parameters
-    ----------
-    alignment : TYPE, optional
-        DESCRIPTION. The default is 'left'.
-        [left , right, center, block, justify]
-
-    Returns
-    -------
-    None.
-
-    """
-    
-    
-    para = document.add_paragraph('')
-    
-    if isinstance(scentences, str):
-        #create iterable
-        scentences = [scentences]
-        
-    if scentences is not None:
-        for scentence in scentences:
-            if not scentence.endswith(' '):
-                scentence = scentence + ' '
-            add_to_paragraph(para, scentence)
-
-        
-    para.alignment = alignments[alignment]
-        
-    return para
-
-def add_figure(doc, 
-               fig,
-               path = None, 
-               relative_width = 1., 
-               crop= False):
-    
-    if path is None:
-        path = 'temp.png'
-    
-    fig.savefig('temp.png', dpi=300)
-    # sdf
-    
-    # width = Inches(6.96)
-    # height =  Inches(6.96)*ratio
-    
-    if crop:
-        _crop_png('temp.png')
-        
-    im = Image.open('temp.png')
-    width = Inches(5.5) * relative_width
-    ratio = im.size[1]/ im.size[0]
-    height = width * ratio
-    
-    doc.add_picture(path, 
-                    width,
-                    height, 
-                    )
-    
-    plt.close()
-     
-    os.remove(path)
-    
 def highlight_runs(para, 
                    index_to_highlight,
                    color = WD_COLOR_INDEX.YELLOW):
@@ -198,8 +66,175 @@ def set_cell_background(table,
 
 def open_word_file(file_name):
     import datatoolbox as dt
-    dt.utilities.open_file('test.docx')
+    dt.utilities.open_file(file_name)
     
+class Document():
+    
+    
+    def __init__(self, file_name):
+        self.file_name = file_name
+        self.doc = docx.Document()
+        # return self.doc
+
+
+    def add_heading(self, string, level):
+        self.doc.add_heading(string,level=level)
+        
+        
+    def add_table(self, 
+                  pandas_table, 
+                  heading, 
+                  float_format = '{:2.1f}%'):
+        
+        add_paragraph(self.doc)
+        n_col = len(pandas_table.columns)+1
+        table = self.doc.add_table(1, n_col)
+        cells = table.rows[0].cells
+        a, b = cells[0], cells[-1]
+        a.merge(b)
+        cells[0].text = heading
+        
+        # populate header row --------
+        heading_cells = table.add_row().cells
+        for i, col in enumerate(pandas_table.columns):
+            heading_cells[i+1].text = str(col)
+        # heading_cells[1].0text = 'Oil'
+        # heading_cells[2].text = 'Gas'
+        # heading_cells[3].text = 'Nuclear'
+        # heading_cells[4].text = 'Renewables'
+        for ind in pandas_table.index:
+            cells = table.add_row().cells
+            cells[0].text = str(ind)
+            for i, col in enumerate(pandas_table.columns):
+                value = pandas_table.loc[ind, col]
+                if isinstance(value, float):
+                    cells[i+1].text = float_format.format(value)
+                else:
+                    cells[i+1].text = str(value)
+        table.style = 'Light Grid Accent 1'
+        return table
+    
+    def add_to_paragraph(self, 
+                         para, 
+                         text, 
+                         style =None,
+                         highlight_color=False):
+    
+        if not text.endswith(' '):
+            text = text + ' '
+            
+    
+        run =  para.add_run(text)
+        if style == 'italic':
+           run.italic = True
+        
+        elif style == 'bold':
+            run.bold = True
+            
+        if highlight_color==True:
+            run.font.highlight_color=WD_COLOR_INDEX.YELLOW
+            
+        return run
+    
+    def add_paragraph(self,
+                      scentences = None,
+                      alignment='left'):
+        """
+        
+    
+        Parameters
+        ----------
+        alignment : TYPE, optional
+            DESCRIPTION. The default is 'left'.
+            [left , right, center, block, justify]
+    
+        Returns
+        -------
+        None.
+    
+        """
+        
+        
+        para = self.doc.add_paragraph('')
+        
+        if isinstance(scentences, str):
+            #create iterable
+            scentences = [scentences]
+            
+        if scentences is not None:
+            for scentence in scentences:
+                if not scentence.endswith(' '):
+                    scentence = scentence + ' '
+                add_to_paragraph(para, scentence)
+    
+            
+        para.alignment = alignments[alignment]
+            
+        return para
+    
+    def add_figure(self, 
+                   fig,
+                   path = None, 
+                   relative_width = 1., 
+                   crop= False):
+        
+        if path is None:
+            path = 'temp.png'
+        
+        fig.savefig('temp.png', dpi=300)
+        # sdf
+        
+        # width = Inches(6.96)
+        # height =  Inches(6.96)*ratio
+        
+        if crop:
+            _crop_png('temp.png')
+            
+        im = Image.open('temp.png')
+        width = Inches(5.5) * relative_width
+        ratio = im.size[1]/ im.size[0]
+        height = width * ratio
+        
+        self.doc.add_picture(path, 
+                        width,
+                        height, 
+                        )
+        
+        plt.close()
+         
+        os.remove(path)
+        
+    def highlight_runs(self, para, 
+                       index_to_highlight,
+                       color = WD_COLOR_INDEX.YELLOW):
+        
+        for idx in index_to_highlight:
+            para.runs[idx].font.highlight_color=color
+    
+       
+    def set_cell_background(table, 
+                            row,
+                            col, 
+                            color):
+        
+        if color.startswith('#'):
+            color = color[1:]
+        shading_elm_1 = parse_xml(r'<w:shd {} w:fill="{}"/>'.format(nsdecls('w'), color))
+        table.rows[row].cells[col]._tc.get_or_add_tcPr().append(shading_elm_1)
+    
+        return table
+    
+    def save(self, 
+             file_name=None):
+        
+        if file_name is None:
+            file_name = self.file_name
+        self.doc.save(file_name)
+    
+    def open_word(self):
+        self.doc.save(self.file_name)
+        import datatoolbox as dt
+        dt.utilities.open_file(self.file_name)
     
 
 #%% Test

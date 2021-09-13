@@ -44,6 +44,7 @@ def main():
         "use_scm_version": {'write_to': 'datatoolbox/version.py'},
         "setup_requires": ['setuptools_scm'],
         "install_requires": [
+            "appdirs",
             "pandas",
             "gitpython",
             "openscm_units",

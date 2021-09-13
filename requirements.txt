@@ -1,3 +1,4 @@
+appdirs
 pandas>=1.0
 numpy
 gitpython

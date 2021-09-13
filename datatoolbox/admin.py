@@ -81,7 +81,8 @@ def _create_empty_datashelf(pathToDataself,
         
 def create_personal_setting(modulePath, OS):
     
-    
+    from . import config 
+    os.makedirs(config.CONFIG_DIR, exist_ok=True)
     # Linux 
     if OS == 'Linux':
         import tkinter as tk
@@ -112,8 +113,8 @@ def create_personal_setting(modulePath, OS):
         file_path_variable = input("Please enter path to datashelf: ")
     
     fin = open(os.path.join(modulePath, 'data','personal_template.py'), 'r')
-    os.makedirs(os.path.join(modulePath, 'settings'),exist_ok=True)
-    fout = open(os.path.join(modulePath, 'settings','personal.py'), 'w')
+    
+    fout = open(os.path.join(config.CONFIG_DIR, 'personal.py'), 'w')
     
     for line in fin.readlines():
         outLine = line.replace('XX',userName).replace('/PPP/PPP', file_path_variable)
@@ -122,20 +123,23 @@ def create_personal_setting(modulePath, OS):
     fout.close()
 
 
-def create_initial_config(modulePath, 
+def create_initial_config(module_path,
+                          config_path, 
                           write_config=True):
     import git
-    fin = open(os.path.join(modulePath, 'data','personal_template.py'), 'r')
-    os.makedirs(os.path.join(modulePath, 'settings'),exist_ok=True)
+    fin = open(os.path.join(module_path, 'data','personal_template.py'), 'r')
+    
     
     
     DEBUG = False
     READ_ONLY = True
-    sandboxPath = os.path.join(modulePath, 'data','SANDBOX_datashelf')
+    sandboxPath = os.path.join(module_path, 'data','SANDBOX_datashelf')
     git.Repo.init(sandboxPath)
     
     if write_config:
-        fout = open(os.path.join(modulePath, 'settings','personal.py'), 'w')
+        #create directory
+        os.makedirs(config_path, exist_ok=True)
+        fout = open(os.path.join(config_path, 'personal.py'), 'w')
         for line in fin.readlines():
             outLine = line.replace('/PPP/PPP', sandboxPath)
             fout.write(outLine)
@@ -231,11 +235,10 @@ def set_autoload_source(boolean):
     from . import config
     config.AUTOLOAD_SOURCES = boolean
     
-    fin = open(os.path.join(config.MODULE_PATH, 'settings','personal.py'), 'r')
+    fin = open(os.path.join(config.CONFIG_DIR, 'personal.py'), 'r')
     lines = fin.readlines()
     fin.close()
-    # os.makedirs(os.path.join(config.MODULE_PATH, 'settings'),exist_ok=True)
-    fout = open(os.path.join(config.MODULE_PATH, 'settings','personal.py'), 'w')
+    fout = open(os.path.join(config.CONFIG_DIR, 'personal.py'), 'w')
     
     line_found = False
     for line in lines:
@@ -258,7 +261,9 @@ def switch_database_to_testing():
     from . import config
 #    from datatoolbox.tools.install_support import create_initial_config
 #    
-    _, sandboxPath, READ_ONLY, DEBUG = create_initial_config(config.MODULE_PATH, write_config=False)
+    _, sandboxPath, READ_ONLY, DEBUG = create_initial_config(config.MODULE_PATH, 
+                                                             config_path=config.CONFIG_DIR,
+                                                             write_config=False)
 #
     if not os.path.exists(os.path.join(sandboxPath, 'sources.csv')):
 #        os.mkdir(sandboxPath)

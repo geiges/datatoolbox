@@ -1,5 +1,6 @@
 name: datatoolbox
 dependencies:
+- appdirs
 - pandas>=1.1
 - numpy
 - gitpython

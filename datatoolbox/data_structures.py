@@ -264,7 +264,7 @@ class Datatable(pd.DataFrame):
             writer.close()
         
         
-                
+        
     
     def to_csv(self, fileName=None):
         """
@@ -802,7 +802,8 @@ class TableSet(dict):
         # make sure the data is compatible
 #        print(table.meta)
 #        print(self[tableKey].meta)
-        assert table.meta == self[tableKey].meta
+        if table.meta != self[tableKey].meta:
+            raise(BaseException('Trying to update table with different meta'))
         
         # update data
         self[tableKey] = pd.concat([self[tableKey] , table])
@@ -957,10 +958,35 @@ class TableSet(dict):
         
     
         #%%
+        
+    def to_compact_excel(self,
+                         writer,
+                         sheet_name="Sheet1"):
+        
+        if isinstance(writer, pd.ExcelWriter):
+            need_close = False
+        else:
+            writer = pd.ExcelWriter(pd.io.common.stringify_path(writer))
+            need_close = True
+            
+        
+        long, metaDict = self._compact_to_long_format()
+    
+        core.excel_writer(writer,
+                         long,
+                         metaDict,
+                         sheet_name=sheet_name,
+                         index=0,
+                         engine=None)
+        
+        if need_close:
+            writer.close()
+            
     
     def to_excel(self, 
                  fileName, 
-                 append=False):
+                 append=False,
+                 compact = False):
         """
         Sace TableSet as excel file with individual datatables in individual sheets.
     
@@ -988,6 +1014,8 @@ class TableSet(dict):
                                     datetime_format='mmm d yyyy hh:mm:ss',
                                     date_format='mmmm dd yyyy')  
         
+
+            
         for i,eKey in enumerate(self.keys()):
             table = self[eKey].dropna(how='all', axis=1).dropna(how='all', axis=0)
             sheetName = str(i) + table.meta['ID'][:25]
@@ -1070,26 +1098,8 @@ class TableSet(dict):
         return resultTable
 
  
-    def to_csv(self,
-               filename):
-        """
-        Conversion to multi-csv
-
-        Parameters
-        ----------
-        filename : TYPE
-            DESCRIPTION.
-
-        Returns
-        -------
-        None.
-
-        """
-        #%%
-        self = dt.getTables(dt.findp(source='ENERDATA**').index)
-        
-        
-        meta_columns = ['region'] + dt.config.INVENTORY_FIELDS
+    def _compact_to_long_format(self):
+        meta_columns = ['region'] + config.INVENTORY_FIELDS
         long = self.to_LongTable(meta_list = meta_columns)
         
         single_meta = dict()
@@ -1110,6 +1120,27 @@ class TableSet(dict):
         metaDict = dict()
         metaDict.update(single_meta)
         metaDict.update({'meta_columns' : multi_meta})
+        
+        return long, metaDict
+
+    def to_csv(self,
+               filename):
+        """
+        Conversion to compact lone csv format
+
+        Parameters
+        ----------
+        filename : TYPE
+            DESCRIPTION.
+
+        Returns
+        -------
+        None.
+
+        """
+        #%%
+
+        long, metaDict = self._compact_to_long_format()
         
         core.csv_writer(filename, 
                         long,

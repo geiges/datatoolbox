@@ -8,10 +8,14 @@ in various locations and tools.
 """
 
 import time
-from datatoolbox import config
-import numpy as np
-tt = time.time()
 import pint
+
+import numpy as np
+import pandas as pd
+from datatoolbox import config
+
+tt = time.time()
+
 #%% Pint unit handling
 gases = {"CO2eq":"carbon_dioxide_equivalent",
          "CO2e" : "CO2eq",
@@ -112,6 +116,30 @@ def csv_writer(filename,
     elif index is None:
         dataframe.to_csv(fid,index=None,sep = ';')
     fid.close()
+
+def excel_writer(writer,
+                 dataframe,
+                 meta,
+                 sheet_name="Sheet1",
+                 index=0,
+                 engine=None):
+    
+    if isinstance(writer, pd.ExcelWriter):
+        need_save = False
+    else:
+        writer = pd.ExcelWriter(pd.io.common.stringify_path(writer), engine=engine)
+        need_save = True
+        
+    
+    metaSeries= pd.Series(data=[''] + list(meta.values()) + [''],
+                              index=['###META###'] + list(meta.keys()) + ['###DATA###'])
+        
+    metaSeries.to_excel(writer, sheet_name=sheet_name, header=None, columns=None)
+    pd.DataFrame(dataframe).to_excel(writer, sheet_name= sheet_name, startrow=len(metaSeries))
+    
+    if need_save:
+        writer.save()
+            
 
 def osIsWindows():
     """

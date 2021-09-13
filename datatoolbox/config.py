@@ -7,6 +7,7 @@ Created on Fri Mar  1 14:15:56 2019
 """
 import os
 import platform
+import appdirs
 OS = platform.system() #'win32' , linux, #Darwin
 
 
@@ -17,7 +18,12 @@ MODULE_PATH = os.path.dirname(__file__)
 #     matplotlib.use("TkAgg")
 
  
-
+# personal configuration path
+from appdirs import user_data_dir
+appname = "datatoolbox"
+appauthor = "ageiges"
+CONFIG_DIR = user_data_dir(appname, appauthor)
+#os.makedirs(CONFIG_DIR, exist_ok = True)
 #%% general setup
 
 
@@ -64,11 +70,13 @@ SOURCE_META_FIELDS = ['SOURCE_ID',
                       'licence',
                       'git_commit_hash']
 
+
 #%% Personal setup
-if not os.path.isfile(os.path.dirname(__file__) + '/settings/personal.py'):
+if not os.path.isfile(os.path.join(CONFIG_DIR, 'personal.py')):
     from .admin import create_initial_config, _create_empty_datashelf
     modulePath =  os.path.dirname(__file__) + '/'
-    CRUNCHER, PATH_TO_DATASHELF, DB_READ_ONLY, DEBUG = create_initial_config(modulePath)
+    CRUNCHER, PATH_TO_DATASHELF, DB_READ_ONLY, DEBUG = create_initial_config(MODULE_PATH,
+                                                                             CONFIG_DIR)
     _create_empty_datashelf(PATH_TO_DATASHELF, 
                            MODULE_PATH,
                            SOURCE_META_FIELDS,
@@ -76,7 +84,10 @@ if not os.path.isfile(os.path.dirname(__file__) + '/settings/personal.py'):
                            force_new=True)
     TEST_ENV = True
 else:
-    from .settings.personal import CRUNCHER, PATH_TO_DATASHELF, DB_READ_ONLY, DEBUG, AUTOLOAD_SOURCES
+    # from .settings.personal import CRUNCHER, PATH_TO_DATASHELF, DB_READ_ONLY, DEBUG, AUTOLOAD_SOURCES
+    
+    #importng CRUNCHER, PATH_TO_DATASHELF, DB_READ_ONLY, DEBUG, AUTOLOAD_SOURCES
+    exec(open(os.path.join(CONFIG_DIR, 'personal.py')).read())
     TEST_ENV = False
 
 
