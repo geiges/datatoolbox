@@ -294,11 +294,13 @@ class Database():
         )
 
         # test to add function to a instance (does not require class)
-        table.graph = types.MethodType(util.plot_query_as_graph, table)
-        table.short = types.MethodType(util.shorten_find_output, table)
-        table.unique = types.MethodType(unique, table)
+        table.graph   = types.MethodType(util.plot_query_as_graph, table)
+        table.short   = types.MethodType(util.shorten_find_output, table)
+        table.unique  = types.MethodType(unique, table)
         table.to_pyam = types.MethodType(util.to_pyam, table)
+        table.load    = types.MethodType(self.getTables, table.index) 
         return table
+    
     
     
     def findExact(self, **kwargs):
