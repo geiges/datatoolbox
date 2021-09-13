@@ -84,7 +84,8 @@ def _update_meta(metaDict):
     
     for key in list(metaDict.keys()):
         if (metaDict[key] is np.nan) or metaDict[key] == '':
-            del metaDict[key]
+            if key != 'unit':
+                del metaDict[key]
             
     for id_field in config.ID_FIELDS:
         fieldList = [ metaDict[key] for key in config.SUB_FIELDS[id_field] if key in  metaDict.keys()]
