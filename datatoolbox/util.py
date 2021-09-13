@@ -57,12 +57,7 @@ colorGenerator = dp.deprecated(_plt.colorGenerator,
 savefig = dp.deprecated(_plt.savefig,
                                reason="please import from matplotlib toolkid", 
                                version='0.4.0')
-from .tools import pandas as _pd
 
-yearsColumnsOnly = dp.deprecated(_pd.yearsColumnsOnly,
-                               reason="please import from pandas toolkid", 
-                               version='0.4.0')
- 
 #%%
 from .tools import html as _html
 
@@ -190,6 +185,7 @@ def cleanDataTable(dataTable):
     # ensure time colums to be integer
     dataTable.columns = dataTable.columns.astype(int)
     
+    dataTable = dataTable.loc[:, dataTable.columns.sort_values()]
     return dataTable
 
 
@@ -207,21 +203,22 @@ def identifyCountry(string):
             return mapp.countries.index[mask][0]
     except:
         pass
-    if len(string) == 2:
-        mask = string == mapp.countries.codes['alpha2']
+    
+    if len(str(string)) == 2:
+        mask = str(string).upper() == mapp.countries.codes['alpha2']
         if mask.any():
             return mapp.countries.codes.index[mask][0]
     
-    if len(string) == 3:
+    if len(str(string)) == 3:
          
-        if string.upper() in mapp.countries.codes.index:
+        if str(string).upper() in mapp.countries.codes.index:
             return string.upper()
     
     try: 
         coISO = dt.getCountryISO(string)
         return coISO
     except:
-        print('not matching country found')    
+        print(f'not matching country found for {string}')    
         return None
             
 def convertIndexToISO(table, iso_type='alpha3'):
