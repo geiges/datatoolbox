@@ -36,8 +36,9 @@ class Datatable(pd.DataFrame):
         metaData = kwargs.pop('meta', {x:'' for x in config.REQUIRED_META_FIELDS})
         
         super(Datatable, self).__init__(*args, **kwargs)
-#        print(metaData)
+        # print(metaData)
         if metaData['unit'] is None or pd.isna(metaData['unit']):
+
             metaData['unit'] = ''
 #        metaData['variable'] = metaData['entity'] + metaData['category']
         self.__appendMetaData__(metaData)
@@ -54,6 +55,26 @@ class Datatable(pd.DataFrame):
         self.columns.name = 'time'
         self.index.name   = 'region'
     
+
+    
+    def info(self):
+        """
+        Returns information about the dataframe like shape, index and column 
+        extend and the number of non-nan entries.
+        
+        Returns
+        -------
+        str
+            Information about datatable.
+
+        """
+        shp = self.shape
+        idx_ext = self.index[0] ,self.index[-1]
+        time_ext = self.columns[0] ,self.columns[-1]
+        n_entries = (~self.isnull()).sum().sum()
+        return f'{shp[0]}x{shp[1]} Datatable with {n_entries} entries, index from {idx_ext[0]} to {idx_ext[1]} and time from {time_ext[0]} to {time_ext[0]}'
+        
+        
     @classmethod
     def from_pyam(cls, idf, **kwargs):
         """
@@ -1696,6 +1717,8 @@ def read_compact_excel(file_name, sheet_name=None):
                 meta_columns = ast.literal_eval(metaDict['meta_columns'])
             except:
                 meta_columns = metaDict['meta_columns']
+            if isinstance(meta_columns, str):
+                meta_columns= meta_columns.split(', ')
             # if 'region' in meta_columns:
             meta_columns.remove('region')
                 
