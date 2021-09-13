@@ -9,8 +9,8 @@ Created on Tue Apr  2 11:20:42 2019
 import datatoolbox as dt
 from datatoolbox import config
 from datatoolbox.data_structures import Datatable
-from datatoolbox.util import isUnit, yearsColumnsOnly
-
+from datatoolbox.util import isUnit
+from datatoolbox.tools.pandas import  yearsColumnsOnly
 from collections import defaultdict
 from functools import reduce
 import pandas as pd
@@ -99,9 +99,13 @@ class BaseImportTool():
         # tableList = self.gatherMappedData(updateTables=updateContent)
         # dt.commitTables(tableList, f'update {self.__class__.__name__} data', self.meta, update=updateContent)
         self.createSourceMeta()
-        dt.core.DB.update_mapping_file(self.setup.SOURCE_ID, 
-                                       self.setup.MAPPING_FILE,
-                                       self.meta)
+        
+        if hasattr(self.setup, 'MAPPING_FILE'):
+            dt.core.DB.update_mapping_file(self.setup.SOURCE_ID, 
+                                           self.setup.MAPPING_FILE,
+                                           self.meta)
+        else:
+            print('No mapping file saved')    
         
         dt.commitTables(tableList, 
                         f'update {self.__class__.__name__} data at {dt.getDateString} by {dt.config.CRUNCHER}', 
@@ -216,6 +220,119 @@ class WDI(BaseImportTool):
             tablesToCommit.append(dataTable)
         return tablesToCommit
 
+
+class EEA_DATA(BaseImportTool):
+    
+    def __init__(self, year):
+        self.setup = setupStruct()
+        self.setup.SOURCE_ID    = f"EEA_{year}"
+        self.setup.SOURCE_PATH  = os.path.join(config.PATH_TO_DATASHELF, f'rawdata/EEA_{year}/')
+        self.setup.DATA_FILE    = f'EU members targets 13_07_21.xlsx'
+        # self.setup.MAPPING_FILE = self.setup.SOURCE_PATH + 'mapping_detailed.xlsx'
+        self.setup.LICENCE = 'restricted'
+        self.setup.URL     = 'https://www.iea.org/statistics/co2emissions/'
+        self.year          = year
+
+    
+    def gatherMappedData(self):
+        
+        #%%
+        tables = list()
+       
+        fullFilePath = os.path.join(self.setup.SOURCE_PATH, self.setup.DATA_FILE)
+        # loading data if necessary
+        target_data = pd.read_excel(fullFilePath, 
+                                  index_col = 0, 
+                                  header =1,
+                                  sheet_name = 'Data all countries',
+                                  usecols=[0,3,4])
+        
+        target_data = dt.tools.pandas.convertIndexToISO(target_data)
+        
+        meta = {'entity' : 'Emissions|KYOTOGHG_AR4',
+                'category' : 'Total_excl_LULUCF',
+                'scenario' : 'National_targets|Min',
+                'source' : f'EEA_{self.year}',
+                'unit' : 'Mt CO2eq'}
+        
+        target_data_min = dt.Datatable(target_data.loc[:,['in MtCO2eq (min)']],
+                                   meta= meta)
+        target_data_min.columns = [2030]
+        
+        meta = {'entity' : 'Emissions|KYOTOGHG_AR4',
+                'category' : 'Total_excl_LULUCF',
+                'scenario' : 'National_targets|Max',
+                'source' : f'EEA_{self.year}',
+                'unit' : 'Mt CO2eq'}
+        
+        target_data_max = dt.Datatable(target_data.loc[:,['in MtCO2eq (max)']],
+                                   meta= meta)
+        target_data_max.columns = [2030]
+        
+        tables.append(target_data_min)
+        tables.append(target_data_max)
+        
+        hist_data =  pd.read_excel(fullFilePath, 
+                                  index_col = 0, 
+                                  header =1,
+                                  sheet_name = 'Data all countries',
+                                  usecols=[0] + list(range(14,43)))
+        
+        hist_data = dt.tools.pandas.convertIndexToISO(hist_data)
+        
+        meta = {'entity' : 'Emissions|KYOTOGHG_AR4',
+                'category' : 'Total_excl_LULUCF',
+                'scenario' : 'Historic',
+                'source' : f'EEA_{self.year}',
+                'unit' : 'kt CO2eq'}
+        
+        hist_data = dt.Datatable(hist_data,
+                                   meta= meta).convert('Mt CO2eq')
+        
+        tables.append(hist_data)
+        
+        #CPP
+        cpp_wem_data =  pd.read_excel(fullFilePath, 
+                                  index_col = 0, 
+                                  header =1,
+                                  sheet_name = 'Data all countries',
+                                  usecols=[0] + list(range(43,55)))
+        
+        cpp_wem_data = dt.tools.pandas.convertIndexToISO(cpp_wem_data)
+        
+        meta = {'entity' : 'Emissions|KYOTOGHG_AR4',
+                'category' : 'Total_excl_LULUCF',
+                'scenario' : 'Current_policies',
+                'source' : f'EEA_{self.year}',
+                'unit' : 'kt CO2eq'}
+        
+        cpp_wem_data = dt.Datatable(cpp_wem_data,
+                                   meta= meta).convert('Mt CO2eq')
+        
+        tables.append(cpp_wem_data)
+        
+        cpp_wam_data =  pd.read_excel(fullFilePath, 
+                                  index_col = 0, 
+                                  header =1,
+                                  sheet_name = 'Data all countries',
+                                  usecols=[0] + list(range(56,68)))
+        cpp_wam_data.columns = [int(x[:4]) for x in cpp_wam_data.columns]
+        cpp_wam_data = dt.tools.pandas.convertIndexToISO(cpp_wam_data)
+        
+        meta = {'entity' : 'Emissions|KYOTOGHG_AR4',
+                'category' : 'Total_excl_LULUCF',
+                'scenario' : 'Additional_policies',
+                'source' : f'EEA_{self.year}',
+                'unit' : 'kt CO2eq'}
+        
+        cpp_wam_data = dt.Datatable(cpp_wam_data,
+                                   meta= meta).convert('Mt CO2eq')
+        
+        tables.append(cpp_wam_data)
+        
+        return tables, None
+        
+        #%%
 
 class IEA_CO2_FUEL_DETAILED(BaseImportTool):
     """
@@ -4544,7 +4661,7 @@ def HDI_import(year=2020):
     table = dt.Datatable(data, meta=meta)
     table.generateTableID()
     
-    dt.commitTables([table], 'HDI data update', sourceMeta)
+    dt.commitTables([table], 'HDI data update', sourceMeta, update=True)
     
 
 def UN_WPP_2019_import():
@@ -4614,7 +4731,10 @@ def UN_WPP_2019_import():
     
     tables = [add_EU(table) for table in tables]
     
-    dt.commitTables(tables, 'UNWPP2017 data', sourceMeta, append_data=True)
+    dt.commitTables(tables, 'UNWPP2017 data', 
+                    sourceMeta, 
+                    append_data=True,
+                    update=True)
     return tables
 
   
@@ -4625,7 +4745,7 @@ if config.DEBUG:
 
 #%% Import example
 if __name__ == '__main__':
-    xdfg
+    # xdfg
     """
     Config 
     """
@@ -4638,7 +4758,7 @@ if __name__ == '__main__':
     meta informations.
     """
     # reader = PRIMAP_HIST(version="v2.2_19-Jan-2021", year=2021)
-    reader = ENERDATA(year = 2021)
+    reader = EEA_DATA(year = 2021)
     
     
     """ 
@@ -4648,7 +4768,7 @@ if __name__ == '__main__':
     
     Excluded tables will be listed seperately for review.
     """
-    tableList, excludedTables = reader.gatherMappedData(updateTables=update_content)
+    tableList, excludedTables = reader.gatherMappedData()
     
     # For review:
     # tableIDs = [table.ID for table in tableList]
