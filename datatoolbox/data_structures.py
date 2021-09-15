@@ -36,11 +36,11 @@ class Datatable(pd.DataFrame):
         metaData = kwargs.pop('meta', {x:'' for x in config.REQUIRED_META_FIELDS})
         
         super(Datatable, self).__init__(*args, **kwargs)
-        # print(metaData)
+
         if metaData['unit'] is None or pd.isna(metaData['unit']):
 
             metaData['unit'] = ''
-#        metaData['variable'] = metaData['entity'] + metaData['category']
+
         self.__appendMetaData__(metaData)
         self.vis = Visualization(self)
         try:
@@ -476,7 +476,7 @@ class Datatable(pd.DataFrame):
         Returns
         -------
         datatable
-            Interpoltated dataframe.
+            Interpolated dataframe.
 
         """
         from datatoolbox.tools.for_datatables import interpolate
@@ -575,7 +575,8 @@ class Datatable(pd.DataFrame):
         self.meta['ID'] = self.ID
         return self.ID
 
-
+    def _update_meta(self):
+        self.meta =  core._update_meta(self.meta)
     
     def source(self):
         """
@@ -1615,7 +1616,9 @@ def read_csv(fileName):
     fid.close()
     return df
 
-def read_excel(fileName, sheetNames = None):
+def read_excel(fileName, 
+               sheetNames = None,
+               use_sheet_name_as_keys=False):
  
     
     if sheetNames is None:
@@ -1641,7 +1644,11 @@ def read_excel(fileName, sheetNames = None):
                                       columns = [int(x) for x in fileContent.loc[columnIdx, 1:]], 
                                       meta    = metaDict)
                 dataTable.generateTableID()
-                out.add(dataTable)
+                if use_sheet_name_as_keys:
+                    out[sheet] = dataTable
+                else:
+                    out.add(dataTable)
+                
             except Exception:
 
                 
