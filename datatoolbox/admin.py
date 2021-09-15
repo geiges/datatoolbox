@@ -134,6 +134,7 @@ def create_initial_config(module_path,
     DEBUG = False
     READ_ONLY = True
     sandboxPath = os.path.join(module_path, 'data','SANDBOX_datashelf')
+    
     git.Repo.init(sandboxPath)
     
     if write_config:
@@ -265,13 +266,53 @@ def switch_database_to_testing():
                                                              config_path=config.CONFIG_DIR,
                                                              write_config=False)
 #
-    if not os.path.exists(os.path.join(sandboxPath, 'sources.csv')):
-#        os.mkdir(sandboxPath)
-        create_empty_datashelf(sandboxPath)
-#    if database == 'sandbox':
+    if os.path.exists(os.path.join(sandboxPath, 'sources.csv')):
+        shutil.rmtree(sandboxPath)
+    
+    create_empty_datashelf(sandboxPath)
     config.PATH_TO_DATASHELF = sandboxPath
     config.SOURCE_FILE = os.path.join(sandboxPath, 'sources.csv')
     dt.core.DB  = dt.database.Database()
 
     _re_link_functions(dt)
     _create_test_tables()
+    
+def naming_convention_test():
+    #%%
+    from naming_convention import entities
+    
+    
+    variable_list = dt.findp().loc[:,['variable', 'entity']]
+    entities_to_test = tuple(entities)
+    
+    inconsistent_ids = list()
+    nan_ids          = list()
+    for idx, (variable, entity) in variable_list.iterrows():
+        if pd.isnull(entity):
+            nan_ids.append(idx)
+        else:
+            if not idx.startswith(entities_to_test):
+                inconsistent_ids.append(idx)
+                
+    #%%
+    # finding entity
+    tableList = list()
+    for idx in nan_ids:
+        
+        variable, entity = variable_list.loc[idx,:]
+        if idx.startswith(entities_to_test):
+            candiates = list()
+            
+            for entity in entities_to_test:
+                if idx.startswith(entity):
+                    candiates.append(entity)
+                    
+                sort_candiates = sorted(candiates, key=len)
+            
+            entity = sort_candiates[-1]
+            category = variable.lstrip(entity).lstrip('|')
+            table = dt.getTable(idx)
+            table.meta['category'] = category
+            table.meta['entity'] = entity
+            tableList.append(table)
+    dt.updateTables([x.ID for x in tableList], tableList, 'added entity')

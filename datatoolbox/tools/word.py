@@ -20,7 +20,7 @@ from docx.enum.text import WD_ALIGN_PARAGRAPH, WD_COLOR_INDEX
 
 import numpy as np
 from PIL import ImageColor, Image
-from docx.shared import RGBColor
+from docx.shared import RGBColor, Pt
 from docx.oxml.ns import nsdecls
 from docx.oxml import parse_xml
 
@@ -64,9 +64,19 @@ def set_cell_background(table,
 
     return table
 
+def change_font_size(table,
+                     size):
+    for row in table.rows:
+        for cell in row.cells:
+            paragraphs = cell.paragraphs
+            for paragraph in paragraphs:
+                for run in paragraph.runs:
+                    font = run.font
+                    font.size= Pt(size)
+
 def open_word_file(file_name):
     import datatoolbox as dt
-    dt.utilities.open_file(file_name)
+    dt.util.open_file(file_name)
     
 class Document():
     
@@ -79,14 +89,17 @@ class Document():
 
     def add_heading(self, string, level):
         self.doc.add_heading(string,level=level)
-        
+      
+    def add_bullet_list(self, bullet_list):
+        for bullet in bullet_list:
+            self.add_paragraph('•	' + bullet)
         
     def add_table(self, 
                   pandas_table, 
                   heading, 
-                  float_format = '{:2.1f}%'):
+                  float_format = '{:2.1f}'):
         
-        add_paragraph(self.doc)
+        self.add_paragraph('')
         n_col = len(pandas_table.columns)+1
         table = self.doc.add_table(1, n_col)
         cells = table.rows[0].cells
@@ -165,7 +178,7 @@ class Document():
             for scentence in scentences:
                 if not scentence.endswith(' '):
                     scentence = scentence + ' '
-                add_to_paragraph(para, scentence)
+                self.add_to_paragraph(para, scentence)
     
             
         para.alignment = alignments[alignment]
@@ -234,7 +247,7 @@ class Document():
     def open_word(self):
         self.doc.save(self.file_name)
         import datatoolbox as dt
-        dt.utilities.open_file(self.file_name)
+        dt.util.open_file(self.file_name)
     
 
 #%% Test

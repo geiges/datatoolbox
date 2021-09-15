@@ -69,9 +69,9 @@ from . import interfaces
 from . import util as util
 from . import admin as admin
 from . import templates
-from . import utilities as _util 
+# from . import utilities as _util 
 
-from . import rawSources as _raw_sources
+from . import data_readers
 
 # Predefined sets for regions and scenrarios
 from datatoolbox.sets import REGIONS, SCENARIOS
@@ -110,7 +110,7 @@ if db_connected:
     updateExcelInput = core.DB.updateExcelInput
 
 insertDataIntoExcelFile = io.insertDataIntoExcelFile
-sources = _raw_sources.sources
+# sources = _raw_sources.sources
 
 # get country ISO code
 getCountryISO = util.getCountryISO

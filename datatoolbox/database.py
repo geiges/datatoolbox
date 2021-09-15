@@ -22,7 +22,6 @@ import numpy as np
 
 from . import config
 from .data_structures import Datatable, TableSet, read_csv
-from .utilities import plot_query_as_graph, shorten_find_output, to_pyam
 from . import mapping as mapp
 from . import io_tools as io
 from . import util
@@ -102,7 +101,7 @@ class Database():
         self.inventory = pd.read_csv(self.INVENTORY_PATH, index_col=0, dtype={'source_year': str})
         self.sources   = self.gitManager.sources
         
-        self.gitManager._validateRepository('main')
+        #self.gitManager._validateRepository('main')
 
 
         if config.DEBUG:
@@ -248,10 +247,10 @@ class Database():
         ).copy()
         
         # test to add function to a instance (does not require class)
-        table.graph = types.MethodType(plot_query_as_graph, table)
-        table.short = types.MethodType(shorten_find_output, table)
+        table.graph = types.MethodType(util.plot_query_as_graph, table)
+        table.short = types.MethodType(util.shorten_find_output, table)
         table.unique = types.MethodType(unique, table)
-        table.to_pyam = types.MethodType(to_pyam, table)
+        table.to_pyam = types.MethodType(util.to_pyam, table)
         return table
 
     def findp(self, level=None, regex=False, **filters):
@@ -295,11 +294,13 @@ class Database():
         )
 
         # test to add function to a instance (does not require class)
-        table.graph = types.MethodType(plot_query_as_graph, table)
-        table.short = types.MethodType(shorten_find_output, table)
-        table.unique = types.MethodType(unique, table)
-        table.to_pyam = types.MethodType(to_pyam, table)
+        table.graph   = types.MethodType(util.plot_query_as_graph, table)
+        table.short   = types.MethodType(util.shorten_find_output, table)
+        table.unique  = types.MethodType(unique, table)
+        table.to_pyam = types.MethodType(util.to_pyam, table)
+        table.load    = types.MethodType(self.getTables, table.index) 
         return table
+    
     
     
     def findExact(self, **kwargs):
@@ -314,9 +315,9 @@ class Database():
             table = table.loc[mask].copy()
         
         # test to add function to a instance (does not require class)
-        table.graph = types.MethodType( plot_query_as_graph, table )
-        table.short = types.MethodType(shorten_find_output, table)
-        table.to_pyam = types.MethodType(to_pyam, table)
+        table.graph = types.MethodType(util.plot_query_as_graph, table )
+        table.short = types.MethodType(util.shorten_find_output, table)
+        table.to_pyam = types.MethodType(util.to_pyam, table)
         return table
     
     def _getTableFilePath(self,ID):
@@ -371,6 +372,10 @@ class Database():
         if config.AUTOLOAD_SOURCES:
             # trying to import sources from remote on demand
             source = self._getSourceFromID(ID)
+            
+            if source in core.DB.sources.index:
+                
+                raise(BaseException('Table {} not found'.format(ID)))
             
             try: 
                 if config.DEBUG:
@@ -464,13 +469,13 @@ class Database():
 
         """
         #create folder if required
-        if ~os.path.exists(folder):
+        if  not os.path.exists(folder):
             os.mkdir(folder)
         #save tables to disk
         self.saveTablesToDisk(folder, core.LOG['tableIDs'])
         if config.DEBUG:
             print('{} tables stored to directory {}'.format(
-                len(core.LOG['tableIDS']), folder))
+                len(core.LOG['tableIDs']), folder))
         
         
     def saveTablesToDisk(self, folder, IDList):
@@ -560,6 +565,8 @@ class Database():
         
         else:
             for dataTable in tqdm.tqdm(dataTables):
+                if config.DEBUG:
+                    print(dataTable.ID)
                 if cleanTables:
                     dataTable = util.cleanDataTable(dataTable)
                 
@@ -660,6 +667,7 @@ class Database():
             
             if oldTableID in self.inventory.index:
                 self._updateTable(oldTableID, newDataTable)
+                
             else:
                 dataTable = util.cleanDataTable(newDataTable)
                 self._addTable(dataTable)
@@ -690,7 +698,7 @@ class Database():
 
             #change inventory
             self.inventory.rename(index = {oldID: newID}, inplace = True)
-            self.add_to_inventory(newDataTable)
+        self.add_to_inventory(newDataTable)
 
 
     def validate_ID(self, ID, print_statement=True):

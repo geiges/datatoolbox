@@ -17,7 +17,7 @@ from . import config
 from . import core
 from . import util
 from . import mapping as mapp
-
+from .tools.pandas import yearsColumnsOnly
 
  
 from . import greenhouse_gas_database as gh
@@ -119,7 +119,7 @@ def read_PRIMAP_csv(fileName):
     
     
     table = Datatable(data, meta=meta)
-    table = table.loc[:, util.yearsColumnsOnly(table)]
+    table = table.loc[:, yearsColumnsOnly(table)]
     table.columns = table.columns.astype(int)
     return table#, data
 
@@ -186,9 +186,9 @@ def _read_PRIMAP_Excel_single(fileName, sheet_name= 0, xlsFile=None):
     
     table = Datatable(data, meta=meta)
     try:
-        table = table.loc[:,util.yearsColumnsOnly(table)]
+        table = table.loc[:,yearsColumnsOnly(table)]
         table.columns = table.columns.astype(int)
-#        table = table.loc[:,util.yearsColumnsOnly(table)]
+#        table = table.loc[:,yearsColumnsOnly(table)]
     except:
         print('warning: Columns could not be converted to int')
     return table

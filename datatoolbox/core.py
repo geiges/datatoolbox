@@ -84,7 +84,8 @@ def _update_meta(metaDict):
     
     for key in list(metaDict.keys()):
         if (metaDict[key] is np.nan) or metaDict[key] == '':
-            del metaDict[key]
+            if key != 'unit':
+                del metaDict[key]
             
     for id_field in config.ID_FIELDS:
         fieldList = [ metaDict[key] for key in config.SUB_FIELDS[id_field] if key in  metaDict.keys()]
@@ -121,13 +122,13 @@ def excel_writer(writer,
                  dataframe,
                  meta,
                  sheet_name="Sheet1",
-                 index=0,
+                 index=False,
                  engine=None):
     
     if isinstance(writer, pd.ExcelWriter):
         need_save = False
     else:
-        writer = pd.ExcelWriter(pd.io.common.stringify_path(writer), engine=engine)
+        writer = pd.ExcelWriter(pd.io.common.stringify_path(writer),  engine=engine)
         need_save = True
         
     
@@ -135,7 +136,7 @@ def excel_writer(writer,
                               index=['###META###'] + list(meta.keys()) + ['###DATA###'])
         
     metaSeries.to_excel(writer, sheet_name=sheet_name, header=None, columns=None)
-    pd.DataFrame(dataframe).to_excel(writer, sheet_name= sheet_name, startrow=len(metaSeries))
+    pd.DataFrame(dataframe).to_excel(writer, sheet_name= sheet_name, index= index, startrow=len(metaSeries))
     
     if need_save:
         writer.save()

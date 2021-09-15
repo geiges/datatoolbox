@@ -9,8 +9,8 @@ Created on Tue Apr  2 11:20:42 2019
 import datatoolbox as dt
 from datatoolbox import config
 from datatoolbox.data_structures import Datatable
-from datatoolbox.util import isUnit, yearsColumnsOnly
-
+from datatoolbox.util import isUnit
+from datatoolbox.tools.pandas import  yearsColumnsOnly
 from collections import defaultdict
 from functools import reduce
 import pandas as pd
@@ -26,10 +26,17 @@ VAR_MAPPING_SHEET = 'variable_mapping'
 SPATIAL_MAPPING_SHEET = 'spatial_mapping'
 
 
+def IEA_mapping_generation():
+    path= '/media/sf_Documents/datashelf/rawdata/IEA2018/'
+    os.chdir(path)
+    df= pd.read_csv('World_Energy_Balances_2018_clean.csv',encoding="ISO-8859-1", engine='python', index_col = None, header =0, na_values='..')
+
 
 def highlight_column(s, col):
     return ['background-color: #d42a2a' if s.name in col else '' for v in s.index]
 
+#%% Import Reader Classes:
+    
 class setupStruct(object):
     pass
 
@@ -86,102 +93,26 @@ class BaseImportTool():
                       'licence': self.setup.LICENCE }
 
 
-    def update(self, updateContent=False):   
-        tableList = self.gatherMappedData(updateTables=updateContent)
-        dt.commitTables(tableList, f'update {self.__class__.__name__} data', self.meta, update=updateContent)
- 
-
-class WDI_2018(BaseImportTool):
-    
-    def __init__(self):
-
-        self.setup = setupStruct()
-        
-        self.setup.SOURCE_ID    = "WDI2018"
-        self.setup.SOURCE_PATH  = config.PATH_TO_DATASHELF + 'rawdata/WDI2018/'
-        self.setup.DATA_FILE    = self.setup.SOURCE_PATH + 'WDIData.csv'
-        self.setup.MAPPING_FILE = self.setup.SOURCE_PATH + 'mapping.xlsx'
-        self.setup.LICENCE = 'CC BY-4.0'
-        self.setup.URL     = 'https://datacatalog.worldbank.org/dataset/world-development-indicators'
-
-        
-        self.setup.INDEX_COLUMN_NAME = 'Indicator Code'
-        self.setup.SPATIAL_COLUM_NAME = 'Country Code'
-        
-        self.setup.COLUMNS_TO_DROP = ['Country Name', 'Indicator Name']
-        
-
-        
+    def update_database(self, 
+               tableList, 
+               updateContent=False):   
+        # tableList = self.gatherMappedData(updateTables=updateContent)
+        # dt.commitTables(tableList, f'update {self.__class__.__name__} data', self.meta, update=updateContent)
         self.createSourceMeta()
-                
-        if not(os.path.exists(self.setup.MAPPING_FILE)):
-            
-            self.createVariableMapping()
+        
+        if hasattr(self.setup, 'MAPPING_FILE'):
+            dt.core.DB.update_mapping_file(self.setup.SOURCE_ID, 
+                                           self.setup.MAPPING_FILE,
+                                           self.meta)
         else:
-            self.mapping = pd.read_excel(self.setup.MAPPING_FILE, sheet_name=VAR_MAPPING_SHEET)
-            
+            print('No mapping file saved')    
         
+        dt.commitTables(tableList, 
+                        f'update {self.__class__.__name__} data at {dt.getDateString} by {dt.config.CRUNCHER}', 
+                        sourceMetaDict = self.meta, 
+                        update=updateContent)
 
-
-        
-    def createVariableMapping(self):
-        
-        self.availableSeries = pd.read_csv(self.setup.SOURCE_PATH+ '/WDISeries.csv', index_col=None, header =0)
-        print(self.availableSeries.index)
-        self.mapping = pd.DataFrame(index=self.availableSeries.index, columns = list(config.REQUIRED_META_FIELDS) + ['unitTo'])
-        self.mapping = pd.concat([self.mapping, self.availableSeries], axis=1)
-        self.mapping.source = self.setup.SOURCE_ID
-        self.mapping.scenario = 'historic'
-        
-        self.mapping.to_excel(self.setup.MAPPING_FILE, engine='openpyxl', sheet_name=VAR_MAPPING_SHEET)
-
-
-    def loadData(self):        
-        self.data = pd.read_csv(self.setup.DATA_FILE, index_col = self.setup.INDEX_COLUMN_NAME, header =0) 
-    
-    def gatherMappedData(self, spatialSubSet = None, updateTables = False):
-        
-        # loading data if necessary
-        if not hasattr(self, 'data'):
-            self.loadData()        
-        
-        indexDataToCollect = self.mapping.index[~pd.isnull(self.mapping['entity'])]
-        
-        tablesToCommit  = []
-        for idx in indexDataToCollect:
-            metaDf = self.mapping.loc[idx]
-            
-            
-            print(metaDf[config.REQUIRED_META_FIELDS].isnull().all() == False)
-            #print(metaData[self.setup.INDEX_COLUMN_NAME])
-            
-            
-            metaDict = {key : metaDf[key] for key in config.REQUIRED_META_FIELDS.union({'unitTo'})}
-#            metaDict['unitTo'] = self.mappingEntity.loc[entity]['unitTo']
-            seriesIdx = metaDf['Series Code']
-            metaDict['original code'] = metaDf['Series Code']
-            metaDict['original name'] = metaDf['Indicator Name']
-
-            if not updateTables:
-                if dt.core.DB.tableExist(dt.core._createDatabaseID(metaDict)):
-                    continue
-                        
-            dataframe = self.data.loc[seriesIdx]
-            
-            if spatialSubSet:
-                spatIdx = dataframe[self.setup.SPATIAL_COLUM_NAME].isin(spatialSubSet)
-                dataframe = dataframe.loc[spatIdx]
-            
-            dataframe = dataframe.set_index(self.setup.SPATIAL_COLUM_NAME).drop(self.setup.COLUMNS_TO_DROP, axis=1)
-            dataframe= dataframe.dropna(axis=1, how='all')
-            
-            dataTable = Datatable(dataframe, meta=metaDict)
-            
-            if not pd.isna(metaDict['unitTo']):
-                dataTable = dataTable.convert(metaDict['unitTo'])
-                
-            tablesToCommit.append(dataTable)
-        return tablesToCommit
+ 
 
 class WDI(BaseImportTool):
     
@@ -289,200 +220,129 @@ class WDI(BaseImportTool):
             tablesToCommit.append(dataTable)
         return tablesToCommit
 
-class IEA_FUEL_2018(BaseImportTool):
-    """
-    IEA World fuel emissions
-    """
-    def __init__(self):
+
+class EEA_DATA(BaseImportTool):
+    
+    def __init__(self, year):
         self.setup = setupStruct()
-        self.setup.SOURCE_ID    = "IEA_CO2_FUEL_2018"
-        self.setup.SOURCE_PATH  = config.PATH_TO_DATASHELF + 'rawdata/IEA_CO2_FUEL_2018/'
-        self.setup.DATA_FILE    = self.setup.SOURCE_PATH + 'World_CO2_emissions_fuel_2018.csv'
-        self.setup.MAPPING_FILE = self.setup.SOURCE_PATH + 'mapping.xlsx'
+        self.setup.SOURCE_ID    = f"EEA_{year}"
+        self.setup.SOURCE_PATH  = os.path.join(config.PATH_TO_DATASHELF, f'rawdata/EEA_{year}/')
+        self.setup.DATA_FILE    = f'EU members targets 13_07_21.xlsx'
+        # self.setup.MAPPING_FILE = self.setup.SOURCE_PATH + 'mapping_detailed.xlsx'
         self.setup.LICENCE = 'restricted'
         self.setup.URL     = 'https://www.iea.org/statistics/co2emissions/'
-        
-        self.setup.INDEX_COLUMN_NAME = ['FLOW (Mt of CO2)', 'PRODUCT']
-        self.setup.SPATIAL_COLUM_NAME = 'COUNTRY'
-        self.setup.COLUMNS_TO_DROP = [ 'PRODUCT','FLOW (Mt of CO2)','combined']
-        
-        if not(os.path.exists(self.setup.MAPPING_FILE)):
-            self.createVariableMapping()
-        else:
-            self.mapping = pd.read_excel(self.setup.MAPPING_FILE, sheet_name=VAR_MAPPING_SHEET)
-            self.spatialMapping = pd.read_excel(self.setup.MAPPING_FILE, sheet_name=SPATIAL_MAPPING_SHEET)
+        self.year          = year
 
-        self.createSourceMeta()
-
-
-    def loadData(self):
-        self.data = pd.read_csv(self.setup.DATA_FILE, encoding='utf8', engine='python', index_col = None, header =0, na_values=['..','c', 'x', 'nan'])
-        self.data['combined'] = self.data[self.setup.INDEX_COLUMN_NAME].apply(lambda x: '_'.join(x), axis=1)
-        
-        self.data = self.data.set_index(self.data['combined'])#.drop('combined',axis=1)
-
-        
-    def createVariableMapping(self):        
-
-        productMapping = {'Total': 'total',
-                         'Coal, peat and oil shale': 'coal_peat_oil_shale',
-                         'Oil': 'oil',
-                         'Natural gas': 'natural_gas',
-                         'Other': 'other'}
-        
-        flowMapping = {'CO2 Fuel combustion': 'Emissions|Fuel|CO2',}
-#                     'Electricity and heat production': 'Electricity_and_heat_production',
-#                     'Other energy industry own use': 'Other_energy_industry_own_use',
-#                     'Manufacturing industries and construction': 'Manufacturing_industries_and_construction',
-#                     'Transport': 'Transport',
-#                     ' of which: road': 'Road transport',
-#                     ' Residential': 'Residential',
-#                     ' Commercial and public services': 'Commercial_and_public_services',
-#                     ' Agriculture/forestry': 'Agriculture/forestry',
-#                     ' Fishing': '_Fishing',
-#                     'Memo: International marine bunkers': 'Memo:_International_marine_bunkers',
-#                     'Memo: International aviation bunkers': 'Memo:_International_aviation_bunkers',
-#                     'Memo: Total final consumption': 'Memo:_Total_final_consumption'}
-
-        writer = pd.ExcelWriter(self.setup.MAPPING_FILE,
-                    engine='xlsxwriter',
-                    datetime_format='mmm d yyyy hh:mm:ss',
-                    date_format='mmmm dd yyyy')                
-                
-        #%%
-        
-        if not hasattr(self, 'data'):
-#            self.data = pd.read_csv(self.setup.DATA_FILE, encoding='utf8', engine='python', index_col = None, header =0, na_values='..')
-#            self.data['combined'] = self.data[self.setup.INDEX_COLUMN_NAME].apply(lambda x: '_'.join(x), axis=1)
-            self.loadData()
-            
-        index = self.data['combined'].unique()
-
-        #%%
-        # spatial mapping
-        self.spatialMapping = dict()
-        spatialIDList = self.data[self.setup.SPATIAL_COLUM_NAME].unique()
-        from hdx.location.country import Country
-        for spatID in spatialIDList:
-            ISO_ID = dt.mapp.getSpatialID(spatID)
-            ISO_ID = Country.get_iso3_country_code_fuzzy(spatID)[0]
-            if ISO_ID is not None:
-                self.spatialMapping[spatID] = ISO_ID
-            else:
-                print('not found: ' + spatID)
-                
-        # adding regions
-        self.spatialMapping['World'] = "World"
-        
-        dataFrame = pd.DataFrame(data=[],columns = ['alternative'])
-        for key, item in self.spatialMapping.items():
-            dataFrame.loc[key] = item
-        dataFrame.to_excel(writer, sheet_name=SPATIAL_MAPPING_SHEET)
-        
-        #%%
-        self.availableSeries = pd.DataFrame(index=index)
-        self.mapping = pd.DataFrame(index=index, columns = MAPPING_COLUMNS)
-        self.mapping = pd.concat([self.mapping, self.availableSeries], axis=1)
-        self.mapping.source = self.setup.SOURCE_ID
-        self.mapping.scenario = 'historic'
-        
-        self.mapping['flow'] = self.mapping.index
-        self.mapping['flow'] = self.mapping['flow'].apply(lambda x: x[0:x.rfind('_')])
-        self.mapping['product'] = self.mapping.index
-        self.mapping['product'] = self.mapping['product'].apply(lambda x: x[x.rfind('_')+1:])        
-        
-        for key, value in flowMapping.items():
-            mask = self.mapping['flow'].str.match(key)
-            for pKey, pValue in productMapping.items():
-                pMask = self.mapping['product'].str.match(pKey)
-                self.mapping['entity'][mask&pMask] = '_'.join([value, pValue])
-                if 'GWh' in key:
-                    self.mapping['unit'][mask&pMask] = 'GWh'
-                else:
-                    self.mapping['unit'][mask&pMask] = 'TJ'
-                
-        #self.mapping = self.mapping.drop(['product','flow'],axis=1)
-        self.mapping.to_excel(writer, sheet_name=VAR_MAPPING_SHEET)
-        writer.close() 
     
-    def gatherMappedData(self, spatialSubSet = None, updateTables = False):
+    def gatherMappedData(self):
         
+        #%%
+        tables = list()
+       
+        fullFilePath = os.path.join(self.setup.SOURCE_PATH, self.setup.DATA_FILE)
         # loading data if necessary
-        if not hasattr(self, 'data'):
-            self.loadData()        
+        target_data = pd.read_excel(fullFilePath, 
+                                  index_col = 0, 
+                                  header =1,
+                                  sheet_name = 'Data all countries',
+                                  usecols=[0,3,4])
         
-        indexDataToCollect = self.mapping.index[~pd.isnull(self.mapping['entity'])]
+        target_data = dt.tools.pandas.convertIndexToISO(target_data)
         
-        tablesToCommit  = []
-        excludedTables = dict()
-        excludedTables['empty'] = list()
-        excludedTables['erro'] = list()
-        excludedTables['exists'] = list()
-        for idx in indexDataToCollect:
-            metaDf = self.mapping.loc[idx]
-            print(idx)
-            
-            #print(metaDf[config.REQUIRED_META_FIELDS].isnull().all() == False)
-            #print(metaData[self.setup.INDEX_COLUMN_NAME])
-            
-            
-            metaDict = {key : metaDf[key] for key in config.REQUIRED_META_FIELDS.union({'unitTo'})} 
-            if pd.isna(metaDict['category']):
-                metaDict['category'] = ''
-            metaDict['original codle'] = idx
-            #metaDict['original name'] = metaDf['Indicator Name']
-            
-            seriesIdx = idx
-            
-            print(metaDict)
-            
-            if not updateTables:
-                tableID = dt.core._createDatabaseID(metaDict)
-                print(tableID)
-                if not updateTables:
-                    if dt.core.DB.tableExist(tableID):
-                        excludedTables['exists'].append(tableID)
-                        continue
-            
-            dataframe = self.data.loc[seriesIdx]
-            
-            
-            newData= list()
-            for iRow in range(len(dataframe)):
-                if dataframe.COUNTRY.iloc[iRow] in self.spatialMapping.index:
-                    newData.append(self.spatialMapping.alternative.loc[dataframe.COUNTRY.iloc[iRow]])
-                else:
-                    newData.append(pd.np.nan)
-            dataframe.loc[:,'COUNTRY'] = newData
-           
-            if spatialSubSet:
-                spatIdx = dataframe[self.setup.SPATIAL_COLUM_NAME].isin(spatialSubSet)
-                dataframe = dataframe.loc[spatIdx]
-            
-            dataframe = dataframe.set_index(self.setup.SPATIAL_COLUM_NAME).drop(self.setup.COLUMNS_TO_DROP, axis=1)
-            
-            dataframe= dataframe.dropna(axis=1, how='all')
-            dataframe= dataframe.loc[~pd.isna(dataframe.index)]
-            dataTable = Datatable(dataframe, meta=metaDict)
-            
-            if not pd.isna(metaDict['unitTo']):
-                dataTable = dataTable.convert(metaDict['unitTo'])
-                
-            tablesToCommit.append(dataTable)
+        meta = {'entity' : 'Emissions|KYOTOGHG_AR4',
+                'category' : 'Total_excl_LULUCF',
+                'scenario' : 'National_targets|Min',
+                'source' : f'EEA_{self.year}',
+                'unit' : 'Mt CO2eq'}
         
-        return tablesToCommit, excludedTables
+        target_data_min = dt.Datatable(target_data.loc[:,['in MtCO2eq (min)']],
+                                   meta= meta)
+        target_data_min.columns = [2030]
+        
+        meta = {'entity' : 'Emissions|KYOTOGHG_AR4',
+                'category' : 'Total_excl_LULUCF',
+                'scenario' : 'National_targets|Max',
+                'source' : f'EEA_{self.year}',
+                'unit' : 'Mt CO2eq'}
+        
+        target_data_max = dt.Datatable(target_data.loc[:,['in MtCO2eq (max)']],
+                                   meta= meta)
+        target_data_max.columns = [2030]
+        
+        tables.append(target_data_min)
+        tables.append(target_data_max)
+        
+        hist_data =  pd.read_excel(fullFilePath, 
+                                  index_col = 0, 
+                                  header =1,
+                                  sheet_name = 'Data all countries',
+                                  usecols=[0] + list(range(14,43)))
+        
+        hist_data = dt.tools.pandas.convertIndexToISO(hist_data)
+        
+        meta = {'entity' : 'Emissions|KYOTOGHG_AR4',
+                'category' : 'Total_excl_LULUCF',
+                'scenario' : 'Historic',
+                'source' : f'EEA_{self.year}',
+                'unit' : 'kt CO2eq'}
+        
+        hist_data = dt.Datatable(hist_data,
+                                   meta= meta).convert('Mt CO2eq')
+        
+        tables.append(hist_data)
+        
+        #CPP
+        cpp_wem_data =  pd.read_excel(fullFilePath, 
+                                  index_col = 0, 
+                                  header =1,
+                                  sheet_name = 'Data all countries',
+                                  usecols=[0] + list(range(43,55)))
+        
+        cpp_wem_data = dt.tools.pandas.convertIndexToISO(cpp_wem_data)
+        
+        meta = {'entity' : 'Emissions|KYOTOGHG_AR4',
+                'category' : 'Total_excl_LULUCF',
+                'scenario' : 'Current_policies',
+                'source' : f'EEA_{self.year}',
+                'unit' : 'kt CO2eq'}
+        
+        cpp_wem_data = dt.Datatable(cpp_wem_data,
+                                   meta= meta).convert('Mt CO2eq')
+        
+        tables.append(cpp_wem_data)
+        
+        cpp_wam_data =  pd.read_excel(fullFilePath, 
+                                  index_col = 0, 
+                                  header =1,
+                                  sheet_name = 'Data all countries',
+                                  usecols=[0] + list(range(56,68)))
+        cpp_wam_data.columns = [int(x[:4]) for x in cpp_wam_data.columns]
+        cpp_wam_data = dt.tools.pandas.convertIndexToISO(cpp_wam_data)
+        
+        meta = {'entity' : 'Emissions|KYOTOGHG_AR4',
+                'category' : 'Total_excl_LULUCF',
+                'scenario' : 'Additional_policies',
+                'source' : f'EEA_{self.year}',
+                'unit' : 'kt CO2eq'}
+        
+        cpp_wam_data = dt.Datatable(cpp_wam_data,
+                                   meta= meta).convert('Mt CO2eq')
+        
+        tables.append(cpp_wam_data)
+        
+        return tables, None
+        
+        #%%
 
-
-
-class IEA_CO2_FUEL_DETAILED_2019(BaseImportTool):
+class IEA_CO2_FUEL_DETAILED(BaseImportTool):
     """
     IEA World fuel emissions detail version
     """
-    def __init__(self):
+    def __init__(self, year):
         self.setup = setupStruct()
-        self.setup.SOURCE_ID    = "IEA_CO2_FUEL_DETAILED_2019"
-        self.setup.SOURCE_PATH  = config.PATH_TO_DATASHELF + 'rawdata/IEA_CO2_FUEL_2019/'
-        self.setup.DATA_FILE    = self.setup.SOURCE_PATH + 'WOLRD_CO2_emissions_fuel_2019_detailed.csv'
+        self.setup.SOURCE_ID    = f"IEA_CO2_FUEL_DETAILED_{year}"
+        self.setup.SOURCE_PATH  = config.PATH_TO_DATASHELF + f'rawdata/IEA_CO2_FUEL_{year}/'
+        self.setup.DATA_FILE    = self.setup.SOURCE_PATH + f'WOLRD_CO2_emissions_fuel_{year}_detailed.csv'
         self.setup.MAPPING_FILE = self.setup.SOURCE_PATH + 'mapping_detailed.xlsx'
         self.setup.LICENCE = 'restricted'
         self.setup.URL     = 'https://www.iea.org/statistics/co2emissions/'
@@ -633,17 +493,18 @@ class IEA_CO2_FUEL_DETAILED_2019(BaseImportTool):
     
     
 
-class IEA_FUEL_2019(BaseImportTool):
+class IEA_FUEL(BaseImportTool):
     """
     IEA World fuel emissions
     """
-    def __init__(self):
+    def __init__(self,
+                 year):
         self.setup = setupStruct()
-        self.setup.SOURCE_ID      = "IEA_CO2_FUEL_2019"
+        self.setup.SOURCE_ID      = f"IEA_CO2_FUEL_{year}"
         self.setup.SOURCE_NAME    = "IEA_CO2_FUEL"
-        self.setup.SOURCE_YEAR    = "2019"
-        self.setup.SOURCE_PATH  = config.PATH_TO_DATASHELF + 'rawdata/IEA_CO2_FUEL_2019/'
-        self.setup.DATA_FILE    = self.setup.SOURCE_PATH + 'World_CO2_emissions_fuel_2019.csv'
+        self.setup.SOURCE_YEAR    = f"{year}"
+        self.setup.SOURCE_PATH  = config.PATH_TO_DATASHELF + 'frawdata/IEA_CO2_FUEL_{year}/'
+        self.setup.DATA_FILE    = self.setup.SOURCE_PATH + f'World_CO2_emissions_fuel_{year}.csv'
         self.setup.MAPPING_FILE = self.setup.SOURCE_PATH + 'mapping.xlsx'
         self.setup.LICENCE = 'restricted'
         self.setup.URL     = 'https://www.iea.org/statistics/co2emissions/'
@@ -1058,726 +919,6 @@ class IEA_World_Energy_Balance(BaseImportTool):
 
         return tablesToCommit, excludedTables
     
-class IEA_WEB_2019(BaseImportTool):
-    """
-    IEA World balance data import 
-    """
-    def __init__(self):
-        self.setup = setupStruct()
-        self.setup.SOURCE_ID    = "IEA_WEB_2019"
-        self.setup.SOURCE_PATH  = config.PATH_TO_DATASHELF + 'rawdata/IEA_WEB_2019/'
-        self.setup.DATA_FILE    = self.setup.SOURCE_PATH + 'World_Energy_Balances_2019_clean.csv'
-        self.setup.MAPPING_FILE = self.setup.SOURCE_PATH + 'mapping.xlsx'
-        self.setup.LICENCE = 'restricted'
-        self.setup.URL     = 'https://webstore.iea.org/world-energy-balances-2019'
-        
-        self.setup.INDEX_COLUMN_NAME = ['FLOW', 'PRODUCT']
-        self.setup.SPATIAL_COLUM_NAME = 'COUNTRY'
-        self.setup.COLUMNS_TO_DROP = [ 'PRODUCT','FLOW','combined']
-        
-        if not(os.path.exists(self.setup.MAPPING_FILE)):
-            self.createVariableMapping()
-        else:
-            self.mapping = pd.read_excel(self.setup.MAPPING_FILE, sheet_name=VAR_MAPPING_SHEET)
-            self.spatialMapping = pd.read_excel(self.setup.MAPPING_FILE, sheet_name=SPATIAL_MAPPING_SHEET)
-
-        self.createSourceMeta()
-
-
-    def loadData(self):
-        self.data = pd.read_csv(self.setup.DATA_FILE, encoding='utf8', engine='python', index_col = None, header =0, na_values=['c','..'])
-        self.data['combined'] = self.data[self.setup.INDEX_COLUMN_NAME].apply(lambda x: '_'.join(x.str.strip()), axis=1)
-        
-        self.data = self.data.set_index(self.data['combined'])#.drop('combined',axis=1)
-
-        
-    def createVariableMapping(self):        
-
-        productMapping = {"Coal and coal products":"Coal",
-            "Peat and peat products":"Peat",
-            "Oil shale and oil sands":"Oil",
-            "Crude, NGL and feedstocks":"Crude_NGL_feedstocks",
-            "Oil products":"Oil_products",
-            "Natural gas":"Gas",
-            "Nuclear":"Nuclear",
-            "Hydro":"Hydro",
-            "Geothermal":"Geothermal",
-            "Solar/wind/other":"Solar_wind_other",
-            "Biofuels and waste":"Bio_fuel_waste",
-            "Heat production from non-specified combustible fuels":"Heat_non_spec_combustible_fuels",
-            "Electricity":"Electricity",
-            "Heat":"Heat",
-            "Total":"Total energy",
-            "Memo: Renewables":"renewables",
-            "Memo: Coal, peat and oil shale":"coal_peat_oil",
-            "Memo: Primary and secondary oil":"1st_2nd_oil",
-            "Memo: Geothermal, solar/wind/other, heat, electricity":"geo_solar_wind_other_heat_electrity"}
-        
-        flowMapping = {
-                "Production":"Production",
-                "Imports":"Imports",
-                "Exports":"Exports",
-                "International marine bunkers":"Marine_bunkers",
-                "International aviation bunkers":"Aviation_bunkers",
-                "Stock changes":"Stock_changes",
-                "Total primary energy supply":"Total_PE_supply",
-                "Transfers":"Transfers",
-#                Statistical differences
-#                Main activity producer electricity plants (transf.)
-#                Autoproducer electricity plants (transf.)
-#                Main activity producer CHP plants (transf.)
-#                Autoproducer CHP plants (transf.)
-#                Main activity producer heat plants (transf.)
-#                Autoproducer heat plants (transf.)
-#                Heat pumps (transf.)
-#                Electric boilers (transf.)
-#                Chemical heat for electricity production (transf.)
-#                Blast furnaces (transf.)
-#                Gas works (transf.)
-#                Coke ovens (transf.)
-#                Patent fuel plants (transf.)
-#                BKB/peat briquette plants (transf.)
-#                Oil refineries (transf.)
-#                Petrochemical plants (transf.)
-#                Liquefaction plants (transf.)
-#                Other transformation
-#                Energy industry own use
-                "Losses":"Losses",
-                "Total final consumption":"Total_consumption",
-#                Industry
-#                Iron and steel
-#                Chemical and petrochemical
-#                Non-ferrous metals
-#                Non-metallic minerals
-#                Transport equipment
-#                Machinery
-#                Mining and quarrying
-#                Food and tobacco
-#                Paper, pulp and printing 
-#                Wood and wood products
-#                Construction
-#                Textile and leather
-#                Non-specified (industry)
-#                Transport
-#                World aviation bunkers
-                "Domestic aviation":"Domestic_aviation",
-                "Road": "Tranpsport|Road", 
-                "Rail": "Tranpsport|Rail",
-#                Pipeline transport
-#                World marine bunkers
-                "Domestic navigation":"Domestic_marine",
-#                Non-specified (transport)
-#                Other
-#                Residential
-#                Commercial and public services
-#                Agriculture/forestry
-#                Fishing
-#                Non-specified (other)
-#                Non-energy use
-#                Non-energy use industry/transformation/energy
-#                Non-energy use in transport
-#                Non-energy use in other
-#                   Memo: Non-energy use in industry
-#                   Memo: Non-energy use in iron and steel
-#                   Memo: Non-energy use in chemical/petrochemical
-#                   Memo: Non-energy use in non-ferrous metals
-#                   Memo: Non-energy use in non-metallic minerals
-#                   Memo: Non-energy use in transport equipment
-#                   Memo: Non-energy use in machinery
-#                   Memo: Non-energy use in mining and quarrying
-#                   Memo: Non-energy use in food/beverages/tobacco
-#                   Memo: Non-energy use in paper/pulp and printing
-#                   Memo: Non-energy use in wood and wood products
-#                   Memo: Non-energy use in construction
-#                   Memo: Non-energy use in textiles and leather
-#                   Memo: Non-energy use in non-specified industry
-                "Electricity output (GWh)":"Electricity_output",
-#                Electricity output (GWh)-main activity producer electricity plants
-#                Electricity output (GWh)-autoproducer electricity plants
-#                Electricity output (GWh)-main activity producer CHP plants
-#                Electricity output (GWh)-autoproducer CHP plants
-                "Heat output":"Heat_output",
-#                Heat output-main activity producer CHP plants
-#                Heat output-autoproducer CHP plants
-#                Heat output-main activity producer heat plants
-#                Heat output-autoproducer heat plants
-#                 Memo: Efficiency of electricity only plants (main and auto) (%)
-#                 Memo: Efficiency of electricity and heat plants (%)                
-                }
-
-        writer = pd.ExcelWriter(self.setup.MAPPING_FILE,
-                    engine='xlsxwriter',
-                    datetime_format='mmm d yyyy hh:mm:ss',
-                    date_format='mmmm dd yyyy')                
-                
-        #%%
-        
-        if not hasattr(self, 'data'):
-#            self.data = pd.read_csv(self.setup.DATA_FILE, encoding='utf8', engine='python', index_col = None, header =0, na_values='..')
-#            self.data['combined'] = self.data[self.setup.INDEX_COLUMN_NAME].apply(lambda x: '_'.join(x), axis=1)
-            self.loadData()
-            
-        index = self.data['combined'].unique()
-
-        #%%
-        # spatial mapping
-        self.spatialMapping = dict()
-        spatialIDList = self.data[self.setup.SPATIAL_COLUM_NAME].unique()
-        for spatID in spatialIDList:
-            ISO_ID = dt.mapp.getSpatialID(spatID)
-            if ISO_ID is not None:
-                self.spatialMapping[spatID] = ISO_ID
-            else:
-                print('not found: ' + spatID)
-                
-        # adding regions
-        self.spatialMapping['World'] = "World"
-        
-        dataFrame = pd.DataFrame(data=[],columns = ['alternative'])
-        for key, item in self.spatialMapping.items():
-            dataFrame.loc[key] = item
-        dataFrame.to_excel(writer, sheet_name=SPATIAL_MAPPING_SHEET)
-        
-        #%%
-        self.availableSeries = pd.DataFrame(index=index)
-        self.mapping = pd.DataFrame(index=index, columns = MAPPING_COLUMNS)
-        self.mapping = pd.concat([self.mapping, self.availableSeries], axis=1)
-        self.mapping.source = self.setup.SOURCE_ID
-        self.mapping.scenario = 'historic'
-        
-        self.mapping['flow'] = self.mapping.index
-        self.mapping['flow'] = self.mapping['flow'].apply(lambda x: x[0:x.rfind('_')])
-        self.mapping['product'] = self.mapping.index
-        self.mapping['product'] = self.mapping['product'].apply(lambda x: x[x.rfind('_')+1:])        
-        
-        for key, value in flowMapping.items():
-            mask = self.mapping['flow'].str.match(key)
-            for pKey, pValue in productMapping.items():
-                pMask = self.mapping['product'].str.match(pKey)
-                self.mapping['entity'][mask&pMask] = '_'.join([value, pValue])
-                if 'GWh' in key:
-                    self.mapping['unit'][mask&pMask] = 'GWh'
-                else:
-                    self.mapping['unit'][mask&pMask] = 'TJ'
-                
-        #self.mapping = self.mapping.drop(['product','flow'],axis=1)
-        self.mapping.to_excel(writer, sheet_name=VAR_MAPPING_SHEET)
-        writer.close() 
-    
-    def gatherMappedData(self, spatialSubSet = None, updateTables = False):
-        
-        # loading data if necessary
-        if not hasattr(self, 'data'):
-            self.loadData()        
-        
-        indexDataToCollect = self.mapping.index[~pd.isnull(self.mapping['entity'])]
-        
-        tablesToCommit  = []
-        excludedTables = dict()
-        excludedTables['empty'] = list()
-        excludedTables['error'] = list()
-        excludedTables['exists'] = list()
-        for idx in indexDataToCollect:
-            metaDf = self.mapping.loc[idx]
-            print(idx)
-            
-            #print(metaDf[config.REQUIRED_META_FIELDS].isnull().all() == False)
-            #print(metaData[self.setup.INDEX_COLUMN_NAME])
-            
-            #print(metaDf)
-            metaDict = {key : metaDf[key] for key in config.REQUIRED_META_FIELDS.union({'unitTo'})} 
-            #print(metaDict)
-            if pd.isnull(metaDict['category']):
-                metaDict['category'] = ''
-            metaDict['original code'] = idx
-            #metaDict['original name'] = metaDf['Indicator Name']
-            
-            seriesIdx = idx
-            
-            print(metaDict)
-            
-            if not updateTables:
-                tableID = dt.core._createDatabaseID(metaDict)
-                print(tableID)
-                if not updateTables:
-                    if dt.core.DB.tableExist(tableID):
-                        excludedTables['exists'].append(tableID)
-                        continue
-            
-            try:
-                dataframe = self.data.loc[seriesIdx]
-            except:
-                print(seriesIdx)
-#                dsf
-            newData= list()
-            for iRow in range(len(dataframe)):
-                if dataframe.COUNTRY.iloc[iRow] in self.spatialMapping.index:
-                    newData.append(self.spatialMapping.alternative.loc[dataframe.COUNTRY.iloc[iRow]])
-                else:
-                    newData.append(pd.np.nan)
-            dataframe.loc[:,'COUNTRY'] = newData
-           
-            if spatialSubSet:
-                spatIdx = dataframe[self.setup.SPATIAL_COLUM_NAME].isin(spatialSubSet)
-                dataframe = dataframe.loc[spatIdx]
-            
-            dataframe = dataframe.set_index(self.setup.SPATIAL_COLUM_NAME).drop(self.setup.COLUMNS_TO_DROP, axis=1)
-            
-            dataframe= dataframe.dropna(axis=1, how='all')
-            dataframe= dataframe.loc[~pd.isna(dataframe.index)]
-            dataTable = Datatable(dataframe, meta=metaDict)
-            
-            if not pd.isna(metaDict['unitTo']):
-                dataTable = dataTable.convert(metaDict['unitTo'])
-                
-            tablesToCommit.append(dataTable)
-        
-        return tablesToCommit, excludedTables
-
-    def addSpatialMapping(self):
-        #EU
-        mappingToCountries  = dict()
-        EU_countryList = ['AUT', 'BEL', 'BGR', 'CYP', 'CZE', 'DEU', 'DNK', 'ESP', 'EST', 'FIN',
-       'FRA', 'GBR', 'GRC', 'HRV', 'HUN', 'IRL', 'ITA', 'LIE', 'LTU', 'LUX',
-       'LVA', 'MLT', 'NLD', 'POL', 'PRT', 'ROU', 'SVK', 'SVN', 'SWE']
-        self.spatialMapping.loc['Memo: European Union-28'] = 'EU28'
-        mappingToCountries['EU28'] =  EU_countryList
-        
-        LATMER_countryList = ['ABW', 'ARG', 'ATG', 'BHS', 'BLZ', 'BMU', 'BOL', 'BRA', 'BRB', 'COL',
-       'CRI', 'CUB', 'CYM', 'DMA', 'DOM', 'ECU', 'FLK', 'GLP', 'GRD', 'GTM',
-       'GUF', 'GUY', 'HND', 'HTI', 'JAM', 'KNA', 'LCA', 'MSR', 'MTQ', 'NIC',
-       'PAN', 'PER', 'PRI', 'PRY', 'SLV', 'SPM', 'SUR', 'TCA', 'TTO', 'URY',
-       'VCT', 'VEN', 'VGB']
-        self.spatialMapping.loc['Non-OECD Americas'] = 'LATAMER'
-        mappingToCountries['LATAMER'] =  LATMER_countryList
-        
-        AFRICA_countryList = ['AGO', 'BDI', 'BEN', 'BFA', 'BWA', 'CAF', 'CIV', 'CMR', 'COD', 'COG',
-       'COM', 'CPV', 'DJI', 'DZA', 'EGY', 'ERI', 'ESH', 'ETH', 'GAB', 'GHA',
-       'GIN', 'GMB', 'GNB', 'GNQ', 'KEN', 'LBR', 'LBY', 'LSO', 'MAR', 'MDG',
-       'MLI', 'MOZ', 'MRT', 'MUS', 'MWI', 'NAM', 'NER', 'NGA', 'REU', 'RWA',
-       'SDN', 'SEN', 'SLE', 'SOM', 'SSD', 'STP', 'SWZ', 'SYC', 'TCD', 'TGO',
-       'TUN', 'TZA', 'UGA', 'ZAF', 'ZMB', 'ZWE']
-        self.spatialMapping.loc['Africa'] = 'AFRICA' 
-        mappingToCountries['AFRICA'] =  AFRICA_countryList
-         
-        MIDEAST_countryList = ['ARE', 'BHR', 'IRN', 'IRQ', 'JOR', 'KWT', 'LBN', 'OMN', 'QAT', 'SAU',
-       'SYR', 'YEM']
-        self.spatialMapping.loc['Middle East'] = 'MIDEAST'
-        mappingToCountries['MIDEAST'] =  MIDEAST_countryList
-        
-        from hdx.location.country import Country
-        OECDTOT_countryList = [Country.get_iso3_country_code_fuzzy(x)[0] for x in 'Australia, Austria, Belgium, Canada, Chile, the Czech Republic, \
-         Denmark, Estonia, Finland, France, Germany, Greece, Hungary, Iceland, \
-         Ireland, Israel, Italy, Japan, Korea, Latvia, Lithuania , Luxembourg, \
-         Mexico, the Netherlands, New Zealand, Norway, Poland, Portugal, the Slovak Republic, \
-         Slovenia, Spain, Sweden, Switzerland, Turkey, the United Kingdom, United States'.split(',')]
-         
-        self.spatialMapping.loc['Memo: OECD Total'] = 'OECDTOT'
-        mappingToCountries['OECDTOT'] =  OECDTOT_countryList
-        dt.mapp.regions.addRegionToContext('IEA',mappingToCountries)
-
-
-class IEA_WEB_2018(BaseImportTool):
-    """
-    IEA World balance data import 
-    """
-    def __init__(self):
-        self.setup = setupStruct()
-        self.setup.SOURCE_ID    = "IEA_WEB_2018"
-        self.setup.SOURCE_PATH  = config.PATH_TO_DATASHELF + 'rawdata/IEA_WEB_2018/'
-        self.setup.DATA_FILE    = self.setup.SOURCE_PATH + 'World_Energy_Balances_2018_clean.csv'
-        self.setup.MAPPING_FILE = self.setup.SOURCE_PATH + 'mapping.xlsx'
-        self.setup.LICENCE = 'restricted'
-        self.setup.URL     = 'https://webstore.iea.org/world-energy-balances-2018'
-        
-        self.setup.INDEX_COLUMN_NAME = ['FLOW', 'PRODUCT']
-        self.setup.SPATIAL_COLUM_NAME = 'COUNTRY'
-        self.setup.COLUMNS_TO_DROP = [ 'PRODUCT','FLOW','combined']
-        
-        if not(os.path.exists(self.setup.MAPPING_FILE)):
-            self.createVariableMapping()
-        else:
-            self.mapping = pd.read_excel(self.setup.MAPPING_FILE, sheet_name=VAR_MAPPING_SHEET)
-            self.spatialMapping = pd.read_excel(self.setup.MAPPING_FILE, sheet_name=SPATIAL_MAPPING_SHEET)
-
-        self.createSourceMeta()
-
-
-    def loadData(self):
-        self.data = pd.read_csv(self.setup.DATA_FILE, encoding='utf8', engine='python', index_col = None, header =0, na_values='c')
-        self.data['combined'] = self.data[self.setup.INDEX_COLUMN_NAME].apply(lambda x: '_'.join(x), axis=1)
-        
-        self.data = self.data.set_index(self.data['combined'])#.drop('combined',axis=1)
-
-        
-    def createVariableMapping(self):        
-
-        productMapping = {"Coal and coal products":"Coal",
-            "Peat and peat products":"Peat",
-            "Oil shale and oil sands":"Oil",
-            "Crude, NGL and feedstocks":"Crude_NGL_feedstocks",
-            "Oil products":"Oil_products",
-            "Natural gas":"Gas",
-            "Nuclear":"Nuclear",
-            "Hydro":"Hydro",
-            "Geothermal":"Geothermal",
-            "Solar/wind/other":"Solar_wind_other",
-            "Biofuels and waste":"Bio_fuel_waste",
-            "Heat production from non-specified combustible fuels":"Heat_non_spec_combustible_fuels",
-            "Electricity":"Electricity",
-            "Heat":"Heat",
-            "Total":"Total energy",
-            "Memo: Renewables":"renewables",
-            "Memo: Coal, peat and oil shale":"coal_peat_oil",
-            "Memo: Primary and secondary oil":"1st_2nd_oil",
-            "Memo: Geothermal, solar/wind/other, heat, electricity":"geo_solar_wind_other_heat_electrity"}
-        
-        flowMapping = {
-                "Production":"Production",
-                "Imports":"Imports",
-                "Exports":"Exports",
-                "International marine bunkers":"Marine_bunkers",
-                "International aviation bunkers":"Aviation_bunkers",
-                "Stock changes":"Stock_changes",
-                "Total primary energy supply":"Total_PE_supply",
-                "Transfers":"Transfers",
-#                Statistical differences
-#                Main activity producer electricity plants (transf.)
-#                Autoproducer electricity plants (transf.)
-#                Main activity producer CHP plants (transf.)
-#                Autoproducer CHP plants (transf.)
-#                Main activity producer heat plants (transf.)
-#                Autoproducer heat plants (transf.)
-#                Heat pumps (transf.)
-#                Electric boilers (transf.)
-#                Chemical heat for electricity production (transf.)
-#                Blast furnaces (transf.)
-#                Gas works (transf.)
-#                Coke ovens (transf.)
-#                Patent fuel plants (transf.)
-#                BKB/peat briquette plants (transf.)
-#                Oil refineries (transf.)
-#                Petrochemical plants (transf.)
-#                Liquefaction plants (transf.)
-#                Other transformation
-#                Energy industry own use
-                "Losses":"Losses",
-                "Total final consumption":"Total_consumption",
-#                Industry
-#                Iron and steel
-#                Chemical and petrochemical
-#                Non-ferrous metals
-#                Non-metallic minerals
-#                Transport equipment
-#                Machinery
-#                Mining and quarrying
-#                Food and tobacco
-#                Paper, pulp and printing 
-#                Wood and wood products
-#                Construction
-#                Textile and leather
-#                Non-specified (industry)
-#                Transport
-#                World aviation bunkers
-                "Domestic aviation":"Domestic_aviation",
-#                Road
-#                Rail
-#                Pipeline transport
-#                World marine bunkers
-                "Domestic navigation":"Domestic_marine",
-#                Non-specified (transport)
-#                Other
-#                Residential
-#                Commercial and public services
-#                Agriculture/forestry
-#                Fishing
-#                Non-specified (other)
-#                Non-energy use
-#                Non-energy use industry/transformation/energy
-#                Non-energy use in transport
-#                Non-energy use in other
-#                   Memo: Non-energy use in industry
-#                   Memo: Non-energy use in iron and steel
-#                   Memo: Non-energy use in chemical/petrochemical
-#                   Memo: Non-energy use in non-ferrous metals
-#                   Memo: Non-energy use in non-metallic minerals
-#                   Memo: Non-energy use in transport equipment
-#                   Memo: Non-energy use in machinery
-#                   Memo: Non-energy use in mining and quarrying
-#                   Memo: Non-energy use in food/beverages/tobacco
-#                   Memo: Non-energy use in paper/pulp and printing
-#                   Memo: Non-energy use in wood and wood products
-#                   Memo: Non-energy use in construction
-#                   Memo: Non-energy use in textiles and leather
-#                   Memo: Non-energy use in non-specified industry
-                "Electricity output (GWh)":"Electricity_output",
-#                Electricity output (GWh)-main activity producer electricity plants
-#                Electricity output (GWh)-autoproducer electricity plants
-#                Electricity output (GWh)-main activity producer CHP plants
-#                Electricity output (GWh)-autoproducer CHP plants
-                "Heat output":"Heat_output",
-#                Heat output-main activity producer CHP plants
-#                Heat output-autoproducer CHP plants
-#                Heat output-main activity producer heat plants
-#                Heat output-autoproducer heat plants
-#                 Memo: Efficiency of electricity only plants (main and auto) (%)
-#                 Memo: Efficiency of electricity and heat plants (%)                
-                }
-
-        writer = pd.ExcelWriter(self.setup.MAPPING_FILE,
-                    engine='xlsxwriter',
-                    datetime_format='mmm d yyyy hh:mm:ss',
-                    date_format='mmmm dd yyyy')                
-                
-        #%%
-        
-        if not hasattr(self, 'data'):
-#            self.data = pd.read_csv(self.setup.DATA_FILE, encoding='utf8', engine='python', index_col = None, header =0, na_values='..')
-#            self.data['combined'] = self.data[self.setup.INDEX_COLUMN_NAME].apply(lambda x: '_'.join(x), axis=1)
-            self.loadData()
-            
-        index = self.data['combined'].unique()
-
-        #%%
-        # spatial mapping
-        self.spatialMapping = dict()
-        spatialIDList = self.data[self.setup.SPATIAL_COLUM_NAME].unique()
-        for spatID in spatialIDList:
-            ISO_ID = dt.mapp.getSpatialID(spatID)
-            if ISO_ID is not None:
-                self.spatialMapping[spatID] = ISO_ID
-            else:
-                print('not found: ' + spatID)
-                
-        # adding regions
-        self.spatialMapping['World'] = "World"
-        
-        dataFrame = pd.DataFrame(data=[],columns = ['alternative'])
-        for key, item in self.spatialMapping.items():
-            dataFrame.loc[key] = item
-        dataFrame.to_excel(writer, sheet_name=SPATIAL_MAPPING_SHEET)
-        
-        #%%
-        self.availableSeries = pd.DataFrame(index=index)
-        self.mapping = pd.DataFrame(index=index, columns = MAPPING_COLUMNS)
-        self.mapping = pd.concat([self.mapping, self.availableSeries], axis=1)
-        self.mapping.source = self.setup.SOURCE_ID
-        self.mapping.scenario = 'historic'
-        
-        self.mapping['flow'] = self.mapping.index
-        self.mapping['flow'] = self.mapping['flow'].apply(lambda x: x[0:x.rfind('_')])
-        self.mapping['product'] = self.mapping.index
-        self.mapping['product'] = self.mapping['product'].apply(lambda x: x[x.rfind('_')+1:])        
-        
-        for key, value in flowMapping.items():
-            mask = self.mapping['flow'].str.match(key)
-            for pKey, pValue in productMapping.items():
-                pMask = self.mapping['product'].str.match(pKey)
-                self.mapping['entity'][mask&pMask] = '_'.join([value, pValue])
-                if 'GWh' in key:
-                    self.mapping['unit'][mask&pMask] = 'GWh'
-                else:
-                    self.mapping['unit'][mask&pMask] = 'TJ'
-                
-        #self.mapping = self.mapping.drop(['product','flow'],axis=1)
-        self.mapping.to_excel(writer, sheet_name=VAR_MAPPING_SHEET)
-        writer.close() 
-    
-    def gatherMappedData(self, spatialSubSet = None, updateTables = False):
-        
-        # loading data if necessary
-        if not hasattr(self, 'data'):
-            self.loadData()        
-        
-        indexDataToCollect = self.mapping.index[~pd.isnull(self.mapping['entity'])]
-        
-        tablesToCommit  = []
-        excludedTables = dict()
-        excludedTables['empty'] = list()
-        excludedTables['erro'] = list()
-        excludedTables['exists'] = list()
-        for idx in indexDataToCollect:
-            metaDf = self.mapping.loc[idx]
-            print(idx)
-            
-            #print(metaDf[config.REQUIRED_META_FIELDS].isnull().all() == False)
-            #print(metaData[self.setup.INDEX_COLUMN_NAME])
-            
-            #print(metaDf)
-            metaDict = {key : metaDf[key] for key in config.REQUIRED_META_FIELDS.union({'unitTo'})} 
-            #print(metaDict)
-            if pd.isnull(metaDict['category']):
-                metaDict['category'] = ''
-            metaDict['original code'] = idx
-            #metaDict['original name'] = metaDf['Indicator Name']
-            
-            seriesIdx = idx
-            
-            print(metaDict)
-            
-            if not updateTables:
-                tableID = dt.core._createDatabaseID(metaDict)
-                print(tableID)
-                if not updateTables:
-                    if dt.core.DB.tableExist(tableID):
-                        excludedTables['exists'].append(tableID)
-                        continue
-            
-            try:
-                dataframe = self.data.loc[seriesIdx]
-            except:
-                print(seriesIdx)
-                dsf
-            newData= list()
-            for iRow in range(len(dataframe)):
-                if dataframe.COUNTRY.iloc[iRow] in self.spatialMapping.index:
-                    newData.append(self.spatialMapping.alternative.loc[dataframe.COUNTRY.iloc[iRow]])
-                else:
-                    newData.append(pd.np.nan)
-            dataframe.loc[:,'COUNTRY'] = newData
-           
-            if spatialSubSet:
-                spatIdx = dataframe[self.setup.SPATIAL_COLUM_NAME].isin(spatialSubSet)
-                dataframe = dataframe.loc[spatIdx]
-            
-            dataframe = dataframe.set_index(self.setup.SPATIAL_COLUM_NAME).drop(self.setup.COLUMNS_TO_DROP, axis=1)
-            
-            dataframe= dataframe.dropna(axis=1, how='all')
-            dataframe= dataframe.loc[~pd.isna(dataframe.index)]
-            dataTable = Datatable(dataframe, meta=metaDict)
-            
-            if not pd.isna(metaDict['unitTo']):
-                dataTable = dataTable.convert(metaDict['unitTo'])
-                
-            tablesToCommit.append(dataTable)
-        
-        return tablesToCommit, excludedTables
-
-    def addSpatialMapping(self):
-        #EU
-        mappingToCountries  = dict()
-        EU_countryList = ['AUT', 'BEL', 'BGR', 'CYP', 'CZE', 'DEU', 'DNK', 'ESP', 'EST', 'FIN',
-       'FRA', 'GBR', 'GRC', 'HRV', 'HUN', 'IRL', 'ITA', 'LIE', 'LTU', 'LUX',
-       'LVA', 'MLT', 'NLD', 'POL', 'PRT', 'ROU', 'SVK', 'SVN', 'SWE']
-        self.spatialMapping.loc['Memo: European Union-28'] = 'EU28'
-        mappingToCountries['EU28'] =  EU_countryList
-        
-        LATMER_countryList = ['ABW', 'ARG', 'ATG', 'BHS', 'BLZ', 'BMU', 'BOL', 'BRA', 'BRB', 'COL',
-       'CRI', 'CUB', 'CYM', 'DMA', 'DOM', 'ECU', 'FLK', 'GLP', 'GRD', 'GTM',
-       'GUF', 'GUY', 'HND', 'HTI', 'JAM', 'KNA', 'LCA', 'MSR', 'MTQ', 'NIC',
-       'PAN', 'PER', 'PRI', 'PRY', 'SLV', 'SPM', 'SUR', 'TCA', 'TTO', 'URY',
-       'VCT', 'VEN', 'VGB']
-        self.spatialMapping.loc['Non-OECD Americas'] = 'LATAMER'
-        mappingToCountries['LATAMER'] =  LATMER_countryList
-        
-        AFRICA_countryList = ['AGO', 'BDI', 'BEN', 'BFA', 'BWA', 'CAF', 'CIV', 'CMR', 'COD', 'COG',
-       'COM', 'CPV', 'DJI', 'DZA', 'EGY', 'ERI', 'ESH', 'ETH', 'GAB', 'GHA',
-       'GIN', 'GMB', 'GNB', 'GNQ', 'KEN', 'LBR', 'LBY', 'LSO', 'MAR', 'MDG',
-       'MLI', 'MOZ', 'MRT', 'MUS', 'MWI', 'NAM', 'NER', 'NGA', 'REU', 'RWA',
-       'SDN', 'SEN', 'SLE', 'SOM', 'SSD', 'STP', 'SWZ', 'SYC', 'TCD', 'TGO',
-       'TUN', 'TZA', 'UGA', 'ZAF', 'ZMB', 'ZWE']
-        self.spatialMapping.loc['Africa'] = 'AFRICA' 
-        mappingToCountries['AFRICA'] =  AFRICA_countryList
-         
-        MIDEAST_countryList = ['ARE', 'BHR', 'IRN', 'IRQ', 'JOR', 'KWT', 'LBN', 'OMN', 'QAT', 'SAU',
-       'SYR', 'YEM']
-        self.spatialMapping.loc['Middle East'] = 'MIDEAST'
-        mappingToCountries['MIDEAST'] =  MIDEAST_countryList
-        
-        from hdx.location.country import Country
-        OECDTOT_countryList = [Country.get_iso3_country_code_fuzzy(x)[0] for x in 'Australia, Austria, Belgium, Canada, Chile, the Czech Republic, \
-         Denmark, Estonia, Finland, France, Germany, Greece, Hungary, Iceland, \
-         Ireland, Israel, Italy, Japan, Korea, Latvia, Lithuania , Luxembourg, \
-         Mexico, the Netherlands, New Zealand, Norway, Poland, Portugal, the Slovak Republic, \
-         Slovenia, Spain, Sweden, Switzerland, Turkey, the United Kingdom, United States'.split(',')]
-         
-        self.spatialMapping.loc['Memo: OECD Total'] = 'OECDTOT'
-        mappingToCountries['OECDTOT'] =  OECDTOT_countryList
-        dt.mapp.regions.addRegionToContext('IEA',mappingToCountries)
-
-
-class IEA2016():
-
-    def __init__(self):
-        self.setup = setupStruct()
-        self.setup.SOURCE_ID    = "IEA2016"
-        self.setup.SOURCE_PATH  = config.PATH_TO_DATASHELF + 'rawdata/IEA2016/'
-        self.setup.DATA_FILE    = self.setup.SOURCE_PATH + 'IEA2016_energy_balance.csv'
-        self.setup.MAPPING_FILE = self.setup.SOURCE_PATH + 'mapping.xlsx'
-        self.setup.LICENCE = 'restricted'
-        self.setup.URL     = 'https://webstore.iea.org/world-energy-balances-2018'
-        
-        self.setup.INDEX_COLUMN_NAME = ['FLOW', 'PRODUCT']
-        self.setup.SPATIAL_COLUM_NAME = 'COUNTRY'
-        self.setup.COLUMNS_TO_DROP = ['FLOW', 'PRODUCT']
-        
-        if not(os.path.exists(self.setup.MAPPING_FILE)):
-            self.createVariableMapping()
-        else:
-            self.mapping = pd.read_excel(self.setup.MAPPING_FILE, sheet_name=VAR_MAPPING_SHEET)
-    
-    def loadData(self):
-        self.data = pd.read_csv(self.setup.DATA_FILE, encoding="ISO-8859-1", engine='python', index_col = None, header =0, na_values='x')
-        self.data['combined'] = self.data[self.setup.INDEX_COLUMN_NAME].apply(lambda x: '_'.join(x), axis=1)
-        
-        self.data = self.data.set_index(self.data['combined']).drop('combined',axis=1)
-        
-    def createVariableMapping(self):        
-
-        if not hasattr(self, 'data'):
-            self.loadData()            
-        
-        
-        
-        index = self.data['combined'].unique()
-        
-        self.availableSeries = pd.DataFrame(index=index)
-        self.mapping = pd.DataFrame(index=index, columns = list(config.ID_FIELDS) + ['unitTo'])
-        self.mapping = pd.concat([self.mapping, self.availableSeries], axis=1)
-        self.mapping.source = self.setup.SOURCE_ID
-        self.mapping.scenario = 'historic'
-        
-        self.mapping.to_excel(self.setup.MAPPING_FILE, engine='openpyxl', sheet_name=VAR_MAPPING_SHEET)
-
-    def gatherMappedData(self, spatialSubSet = None):
-        
-        # loading data if necessary
-        if not hasattr(self, 'data'):
-            self.loadData()        
-        
-        indexDataToCollect = self.mapping.index[~pd.isnull(self.mapping['entity'])]
-        
-        tablesToCommit  = []
-        for idx in indexDataToCollect:
-            metaDf = self.mapping.loc[idx]
-            print(idx)
-            
-            print(metaDf[config.REQUIRED_META_FIELDS].isnull().all() == False)
-            #print(metaData[self.setup.INDEX_COLUMN_NAME])
-            
-            
-            metaDict = {key : metaDf[key] for key in config.REQUIRED_META_FIELDS.union({'unitTo'})}
-            
-            seriesIdx = idx
-            
-            dataframe = self.data.loc[seriesIdx]
-            
-            if spatialSubSet:
-                spatIdx = dataframe[self.setup.SPATIAL_COLUM_NAME].isin(spatialSubSet)
-                dataframe = dataframe.loc[spatIdx]
-            
-            dataframe = dataframe.set_index(self.setup.SPATIAL_COLUM_NAME).drop(self.setup.COLUMNS_TO_DROP, axis=1)
-            dataframe= dataframe.dropna(axis=1, how='all')
-            
-            dataTable = Datatable(dataframe, meta=metaDict)
-
-            if not pd.isna(metaDict['unitTo']):
-                dataTable = dataTable.convert(metaDict['unitTo'])
-                
-            tablesToCommit.append(dataTable)
-        
-        return tablesToCommit
-
 
 
         
@@ -2457,7 +1598,7 @@ class CDLINKS_2018(BaseImportTool):
                         excludedTables['empty'].append(tableID)
 
         return tablesToCommit, excludedTables
-#%%
+
 class IAMC_CMIP6(BaseImportTool):
     
     def __init__(self):
@@ -2637,7 +1778,7 @@ class IAMC_CMIP6(BaseImportTool):
                         excludedTables['empty'].append(tableID)
 
         return tablesToCommit, excludedTables
-#%%
+
 class AIM_SSP_DATA_2019(BaseImportTool):
     
     def __init__(self):
@@ -2845,7 +1986,7 @@ class AIM_SSP_DATA_2019(BaseImportTool):
                         excludedTables['empty'].append(tableID)
 
         return tablesToCommit, excludedTables
-#%%
+
 class IRENA2019(BaseImportTool):
     
     """
@@ -4513,10 +3654,7 @@ class VANMARLE2017(BaseImportTool):
                                 tablesToCommit.append(table)
         return tablesToCommit, excludedTables  
                 
-        #%%
-        
-        
-        
+ 
 class APEC(BaseImportTool):
     
     """
@@ -4630,7 +3768,7 @@ class FAO(BaseImportTool):
     def __init__(self, year=2019):
         self.setup = setupStruct()
         self.setup.SOURCE_ID    = "FAO_" + str(year)
-        self.setup.SOURCE_PATH  = config.PATH_TO_DATASHELF + 'rawdata/FAO_' + str(year) + '/'
+        self.setup.SOURCE_PATH  = os.path.join(config.PATH_TO_DATASHELF, 'rawdata/FAO_' + str(year) )
         self.setup.DATA_FILE    = {'Emissions_Land_Use_' : os.path.join(self.setup.SOURCE_PATH, 'Emissions_Land_Use_Land_Use_Total_E_All_Data.csv'),
                                    'Emissions_Agriculture_' : os.path.join(self.setup.SOURCE_PATH, 'Emissions_Agriculture_Agriculture_total_E_All_Data.csv'),
                                    'Environment_Emissions_by_Sector_' : os.path.join(self.setup.SOURCE_PATH, 'Environment_Emissions_by_Sector_E_All_Data.csv'),
@@ -4968,7 +4106,6 @@ class WEO(BaseImportTool):
         
         return tablesList, []
 
-#%% Enerdata
 class ENERDATA(BaseImportTool):
     def __init__(self, year = 2019):
         self.setup = setupStruct()
@@ -4981,9 +4118,9 @@ class ENERDATA(BaseImportTool):
             self.setup.DATA_FILE    = os.path.join(self.setup.SOURCE_PATH, 'export_enerdata_1137124_113516.xlsx')
         elif year == 2021:
             self.setup.DATA_FILE    = os.path.join(self.setup.SOURCE_PATH, 'export_enerdata_1137124_094807.xlsx')
-            self.setup.DATA_FILE    = os.path.join(self.setup.SOURCE_PATH, 'export_enerdata_2021_06_16.xlsx')
+            self.setup.DATA_FILE    = os.path.join(self.setup.SOURCE_PATH, 'export_enerdata_2021_07_09.xlsx')
         self.setup.MAPPING_FILE =  os.path.join(self.setup.SOURCE_PATH,'mapping_' + str(year) + '.xlsx')
-        self.setup.LICENCE = ' Restricted use in the Brown 2 Green project only'
+        self.setup.LICENCE = ' Restricted use in the Climate Transparency Report project only'
         self.setup.URL     = 'https://www.enerdata.net/user/?destination=services.html'
         
         self.setup.REGION_COLUMN_NAME   = 'ISO code'
@@ -5138,7 +4275,6 @@ class ENERDATA(BaseImportTool):
         return tablesToCommit, excludedTables  
    
     
-#%%
 class CAT_Paris_Sector_Rollout(BaseImportTool):
    
     def __init__(self):
@@ -5284,8 +4420,8 @@ class CAT_Paris_Sector_Rollout(BaseImportTool):
                             tablesToCommit.append(table)
         return tablesToCommit, excludedTables  
 
-     
-#%%
+#%% Import functions   
+
 def HDI_import(year=2020):
     sourceMeta = {'SOURCE_ID': 'HDI_' + str(year),
                   'collected_by' : 'AG',
@@ -5294,11 +4430,13 @@ def HDI_import(year=2020):
                   'licence': 'open source' }
     
     SOURCE_PATH = os.path.join(dt.config.PATH_TO_DATASHELF, 'rawdata/', sourceMeta['SOURCE_ID'])
-    data = pd.read_csv(os.path.join(SOURCE_PATH, "Human Development Index (HDI).csv"), na_values='..')
+    data = pd.read_csv(os.path.join(SOURCE_PATH, "Human Development Index (HDI).csv"), na_values='..',
+                       )
+    
     
     yearColumns = dt.util.yearsColumnsOnly(data)
     
-    data = data.loc[:,yearColumns]
+    data = data.loc[:,['Country'] + yearColumns]
     
 #    regionMapping = {x:y for x,y in zip(list(data.loc[:,'Country']), list(data.loc[:,'Country'].map(lambda x : dt.getCountryISO(str(x)))))}
     regionMapping = {
@@ -5510,9 +4648,11 @@ def HDI_import(year=2020):
          'World': 'World'}
     
     data.index = data.loc[:,'Country'].map(regionMapping)
-    data = data.loc[~data.index.isnull(),:].astype(float)
+    
     
     data.index[data.index.duplicated()]
+    data = data.loc[:,yearColumns]
+    data = data.loc[~data.index.isnull(),:].astype(float)
     
     meta =  {'entity'   : 'HDI_Human_development_index',
              'scenario' : 'Historic', 
@@ -5521,11 +4661,9 @@ def HDI_import(year=2020):
     table = dt.Datatable(data, meta=meta)
     table.generateTableID()
     
-    dt.commitTables([table], 'UNWPP2017 data', sourceMeta)
+    dt.commitTables([table], 'HDI data update', sourceMeta, update=True)
     
-    
-#    def 
-    #%%
+
 def UN_WPP_2019_import():
     sourceMeta = {'SOURCE_ID': 'UN_WPP2019',
                           'collected_by' : 'AG',
@@ -5593,231 +4731,60 @@ def UN_WPP_2019_import():
     
     tables = [add_EU(table) for table in tables]
     
-    dt.commitTables(tables, 'UNWPP2017 data', sourceMeta, append_data=True)
+    dt.commitTables(tables, 'UNWPP2017 data', 
+                    sourceMeta, 
+                    append_data=True,
+                    update=True)
     return tables
 
-
-
-#%% 
-sources = sourcesStruct()
-_sourceClasses = [IEA_World_Energy_Balance, IEA_WEB_2018, ADVANCE_DB, IAMC15_2019, IRENA2019,
-                  SSP_DATA, SDG_DATA_2019, AR5_DATABASE, IEA_FUEL_2019, PRIMAP_HIST, SDG_DATA_2019,
-                  CRF_DATA, WDI, APEC, WEO, VANMARLE2017, HOESLY2018, FAO, LED_2019, IMAGE15_2020]
-
-nSourceReader = 0
-for _sourceClass in _sourceClasses:
-    try:
-        _source = _sourceClass()
-        sources[_source.setup.SOURCE_ID] = _source
-        nSourceReader +=1
-    except:
-        pass
-print('{} source reader found and added into "datatoolbox.sources".'.format(nSourceReader))
-        
+  
 
 if config.DEBUG:
     print('Raw sources loaded in {:2.4f} seconds'.format(time.time()-tt))
 
 
-
+#%% Import example
 if __name__ == '__main__':
-#%% PRIMAP HIST
-    primap = PRIMAP_HIST(version="v2.2_19-Jan-2021", year=2021)
-    # tableList, excludedTables = primap.gatherMappedData()
-    # dt.commitTables(tableList, 'PRIMAP 2021 cimooit', primap.meta)
-    # asd
-#%% PRIMAP DOWNSCALE
-    primap_down = PRIMAP_DOWNSCALE()
-#    tableList, excludedTables = primap_down.gatherMappedData()
-#    dt.commitTables(tableList, 'PRIMAP DOWNSCALING 2020', primap_down.meta)
-#    asdf1s
-#%% CRF data
-    crf_data = CRF_DATA(2021)
-    #iea = IEA2016()
-    # tableList = crf_data.gatherMappedData()
-    # crf_data.createSourceMeta()
-    # dt.commitTables(tableList, 'CRF_data_2021', crf_data.meta, update=True)
-    # sdf
-#%% ADVANCE DB
-    advance = ADVANCE_DB()
-#    iea = IEA2016()
-#    tableList, excludedTables = advance.gatherMappedData()
-#    dt.commitTables(tableList, 'ADVANCE DB IAM data', advance.meta)
-#%%WDI data
-    wdi = WDI()    
-#     tableList = wdi.gatherMappedData(updateTables=True)
-# #    
-# ##    iea.openMappingFile()
-#     dt.commitTables(tableList, 'Added WDI 2020  data', wdi.meta, update=True)
-#     sdf
-#%%IEA World Energy Balance
-    iea = IEA_World_Energy_Balance(2020)
-#    iea19.createVariableMapping()
-#    iea19.addSpatialMapping()
-
-    # tableList, excludedTables = iea.gatherMappedData(updateTables=True)
-    # dt.commitTables(tableList, 'IEA2020 World balance update', iea.meta,update=True)
-#    sdf
-#    iea16 = IEA2016()
-#    iea18 = IEA_WEB_2018()
-#    iea18.addSpatialMapping()
-#    tableList, excludedTables = iea18.gatherMappedData(updateTables=True)
-#    dt.commitTables(tableList, 'IEA2018 World balance update', iea18.meta)
-#    tableIDs = [table.ID for table in tableList]
-#    tableList = [dt.tools.cleanDataTable(table) for table in tableList]
-#    dt.updateTables( tableIDs[0:1], tableList[0:1], 'update of tables')
-#    dt.updateTables( [table.ID], [table], 'update of tables')
-
-#%% IEA emissions
-    ieaEmissions = IEA_FUEL_2019()
-#    tableList, excludedTables = ieaEmissions.gatherMappedData(updateTables=True)
-#    dt.commitTables(tableList, 'IEA fuel emission data', ieaEmissions.meta, update=True)
-#    ddsa
-#%% IEA emissions detailed
-    ieaEmissions_detailed = IEA_CO2_FUEL_DETAILED_2019()
-#    tableList, excludedTables = ieaEmissions_detailed.gatherMappedData(updateTables=True)
-#    dt.commitTables(tableList, 'IEA fuel emission detailed data', ieaEmissions.meta, update=True)
+    # xdfg
+    """
+    Config 
+    """
+    update_content = True
     
-#%% IRENA data
-    irena19 = IRENA2019(2021)
-    # tableList = irena19.gatherMappedData()
-#    dt.commitTables(tableList, 'IRENA 2019 new data', irena19.meta)
-#    dt.updateTables()
-#%% SDG_DB data
-    sdg2019 = SDG_DATA_2019()
-#    tableList = sdg2019.gatherMappedData()
-#    dat.commitTables(tableList, 'SDG_DB 2019 data', sdg2019.meta)    
-
-#%% AIM DATA
-
-    aim = AIM_SSP_DATA_2019()
-#    tableList, excludedTables = aim.gatherMappedData(updateTables=True)
-#    aim.createSourceMeta()
-#    dt.commitTables(tableList, 'update AIM 1.5 data R20', aim.meta, update=True)
     
-#%% IAMC DATA
-
-    iamc = IAMC15_2019()    
-#     tableList, excludedTables = iamc.gatherMappedData(updateTables=False)
-# ##    iamc.createSourceMeta()
-#     dt.commitTables(tableList, 'update IAM 1.5 data R20', iamc.meta, update=True)
-#     sad
-#%% CD LINKS
-
-    cdlinks = CDLINKS_2018()    
-#    tableList, excludedTables = cdlinks.gatherMappedData(updateTables=False)
-#    cdlinks.createSourceMeta()
-#    dt.commitTables(tableList, 'update CD Linksdata ', cdlinks.meta, update=False)
-
-#%% IAMC CMPI6
-
-    cmip6 = IAMC_CMIP6()    
-#    tableList, excludedTables = cmip6.gatherMappedData(updateTables=False)
-#    cmip6.createSourceMeta()
-#    dt.commitTables(tableList, 'added CMIP6 dataset', cmip6.meta, update=False)
-#    sadf
-#%% SSPDB 2013
+    """ 
+    Initialize class:
+    This will load the mapping file, read the data and prepare the additional
+    meta informations.
+    """
+    # reader = PRIMAP_HIST(version="v2.2_19-Jan-2021", year=2021)
+    reader = EEA_DATA(year = 2021)
     
-    ssp2013 = SSP_DATA()
-    # tableList, excludedTables = ssp2013.gatherMappedData(updateTables=True)
-    # dt.commitTables(tableList, 'SSP Database data added', ssp2013.meta, update=True)
-#    for countryCode in tableList[0].index:
-#        country = pycountry.countries.get(name = countryCode)
-#        if country is not None:
-#            print(countryCode + ': ' + country.alpha_3)
-#        else:
-#            print(countryCode + ' not found')
     
-#%% AR5
-    ar5_db = AR5_DATABASE()
-#    tableList, excludedTables = ar5_db.gatherMappedData()
-#    dt.commitTables(tableList, 'AR5  data added', ar5_db.meta)
-#%% WEO
-    weo = WEO(2020)
-#    tableList, excludedTables = weo.gatherMappedData()
-#    dt.commitTables(tableList, 'WEO  data updated', weo.meta, update=True)  
+    """ 
+    Process data:
+    This will process the data according to the mapping file and fill a list of 
+    tables which are to be added to the database.
     
-#%% FAO
-    fao = FAO(2021)
-    tableList, excludedTables = fao.gatherMappedData(updateTables=True)
-    dt.commitTables(tableList, 'FAO data 2021', fao.meta, update=True)  
-    df
-#%% APEC
-    apec = APEC(2019)
-#    tableList, excludedTables = apec.gatherMappedData()
-    #dt.commitTables(tableList, 'AR5  data added', apec.meta) 
-
-#%% hoesley
-    hoesley = HOESLY2018()
-#    tableList, excludedTables = hoesley.gatherMappedData()
-#    dt.commitTables(tableList, 'Hoesley data updated', hoesley.meta, update=False)  
-#%% VANMARLE2017
-    vanmarle = VANMARLE2017()
-#    tableList, excludedTables = vanmarle.gatherMappedData()
-#    dt.commitTables(tableList, 'vanmarle data updated', vanmarle.meta, update=False)  
-#%% Enerdata
-    enerdata = ENERDATA(2021)
-    tableList, excludedTables = enerdata.gatherMappedData(updateTables=True)
-    sdf
-    dt.commitTables(tableList, 'enerdata data updated 16-06-21', enerdata.meta, update=True)  
-    #%%
-    enerdata = ENERDATA(2021)
-    # tableList2020, excludedTables = enerdata.gatherMappedData(updateTables=True)
-    # dt.commitTables(tableList2020, 'enerdata 2021 update', enerdata.meta, update=True)  
+    Excluded tables will be listed seperately for review.
+    """
+    tableList, excludedTables = reader.gatherMappedData()
     
-#%% CAT Paris sector Rollout
-    cat_psr = CAT_Paris_Sector_Rollout()
-#    tableList, excludedTables = cat_psr.gatherMappedData()
-#    dt.commitTables(tableList, 'CAT PSR data', cat_psr.meta, update=False)  
-    #%%
-    # sdf
-    i = 66
+    # For review:
+    # tableIDs = [table.ID for table in tableList]
+    # cleanTableList = [dt.tools.cleanDataTable(table) for table in tableList
     
-    table19 = tableList[i]
-    table20 = tableList2020[i]
-    print(table19.meta['variable'])
-    table19 -table20
-        
-    #%%
-##################################################################
-#    helper funtions
-##################################################################  
-def Anne_extract()  :  
-    wdi = WDI_2018()
-    tableList = wdi.gatherMappedData()
-    LDC_list =["AGO", "BEN", "BFA", "BDI", "CAF", "TCD", "COM", "COD", "DJI", "ERI",
-      "ETH", "GMB", "GIN", "GNB", "LSO", "LBR", "MDG", "MWI", "MLI", "MRT",
-      "MOZ", "NER", "RWA", "STP", "SEN", "SLE", "SOM", "SSD", "SDN", "TZA",
-      "TGO", "UGA", "ZMB",
-      # Asia
-      "AFG", "BGD", "BTN", "KHM", "TLS", "LAO", "MMR", "NPL", "YEM",
-      # Oceania
-      "KIR", "SLB", "TUV", "VUT",
-      # The Americas
-      "HTI"]  
-    LDC_list.append('LDC')  
-    LDC_list.append('WLD')
-    #%%
-    filteredTable = list()
-    for table in tableList:
-        filteredTable.append(table.filter(LDC_list))
+    # find empty tablse
+    #[x.ID for x in tableList if len(x.index) ==0]
+    """
+    Update database:
     
-    writer = pd.ExcelWriter('wdi_extract.xlsx',
-                            engine='xlsxwriter',
-                            datetime_format='mmm d yyyy hh:mm:ss',
-                            date_format='mmmm dd yyyy')
-    writer.close()
+    This will add the tables in the list to the database and will also add the
+    mapping file to the repository.
+    """
     
-    for table in filteredTable:
-    
-        if table.meta['unit'] == 'USD':
-            table = table.convert('millions USD')
-        table.to_excel('wdi_extract.xlsx', sheetName=table.generateTableID()[:30],append=True)
-    
-def IEA_mapping_generation():
-    path= '/media/sf_Documents/datashelf/rawdata/IEA2018/'
-    os.chdir(path)
-    df= pd.read_csv('World_Energy_Balances_2018_clean.csv',encoding="ISO-8859-1", engine='python', index_col = None, header =0, na_values='..')
+    reader.update_database(tableList, 
+                           updateContent=update_content)
 
 #%%
 

@@ -18,7 +18,7 @@ def test_import():
     
 def test_to_xarray_interface():
     #%%
-    inv = dt.findp(variable = 'Numbers**')
+    inv = dt.findp(variable = ['**Ones', '**Fives'])
     
     tableSet = dt.getTables(inv.index)
     

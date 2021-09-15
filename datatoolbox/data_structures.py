@@ -14,10 +14,10 @@ import pandas as pd
 import matplotlib.pylab as plt
 import numpy as np
 from copy import copy
-
+import ast
 from . import core
 from . import config 
-#from . import mapping as mapp
+import traceback
 from . import util
 #from . import io_tools
 #from .tools import xarray
@@ -34,12 +34,13 @@ class Datatable(pd.DataFrame):
     def __init__(self, *args, **kwargs):
         
         metaData = kwargs.pop('meta', {x:'' for x in config.REQUIRED_META_FIELDS})
-
+        
         super(Datatable, self).__init__(*args, **kwargs)
-#        print(metaData)
+
         if metaData['unit'] is None or pd.isna(metaData['unit']):
+
             metaData['unit'] = ''
-#        metaData['variable'] = metaData['entity'] + metaData['category']
+
         self.__appendMetaData__(metaData)
         self.vis = Visualization(self)
         try:
@@ -54,6 +55,26 @@ class Datatable(pd.DataFrame):
         self.columns.name = 'time'
         self.index.name   = 'region'
     
+
+    
+    def info(self):
+        """
+        Returns information about the dataframe like shape, index and column 
+        extend and the number of non-nan entries.
+        
+        Returns
+        -------
+        str
+            Information about datatable.
+
+        """
+        shp = self.shape
+        idx_ext = self.index[0] ,self.index[-1]
+        time_ext = self.columns[0] ,self.columns[-1]
+        n_entries = (~self.isnull()).sum().sum()
+        return f'{shp[0]}x{shp[1]} Datatable with {n_entries} entries, index from {idx_ext[0]} to {idx_ext[1]} and time from {time_ext[0]} to {time_ext[0]}'
+        
+        
     @classmethod
     def from_pyam(cls, idf, **kwargs):
         """
@@ -220,6 +241,48 @@ class Datatable(pd.DataFrame):
         out.meta['unit'] = self.meta['unit']
         
         return out
+    
+    def reduce(self, 
+               method='linear_piece_wise',
+               eps = 1e-6):
+        """ 
+        Reduce data that is piecewise linear to the core data points (kinks).
+        """
+        
+        # assert monotonic incease of decrease
+        assert self.columns.is_monotonic
+        
+        #initial value of last year (set to first year)
+        last_year = self.columns[0]
+        last_yearly_change    = np.nan # initial value
+        
+        reduced_data = self.copy()*np.nan
+        
+        for year in self.columns[1:]:
+            #assert year == last_year+1
+            n_years = year - last_year
+            
+            change= self.loc[:,year] - self.loc[:,last_year]
+            
+            # find where is a kink
+            idx = (change - last_yearly_change*n_years).abs() > eps
+            
+            reduced_data.loc[idx, last_year] = self.loc[idx,last_year]
+            
+            # overwrite last values
+            last_yearly_change = change / n_years
+            last_year = year
+        
+        # set first and last values
+        for coISO in self.index:
+            value_columns = self.columns[self.loc[coISO,:].notna()]
+            idx_min = value_columns.min()
+            idx_max = value_columns.max()
+            reduced_data.loc[coISO, idx_min] = self.loc[coISO,idx_min]
+            reduced_data.loc[coISO, idx_max] = self.loc[coISO,idx_max]
+            
+            #%%
+        return reduced_data
     
     def to_excel(self, fileName = None, sheetName = "Sheet0", writer = None, append=False):
         """
@@ -413,7 +476,7 @@ class Datatable(pd.DataFrame):
         Returns
         -------
         datatable
-            Interpoltated dataframe.
+            Interpolated dataframe.
 
         """
         from datatoolbox.tools.for_datatables import interpolate
@@ -512,7 +575,8 @@ class Datatable(pd.DataFrame):
         self.meta['ID'] = self.ID
         return self.ID
 
-
+    def _update_meta(self):
+        self.meta =  core._update_meta(self.meta)
     
     def source(self):
         """
@@ -961,8 +1025,11 @@ class TableSet(dict):
         
     def to_compact_excel(self,
                          writer,
-                         sheet_name="Sheet1"):
+                         sheet_name="Sheet1",
+                         include_id=False):
         
+        use_index = include_id
+
         if isinstance(writer, pd.ExcelWriter):
             need_close = False
         else:
@@ -970,14 +1037,14 @@ class TableSet(dict):
             need_close = True
             
         
-        long, metaDict = self._compact_to_long_format()
+        long, metaDict = self.to_compact_long_format(include_id)
     
         core.excel_writer(writer,
                          long,
                          metaDict,
                          sheet_name=sheet_name,
-                         index=0,
-                         engine=None)
+                         index= use_index,
+                         engine='xlsxwriter')
         
         if need_close:
             writer.close()
@@ -1097,9 +1164,25 @@ class TableSet(dict):
             
         return resultTable
 
- 
-    def _compact_to_long_format(self):
-        meta_columns = ['region'] + config.INVENTORY_FIELDS
+    def get_all_meta_keys(self):
+        meta_columns = set()
+        for key in self.keys():
+            meta = self[key].meta
+            
+            meta_columns = meta_columns.union(meta.keys())
+        return list(meta_columns)
+    
+    
+    def to_compact_long_format(self, 
+                                include_id= False):
+        
+        meta_columns = ['region'] + self.get_all_meta_keys()
+        # meta_columns = ['region'] + config.INVENTORY_FIELDS
+        if include_id:
+            meta_columns.append('ID')
+        
+                
+        
         long = self.to_LongTable(meta_list = meta_columns)
         
         single_meta = dict()
@@ -1120,6 +1203,9 @@ class TableSet(dict):
         metaDict = dict()
         metaDict.update(single_meta)
         metaDict.update({'meta_columns' : multi_meta})
+        
+        if include_id:
+            long = long.set_index('ID')
         
         return long, metaDict
 
@@ -1302,14 +1388,21 @@ class Visualization():
     def __init__(self, df):
         self.df = df
     
-    def availability(self):
-        data = np.isnan(self.df.values)
-        availableRegions = self.df.index[~np.isnan(self.df.values).any(axis=1)]
-        print(availableRegions)
+    def availability(self, regions = None):
+        
+        if regions is not None:
+            available_regions = self.df.index.intersection(regions)
+            
+            data = self.df.loc[available_regions, :]
+        else:
+            data = self.df
+            
+            availableRegions = data.index[~data.isnull().all(axis=1)]
+        #print(availableRegions)
         plt.pcolormesh(data, cmap ='RdYlGn_r')
         self._formatTimeCol()
-        self._formatSpaceCol()
-        return availableRegions
+        self._formatSpaceCol(data.index)
+        return available_regions
         
     def _formatTimeCol(self):
         years = self.df.columns.values
@@ -1320,8 +1413,11 @@ class Visualization():
         plt.xticks(xTickts+.5, years[xTickts], rotation=45)
         print(xTickts)
         
-    def _formatSpaceCol(self):
-        locations = self.df.index.values
+    def _formatSpaceCol(self, regions = None):
+        if regions is None:
+            locations = self.df.index.values
+        else:
+            locations = np.asarray(list(regions))
         
         #dt = int(len(locations) / 10)+1
         dt = 1    
@@ -1520,7 +1616,9 @@ def read_csv(fileName):
     fid.close()
     return df
 
-def read_excel(fileName, sheetNames = None):
+def read_excel(fileName, 
+               sheetNames = None,
+               use_sheet_name_as_keys=False):
  
     
     if sheetNames is None:
@@ -1546,9 +1644,17 @@ def read_excel(fileName, sheetNames = None):
                                       columns = [int(x) for x in fileContent.loc[columnIdx, 1:]], 
                                       meta    = metaDict)
                 dataTable.generateTableID()
-                out.add(dataTable)
-            except:
-                print('Failed to read the sheet: {}'.format(sheet))
+                if use_sheet_name_as_keys:
+                    out[sheet] = dataTable
+                else:
+                    out.add(dataTable)
+                
+            except Exception:
+
+                
+                if config.DEBUG:
+                    print(traceback.format_exc())
+                print('Failed to read the sheet: {}'.format(sheet))                    
         
     else:
         sheet = sheetNames[0]
@@ -1576,6 +1682,94 @@ def read_excel(fileName, sheetNames = None):
 #                print('Failed to read the sheet: {}'.format(sheet))
         
     return out
+
+def read_compact_excel(file_name, sheet_name=None):
+    #%%
+    if sheet_name is None:
+        xlFile = pd.ExcelFile(file_name)
+        sheet_names = xlFile.sheet_names
+        xlFile.close()
+
+    
+    out = TableSet()
+    for sheet in sheet_names:
+        fileContent = pd.read_excel(file_name, sheet_name=sheet, header=None)
+        metaDict = dict()
+        
+        if fileContent.loc[0, 0] != '###META###':
+            raise(BaseException('Undefined format'))
+            
+        # try:
+        if True:
+            for idx in fileContent.index[1:]:
+                key, value = fileContent.loc[idx, [0,1]]
+                if key == '###DATA###':
+                    break
+                
+                metaDict[key] = value
+            columnIdx = idx +1
+            
+
+            lDf = fileContent.loc[columnIdx+1:, :]
+            lDf.columns = fileContent.loc[columnIdx, :]
+            # lDf.index = fileContent.loc[columnIdx+1:, 0]
+            
+            if 'ID' in metaDict['meta_columns']:
+                lDf.loc[:,'ID'] = fileContent.loc[columnIdx:, 0]
+            # import json
+            # x = '[ "A","B","C" , " D"]'
+            # json.loads(metaDict['meta_columns'])
+            
+            try:
+                meta_columns = ast.literal_eval(metaDict['meta_columns'])
+            except:
+                meta_columns = metaDict['meta_columns']
+            if isinstance(meta_columns, str):
+                meta_columns= meta_columns.split(', ')
+            # if 'region' in meta_columns:
+            meta_columns.remove('region')
+                
+            for idx, line in lDf.iterrows():
+                
+                print(idx)
+                    
+                meta = { x: metaDict[x] for x in metaDict.keys() if x not in  ['meta_columns']}
+                
+                for meta_col in meta_columns:
+                    meta[meta_col] = line[meta_col]
+                region = line.loc['region']
+                ID = line.loc['ID']
+                if config.DEBUG:
+                    print(f'meta columns: {meta_columns}')
+                    print(f'numerical columns: {list(lDf.columns.difference(meta_columns + ["region"]))}')
+                numerical_columns = list(lDf.columns.difference(meta_columns + ['region']).astype(int))
+                
+                if ID not in out.keys():
+                    # table  = Datatable()
+                    table = Datatable(
+                                columns= numerical_columns,
+                                index= [region],                
+                                meta = meta)
+                    # print(ID)
+                    # print(meta['unit'])
+                    # print(line)
+                    
+                    table.loc[region, numerical_columns] = line.loc[numerical_columns].astype(float)
+                    out[ID] = table
+                    
+                else:
+                    line.loc[numerical_columns].astype(float)
+                    factor = core.conversionFactor(meta['unit'], out[ID].meta['unit'])
+                    out[ID].loc[region, numerical_columns] = line.loc[numerical_columns].astype(float) *factor
+                    #
+                
+                
+    return out
+            
+        # except:
+        #         print('Failed to read the sheet: {}'.format(sheet))
+
+
 #%%
 class MetaData(dict):
     
