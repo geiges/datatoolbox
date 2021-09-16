@@ -10,7 +10,7 @@ import datatoolbox as dt
 import numpy.testing as npt
 import numpy as np
 
-from util import df1
+from util_for_testing import df1, df_datetime
 
 
 data = np.asarray([[1,2.2,3,4,5 ],
@@ -28,6 +28,8 @@ df3 =   df = dt.Datatable(data,
 def test_interpolation():
     from datatoolbox.tools.for_datatables import interpolate
     
+    
+    #interpolation to with columns as years
     resTable = interpolate(df1)
     
     assert (resTable.loc['DEU',2012] == 3)
@@ -35,6 +37,12 @@ def test_interpolation():
     assert np.isnan(resTable.loc['DEU',2015])
     assert np.isnan(resTable.loc['FRA',2013])
     
+    
+    #interpolation to with columns as years
+    interpolated_table = df_datetime.interpolate()
+    
+    assert interpolated_table.loc['GBR', '2018-08-09 12:00:00'] == 11.
+    assert interpolated_table.loc['GBR', '2018-08-09 13:00:00'] == 12.
     # test of linked method
     df1.interpolate()
    

@@ -8,7 +8,7 @@ Created on Thu May 28 19:56:03 2020
 import copy
 import datatoolbox as dt
 
-from util import df, df2, sourceMeta
+from util_for_testing import df, df2, sourceMeta
  
 dt.admin.switch_database_to_testing()
 

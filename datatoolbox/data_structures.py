@@ -33,15 +33,16 @@ class Datatable(pd.DataFrame):
 
     def __init__(self, *args, **kwargs):
         
-        metaData = kwargs.pop('meta', {x:'' for x in config.REQUIRED_META_FIELDS})
+        # pop meta out of kwargs since pandas is not expecting it
+        metaDict = kwargs.pop('meta', {}) # retrun empty dict if no meta is provide
+        
+        
         
         super(Datatable, self).__init__(*args, **kwargs)
 
-        if metaData['unit'] is None or pd.isna(metaData['unit']):
-
-            metaData['unit'] = ''
-
-        self.__appendMetaData__(metaData)
+        # append metaDict to datatable
+        self.__appendMetaData__(metaDict)
+        
         self.vis = Visualization(self)
         try:
             self.generateTableID()
@@ -54,8 +55,14 @@ class Datatable(pd.DataFrame):
             
         self.columns.name = 'time'
         self.index.name   = 'region'
-    
-
+        
+        print(self.meta)
+        if ('timeformat' in self.meta.keys()) and (self.meta['timeformat'] != '%Y'):
+            self.columns_to_datetime()
+        # else:
+        #     self.columns = self.columns.astype(int)
+            # sdf
+        
     
     def info(self):
         """
@@ -193,12 +200,24 @@ class Datatable(pd.DataFrame):
 
 
         """
+        
+        for metaKey in config.REQUIRED_META_FIELDS:
+            if metaKey not in metaDict.keys() or metaDict[metaKey] == '' or pd.isna(metaDict[metaKey]):
+                
+                # Overwrite with default or empty string
+                if metaKey in config.META_DEFAULTS:
+                    metaDict[metaKey] = config.META_DEFAULTS[metaKey]
+                else:
+                    metaDict[metaKey] = ''
+
+            
         self.__setattr__('meta', metaDict.copy())
+        
+        assert core.getUnit(self.meta['unit'])
 
-        #test if unit is recognized
-        #print(self.meta['unit'])
-        core.getUnit(self.meta['unit'])
-
+    def columns_to_datetime(self):
+        self.columns = pd.to_datetime(self.columns, 
+                                      format=self.meta['timeformat'])
 
     def copy(self, deep=True):
         """
@@ -486,6 +505,7 @@ class Datatable(pd.DataFrame):
                 if col not in self.columns:
                     self.loc[:,col] = np.nan
             self = self.loc[:,list(range(self.columns.min(),self.columns.max()+1))]
+        
         return interpolate(self, method)
     
     def clean(self):
@@ -1309,7 +1329,7 @@ class TableSet(dict):
                     inp_dict[metaKey] = df.meta.get(metaKey, '')
                 
             try:
-                df = df.assign(**inp_dict).reset_index(drop=True)
+                df = pd.DataFrame(df.assign(**inp_dict)).reset_index(drop=True)
                 
             except KeyError as exc:
                 raise AssertionError(f"meta of {variable} does not contain {exc.args[0]}")
@@ -1611,7 +1631,11 @@ def read_csv(fileName):
         if "unit" not in meta.keys():
             meta["unit"] = ""
     df = Datatable(pd.read_csv(fid, index_col=0), meta=meta)
-    df.columns = df.columns.map(int)
+    
+    if ('timeformat' in df.meta.keys()) and (df.meta['timeformat'] != '%Y'):
+        df.columns_to_datetime()
+    else:
+        df.columns = df.columns.astype(int)
 
     fid.close()
     return df
@@ -1670,9 +1694,11 @@ def read_excel(fileName,
             columnIdx = idx +1
             dataTable = Datatable(data    = fileContent.loc[columnIdx+1:, 1:].astype(float).values, 
                                   index   = fileContent.loc[columnIdx+1:, 0], 
-                                  columns = [int(x) for x in fileContent.loc[columnIdx, 1:]], 
+                                  columns = fileContent.loc[columnIdx, 1:], 
                                   meta    = metaDict)
-            
+            if ('timeformat' in dataTable.meta.keys()) and (dataTable.meta['timeformat'] != '%Y'):
+                dataTable.columns_to_datetime()
+        
             try:
                 dataTable.generateTableID()
             except:

@@ -10,29 +10,44 @@ import datatoolbox as dt
 import os
 import numpy.testing as npt
 
-def test_csv_io():
-    metaDict = {'entity':'Emissions|Candy',
-                               'category': '',
-                               'scenario':'Historic',
-                               'source': 'SANDBOX',
-                               'unit' : 'Mt CO2'}
-    
-    
-    
-    df1 = dt.Datatable([[10,20,30,],
-                       [40,40,50,]], 
-                       columns = [2000, 2010, 2020],
-                       index= ['DEU', 'IND'],
-                       meta = metaDict)
-    
-    filePath = os.path.join(dt.config.PATH_TO_DATASHELF,'test.csv')
-    
-    df1.to_csv(filePath)
+from util_for_testing import df1, df_datetime
 
-    df_copy = dt.data_structures.read_csv(filePath)
+def test_datatable__csv_io():
+
     
-    obs = df_copy
-    exp = df1
-    npt.assert_array_almost_equal(obs, exp, decimal = 6)
+    for df in df1, df_datetime:
     
-    os.remove(filePath)
+        filePath = os.path.join('/tmp','test.csv')
+        
+        df.to_csv(filePath)
+    
+        df_copy = dt.data_structures.read_csv(filePath)
+        
+        obs = df_copy
+        exp = df
+        npt.assert_array_almost_equal(obs, exp, decimal = 6)
+        
+        os.remove(filePath)
+    
+def test_datatable_excel_io():
+
+    
+    
+    for df in df1, df_datetime:
+    
+        filePath = os.path.join('/tmp','test.xlsx')
+        
+        df.to_excel(filePath)
+    
+        df_copy = dt.data_structures.read_excel(filePath)
+        
+        obs = df_copy
+        exp = df
+        npt.assert_array_almost_equal(obs, exp, decimal = 6)
+        
+        # os.remove(filePath)
+
+if __name__== '__main__':
+    test_datatable__csv_io()
+    test_datatable_excel_io()
+    

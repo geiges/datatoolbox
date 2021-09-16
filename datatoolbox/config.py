@@ -31,7 +31,10 @@ REQUIRED_META_FIELDS = {'entity',
                         'scenario',
                         'source_name',
                         'source_year',
-                        'unit'}
+                        'unit',
+                        'timeformat'}
+
+META_DEFAULTS = {'timeformat'  : '%Y'}
 
 OPTIONAL_META_FIELDS = ['category',
                        'model']

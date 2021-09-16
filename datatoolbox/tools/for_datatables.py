@@ -12,17 +12,24 @@ from copy import copy
 import numpy as np
 #from . import config
 import datatoolbox as dt
+import pandas as pd
 
 def interpolate(datatable, method="linear"):
     
-#    if ~isinstance(datatable, ):
-#        raise(BaseException('This function is only guaranteed to work with a datatoolbox datatable'))
-        
     datatable = copy(datatable)
+    
+    
     if method == 'linear':
         from scipy import interpolate
         import numpy as np
-        xData = datatable.columns.values.astype(float)
+        
+        if pd.api.types.is_datetime64_any_dtype(datatable.columns.dtype):
+            xData = datatable.columns.values.astype(int) // 10**9 #timestamp in seconds
+        elif pd.api.types.is_integer_dtype(datatable.columns.dtype): #assuming year as int
+            xData = datatable.columns.values.astype(float)
+        else:
+            raise(BaseException('Expecting column dtype to be integer for years or datetime'))
+            
         yData = datatable.values
         for row in yData:
             idxNan = np.isnan(row)
