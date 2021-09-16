@@ -56,7 +56,7 @@ class Datatable(pd.DataFrame):
         self.columns.name = 'time'
         self.index.name   = 'region'
         
-        print(self.meta)
+        # print(self.meta)
         if ('timeformat' in self.meta.keys()) and (self.meta['timeformat'] != '%Y'):
             self.columns_to_datetime()
         # else:
