@@ -425,7 +425,9 @@ class IEA_CO2_FUEL_DETAILED(BaseImportTool):
     
         # loading data if necessary
         if not hasattr(self, 'data'):
-            self.loadData()        
+            self.loadData()    
+            
+    
 
         # meta data
 #        self.loadMetaData()
@@ -3023,7 +3025,24 @@ class PRIMAP_HIST(BaseImportTool):
             self.createVariableMapping()
         else:
             self.mapping = pd.read_excel(self.setup.MAPPING_FILE, sheet_name=VAR_MAPPING_SHEET, index_col=0)
-
+    
+    def pre_process_input_file(self):
+        #%%
+        data = self.data.copy()
+        
+        data = data.rename(columns={'category (IPCC2006_PRIMAP)': 'category',
+                                    'scenario (PRIMAP-hist)' : 'scenario',
+                                    'area (ISO3)' : 'country'})
+        data = data.drop('source', axis = 1)
+        
+        rename_cat_dict = {x: 'IPC' + x.replace('.','') for x in data.category.unique()}
+        
+        data.category = data.category.map(rename_cat_dict)
+        
+        self.data = data
+        #%%
+        
+    
     def createVariableMapping(self):
         writer = pd.ExcelWriter(self.setup.MAPPING_FILE,
                     engine='xlsxwriter',
@@ -3041,12 +3060,12 @@ class PRIMAP_HIST(BaseImportTool):
             'source': self.setup.SOURCE_ID,
             'scenario': meta['scenario'].replace(scenario_mapping),
             'category': meta['category'],
-            'unit': (
-                (meta['unit'] + ' ' +  meta['entity'])
-                .where(meta['unit'] != 'GgCO2eq', 'Gg CO2eq') + '/yr'
-            ),
+            'unit': meta['unit'] ,
             'entity': 'Emissions|' + meta['entity']
         })
+        
+        idx_mask = self.mapping.index[self.mapping.entity.str.contains('GWP')]
+        self.mapping.loc[idx_mask, 'unit'] = 'Gg CO2eq /yr'
         self.mapping = (
             self.mapping
             .assign(
@@ -3056,6 +3075,18 @@ class PRIMAP_HIST(BaseImportTool):
             )
             .reindex(columns=pd.Index(MAPPING_COLUMNS).union(self.mapping.columns))
         )
+        self.mapping.entity = self.mapping.entity.replace({
+                        'Emissions|KYOTOGHG (AR4GWP100)' : 'Emissions|KYOTOGHG_AR4',
+                        'Emissions|KYOTOGHG (SARGWP100)' : 'Emissions|KYOTOGHG_SAR',
+                        'Emissions|FGASES (AR4GWP100)'   : 'Emissions|FGASES_AR4',
+                        'Emissions|HFCS (AR4GWP100)'     : 'Emissions|HFCS_AR4',
+                        'Emissions|PFCS (AR4GWP100)'     : 'Emissions|PFCS_AR4',
+                        'Emissions|FGASES (SARGWP100)'   : 'Emissions|FGASES_SAR',
+                        'Emissions|HFCS (SARGWP100)'     : 'Emissions|HFCS_SAR',
+                        'Emissions|PFCS (SARGWP100)'     : 'Emissions|PFCS_SAR'})
+        
+        
+        
         self.mapping.to_excel(writer, sheet_name=VAR_MAPPING_SHEET)
         
 
@@ -3090,7 +3121,10 @@ class PRIMAP_HIST(BaseImportTool):
     def loadData(self):
          self.data = pd.read_csv(self.setup.DATA_FILE, header=0) 
          self.data['primary_code'] = self.data.index
+         self.pre_process_input_file()
          self.data.set_index(self.data['entity'] + '_' + self.data['category'] + '_' + self.data['scenario'], inplace=True)
+         
+         
          
     def gatherMappedData(self, spatialSubSet = None, updateTables = False):
         excludedTables = defaultdict(list)
@@ -4757,10 +4791,10 @@ if __name__ == '__main__':
     This will load the mapping file, read the data and prepare the additional
     meta informations.
     """
-    # reader = PRIMAP_HIST(version="v2.2_19-Jan-2021", year=2021)
-    reader = EEA_DATA(year = 2021)
+    reader = PRIMAP_HIST(version="v2.3_no_rounding_28_Jul_2021", year=2021)
+    # reader = PRIMAP(year = 2021)
     
-    
+    # sdf
     """ 
     Process data:
     This will process the data according to the mapping file and fill a list of 
