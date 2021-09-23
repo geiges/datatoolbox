@@ -78,3 +78,12 @@ def yearsColumnsOnly(index):
             except:
                 pass
     return newColumns
+
+def index_availablity(dataframe,
+                      index_list):
+    
+    available_idx = dataframe.index.intersection(index_list)
+    missing_idx = set(index_list).difference(available_idx)
+    
+    return available_idx, missing_idx
+        

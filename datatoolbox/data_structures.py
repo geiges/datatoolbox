@@ -1667,10 +1667,11 @@ def read_excel(fileName,
                                       index   = fileContent.loc[columnIdx+1:, 0], 
                                       columns = [int(x) for x in fileContent.loc[columnIdx, 1:]], 
                                       meta    = metaDict)
-                dataTable.generateTableID()
+                
                 if use_sheet_name_as_keys:
                     out[sheet] = dataTable
                 else:
+                    dataTable.generateTableID()
                     out.add(dataTable)
                 
             except Exception:
