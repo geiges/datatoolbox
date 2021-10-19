@@ -5,7 +5,7 @@ Created on Fri Mar 29 17:25:52 2019
 
 @author: Andreas Geiges
 """
-import datatools as dt
+import datatoolbox as dt
 import pandas as pd
 
 

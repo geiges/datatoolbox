@@ -3038,6 +3038,7 @@ class PRIMAP_HIST(BaseImportTool):
         rename_cat_dict = {x: 'IPC' + x.replace('.','') for x in data.category.unique()}
         
         data.category = data.category.map(rename_cat_dict)
+        data.country = data.country.replace('EU27BX', 'EU27')
         
         self.data = data
         #%%
@@ -4308,6 +4309,58 @@ class ENERDATA(BaseImportTool):
                 tablesToCommit.append(table)
         return tablesToCommit, excludedTables  
    
+class PIK_NDC(BaseImportTool):
+
+    
+
+    def __init__(self, year, version):
+        self.setup = setupStruct()
+            
+        self.setup.SOURCE_ID    = "PIK_NDC_" + str(year)
+        self.setup.SOURCE_NAME    = "PIK_NDC"
+        self.setup.SOURCE_YEAR    = str(year)
+        
+        self.setup.SOURCE_PATH  = os.path.join(config.PATH_TO_DATASHELF, f'rawdata/PIK_NDC_{year}')
+        self.setup.DATA_FILE    = os.path.join(self.setup.SOURCE_PATH, f'ndc_targets_pathways_per_country_used_for_group_pathways_{version}.csv')
+        # self.setup.MAPPING_FILE = os.path.join(self.setup.SOURCE_PATH, 'mapping.xlsx')
+        self.setup.LICENCE = 'CC BY-4.0'
+        self.setup.URL     = 'https://zenodo.org/record/5113987'
+        self.version = version
+    
+    def gatherMappedData(self):
+        
+        pik_data = pd.read_csv(self.setup.DATA_FILE,
+                               )
+        print(pik_data.head())
+        
+        #remove countries that do not have a calcualted target
+        mask = pik_data.add_info.str.startswith('No targets calculated')
+        idx_to_drop = pik_data.index[mask==True]
+        
+        pik_data = pik_data.drop(idx_to_drop)
+        
+        pik_data = pik_data.set_index(['condi', 'rge'])
+        
+        pledge_low = pik_data[(pik_data.index.get_level_values('condi') == 'conditional') & (pik_data.index.get_level_values('rge') == 'best')]
+        pledge_low = pledge_low.set_index(pledge_low.loc[:,'iso3']).loc[:,[str(x) for x in range(1990,2031)]]
+        pledge_low = dt.Datatable(pledge_low, meta =  {'entity'   : 'Emissions|KYOTOGHG_AR4',
+                                                        'category' : 'National_total_excl_LULUCF',
+                                                        'model'    : f'PIK_NDCmitiQ|{self.version}',
+                                                        'scenario' : 'Pledge_low',
+                                                        'source'   : self.setup.SOURCE_ID,
+                                                        'unit'     : 'Mt CO2eq'})
+        
+        pledge_high = pik_data[(pik_data.index.get_level_values('condi') == 'unconditional') & (pik_data.index.get_level_values('rge') == 'worst')]
+        pledge_high = pledge_high.set_index(pledge_high.loc[:,'iso3']).loc[:,[str(x) for x in range(1990,2031)]]
+        pledge_high = dt.Datatable(pledge_high, meta =  {'entity'   : 'Emissions|KYOTOGHG_AR4',
+                                                        'category' : 'National_total_excl_LULUCF',
+                                                        'model'    : f'PIK_NDCmitiQ|{self.version}',
+                                                        'scenario' : 'Pledge_high',
+                                                        'source'   : self.setup.SOURCE_ID,
+                                                        'unit'     : 'Mt CO2eq'})
+        
+    
+        return [pledge_high, pledge_low], None
     
 class CAT_Paris_Sector_Rollout(BaseImportTool):
    
@@ -4791,7 +4844,8 @@ if __name__ == '__main__':
     This will load the mapping file, read the data and prepare the additional
     meta informations.
     """
-    reader = PRIMAP_HIST(version="v2.3_no_rounding_28_Jul_2021", year=2021)
+    # reader = PRIMAP_HIST(version="v2.3_no_rounding_28_Jul_2021", year=2021)
+    reader = PIK_NDC(2021, version = 'v1.0.2')
     # reader = PRIMAP(year = 2021)
     
     # sdf
@@ -4816,6 +4870,7 @@ if __name__ == '__main__':
     This will add the tables in the list to the database and will also add the
     mapping file to the repository.
     """
+    
     
     reader.update_database(tableList, 
                            updateContent=update_content)

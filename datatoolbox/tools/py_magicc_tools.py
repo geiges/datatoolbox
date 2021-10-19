@@ -101,7 +101,7 @@ def run_MAGGIC6(scenFile):
     return outTemperature
 
 
-dt.greenhouse_gas_database
+#dt.greenhouse_gas_database
 if __name__ == '__main__':
 #    scenFile = 'WEO_2019_18.SCEN'
 #    testData = pd.read_excel('/media/sf_Documents/data_files/IEA_trial_MAGICC.xlsx',index_col=0, sheet_name = 'IEA_SDS_18')

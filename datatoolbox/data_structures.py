@@ -34,14 +34,26 @@ class Datatable(pd.DataFrame):
     def __init__(self, *args, **kwargs):
         
         # pop meta out of kwargs since pandas is not expecting it
-        metaDict = kwargs.pop('meta', {}) # retrun empty dict if no meta is provide
+        overwrite_meta = kwargs.pop('meta', {}) # retrun empty dict if no meta is provide
         
         
         
         super(Datatable, self).__init__(*args, **kwargs)
+        
+        if len(args) > 0 and hasattr(args[0], 'meta'):
+            # print(args)
+            meta = args[0].meta
+            
+        elif 'data' in kwargs.keys() and hasattr(kwargs['data'], 'meta'):
+            meta = kwargs['data'].meta
+            
+        else:
+            meta = {}
+        
+        meta.update(overwrite_meta)
 
         # append metaDict to datatable
-        self.__appendMetaData__(metaDict)
+        self.__appendMetaData__(meta)
         
         self.vis = Visualization(self)
         try:
@@ -76,6 +88,8 @@ class Datatable(pd.DataFrame):
 
         """
         shp = self.shape
+        if (len(self.index) == 0) or (len(self.columns) == 0):
+            return ('Empty Datatable')
         idx_ext = self.index[0] ,self.index[-1]
         time_ext = self.columns[0] ,self.columns[-1]
         n_entries = (~self.isnull()).sum().sum()
@@ -210,7 +224,7 @@ class Datatable(pd.DataFrame):
                 else:
                     metaDict[metaKey] = ''
 
-            
+        
         self.__setattr__('meta', metaDict.copy())
         
         assert core.getUnit(self.meta['unit'])
@@ -1046,7 +1060,8 @@ class TableSet(dict):
     def to_compact_excel(self,
                          writer,
                          sheet_name="Sheet1",
-                         include_id=False):
+                         include_id=False,
+                         meta_columns = None):
         
         use_index = include_id
 
@@ -1058,6 +1073,14 @@ class TableSet(dict):
             
         
         long, metaDict = self.to_compact_long_format(include_id)
+    
+        if meta_columns is not None:
+            for metaKey in meta_columns:
+                if metaKey not in long.columns:
+                    long.loc[:,metaKey] = metaDict[metaKey]
+            years = util.yearsColumnsOnly(long)
+            long = long.loc[:, meta_columns + years]
+
     
         core.excel_writer(writer,
                          long,
@@ -1642,7 +1665,8 @@ def read_csv(fileName):
 
 def read_excel(fileName, 
                sheetNames = None,
-               use_sheet_name_as_keys=False):
+               use_sheet_name_as_keys=False, 
+               force_tableSet = False):
  
     
     if sheetNames is None:
@@ -1650,7 +1674,7 @@ def read_excel(fileName,
         sheetNames = xlFile.sheet_names
         xlFile.close()
 
-    if len(sheetNames) > 1:
+    if len(sheetNames) > 1 or force_tableSet:
         out = TableSet()
         for sheet in sheetNames:
             fileContent = pd.read_excel(fileName, sheet_name=sheet, header=None)
