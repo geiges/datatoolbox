@@ -20,5 +20,5 @@ if config.AVAILABLE_XARRAY:
 if config.AVAILABLE_DOCX:
     from . import word
 
-from . import magicc6
+#from . import magicc6
 
