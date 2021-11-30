@@ -51,7 +51,7 @@ def patch_047_move_config_file():
         
         print('Copying personal.py')
         shutil.copyfile(os.path.join(os.path.dirname(__file__), 'settings', 'personal.py'),
-                        os.path.join(CONFIG_DIR,' personal.py'))
+                        os.path.join(CONFIG_DIR,'personal.py'))
         print('removing old settings folder')
         # os.remove(os.path.join(os.path.dirname(__file__), 'settings', 'personal.py'))
         shutil.rmtree(os.path.join(os.path.dirname(__file__),'settings'))
