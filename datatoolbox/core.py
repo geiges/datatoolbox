@@ -46,7 +46,7 @@ if config.AVAILABLE_XARRAY:
     from .tools import xarray as _xr
     to_XDataSet = _xr.to_XDataSet
     to_XDataArray = _xr.to_XDataArray
-
+    import xarray as xr
 #%%
 
 c = pint.Context('GWP_AR5')
@@ -90,7 +90,7 @@ def _update_meta(metaDict):
     for id_field in config.ID_FIELDS:
         fieldList = [ metaDict[key] for key in config.SUB_FIELDS[id_field] if key in  metaDict.keys()]
         if len(fieldList)>0:
-            metaDict[id_field] =  config.SUB_SEP[id_field].join(fieldList).strip('|')
+            metaDict[id_field] =  config.SUB_SEP[id_field].join([str(x) for x in fieldList]).strip('|')
     
     return metaDict
 
@@ -285,6 +285,7 @@ def _AR4_conversionFactor(unitFrom, unitTo):
     return factor
 
 
+#%%
 def get_dimension_extend(table_iterable, dimensions):
     """
     This functions assesses the the unique extend for various dimensions

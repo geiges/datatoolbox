@@ -19,9 +19,8 @@ from . import core
 from . import config 
 import traceback
 from . import util
-#from . import io_tools
-#from .tools import xarray
-            
+
+       
 class Datatable(pd.DataFrame):
     """
     Datatable
@@ -55,7 +54,7 @@ class Datatable(pd.DataFrame):
         # append metaDict to datatable
         self.__appendMetaData__(meta)
         
-        self.vis = Visualization(self)
+        # self.vis = Visualization(self)
         try:
             self.generateTableID()
         except:
@@ -71,10 +70,8 @@ class Datatable(pd.DataFrame):
         # print(self.meta)
         if ('timeformat' in self.meta.keys()) and (self.meta['timeformat'] != '%Y'):
             self.columns_to_datetime()
-        # else:
-        #     self.columns = self.columns.astype(int)
-            # sdf
-        
+
+        self.attrs = self.meta
     
     def info(self):
         """
@@ -178,7 +175,10 @@ class Datatable(pd.DataFrame):
        
     def _to_xarray(self):
         
-        return core.xr.DataArray(self.values, coords=[self.index, self.columns], dims=['space','time'], attrs=self.meta)
+        return core.xr.DataArray(self.values, 
+                                 coords=[self.index, self.columns], 
+                                 dims=['space','time'], 
+                                 attrs=self.meta)
     
 
     
@@ -988,6 +988,44 @@ class TableSet(dict):
         del self[tableID]
         self.inventory.drop(tableID, inplace=True)
         
+    def filterp(self, level=None, regex=False, **filters):
+        """ 
+        Future defaulf find method that allows for more
+        sophisticated syntax in the filtering
+        
+        Usage:
+        -------
+        filters : Union[str, Iterable[str]]
+            One or multiple patterns, which are OR'd together
+        regex : bool, optional
+            Accept plain regex syntax instead of shell-style, default: False
+        
+        Returns
+        -------
+        matches : pd.Series
+        Mask for selecting matched rows
+        """    
+            
+        # filter by columns and list of values
+        keep = True
+
+        for field, pattern in filters.items():
+            # treat `col=None` as no filter applied
+            if pattern is None:
+                continue
+
+            if field not in self.inventory:
+                raise ValueError(f'filter by `{field}` not supported')
+
+            keep &= util.pattern_match(
+                self.inventory[field], pattern, regex=regex
+            )
+
+        if level is not None:
+            keep &= self.inventory['variable'].str.count(r"\|") == level
+
+        return self.inventory if keep is True else self.inventory.loc[keep]
+            
     
     def filter(self,**kwargs):
         """
@@ -1635,7 +1673,16 @@ class Visualization():
         else:
             with open(fileName, 'w') as f:
                 f.write(html)
-                
+
+def _try_number_format(x):  
+    try:      
+        return int(x)     
+    except:
+        try:
+            return float(x)
+        except:
+            return x
+            
 def read_csv(fileName):
     
     fid = open(fileName,'r', encoding='utf-8')
@@ -1650,7 +1697,7 @@ def read_csv(fileName):
         if line == config.DATA_DECLARATION:
             break
         dataTuple = line.replace('\n','').split(',')
-        meta[dataTuple[0]] = dataTuple[1].strip()
+        meta[dataTuple[0]] = _try_number_format(dataTuple[1].strip())
         if "unit" not in meta.keys():
             meta["unit"] = ""
     df = Datatable(pd.read_csv(fid, index_col=0), meta=meta)

@@ -4845,7 +4845,7 @@ if __name__ == '__main__':
     meta informations.
     """
     # reader = PRIMAP_HIST(version="v2.3_no_rounding_28_Jul_2021", year=2021)
-    reader = PIK_NDC(2021, version = 'v1.0.2')
+    # reader = PIK_NDC(2021, version = 'v1.0.2')
     # reader = PRIMAP(year = 2021)
     
     # sdf
