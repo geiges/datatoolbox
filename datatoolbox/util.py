@@ -1135,6 +1135,43 @@ def plot_query_as_graph(results, savefig_path=None):
 def to_pyam(results):
     return core.DB.getTables(results.index).to_pyam()
 
+def filterp(df, level=None, regex=False, **filters):
+        """ 
+        Future defaulf find method that allows for more
+        sophisticated syntax in the filtering
+        
+        Usage:
+        -------
+        filters : Union[str, Iterable[str]]
+            One or multiple patterns, which are OR'd together
+        regex : bool, optional
+            Accept plain regex syntax instead of shell-style, default: False
+        
+        Returns
+        -------
+        matches : pd.Series
+        Mask for selecting matched rows
+        """    
+            
+        # filter by columns and list of values
+        keep = True
+
+        for field, pattern in filters.items():
+            # treat `col=None` as no filter applied
+            if pattern is None:
+                continue
+
+            if field not in df:
+                raise ValueError(f'filter by `{field}` not supported')
+
+            keep &= pattern_match(
+                df[field], pattern, regex=regex
+            )
+
+        if level is not None:
+            keep &= df['variable'].str.count(r"\|") == level
+
+        return df if keep is True else df.loc[keep]
 def yearsColumnsOnly(index):
     """
     Extracts from any given index only the index list that can resemble 

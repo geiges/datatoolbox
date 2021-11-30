@@ -299,6 +299,7 @@ class Database():
         table.unique  = types.MethodType(unique, table)
         table.to_pyam = types.MethodType(util.to_pyam, table)
         table.load    = types.MethodType(self.getTables, table.index) 
+        table.filterp  = types.MethodType(util.filterp, table)
         return table
     
     
