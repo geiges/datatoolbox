@@ -6,15 +6,12 @@ This module contains all relevant tools regarding the use of xarray
 
 @author: ageiges
 """
-import pint_xarray
-from datatoolbox import core
-import datatoolbox as dt
-pint_xarray.accessors.setup_registry(core.ur)
-# import primap2
 
-pint_xarray.unit_registry = core.ur
-pint_xarray.accessors.default_registry = core.ur
+# from datatoolbox import core
+# import datatoolbox as dt
 
+from .. import core
+import xarray as xr
 import numpy as np 
 import xarray as xr
 
@@ -195,13 +192,13 @@ def _to_xarray(tables, dimensions, stacked_dims):
 
 
 def load_as_xdataset(query,
-                dimensions,
-                stacked_dims):
+                     dimensions = ['model', 'scenario', 'region', 'time'],
+                  stacked_dims = {'pathway': ('model', 'scenario')}):
     variables = query.variable.unique()
 
     data = list()
     for variable in variables:
-        tables = [dt.getTable(x) for x in query.filterp(variable = variable).index]
+        tables = [core.DB.getTable(x) for x in query.filterp(variable = variable).index]
         
         xarray = _to_xarray(tables, dimensions, stacked_dims)
         data.append(xr.Dataset({variable : xarray}))

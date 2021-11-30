@@ -46,7 +46,12 @@ if config.AVAILABLE_XARRAY:
     from .tools import xarray as _xr
     to_XDataSet = _xr.to_XDataSet
     to_XDataArray = _xr.to_XDataArray
-    import xarray as xr
+    
+    import pint_xarray
+    pint_xarray.accessors.setup_registry(ur)
+    pint_xarray.unit_registry = ur
+    pint_xarray.accessors.default_registry = ur
+
 #%%
 
 c = pint.Context('GWP_AR5')
@@ -296,7 +301,7 @@ def get_dimension_extend(table_iterable, dimensions):
     #     fullIdx[dim] = set()
 
     for table in table_iterable:
-        
+    
 #        for metaKey, metaValue in table.meta.items():
 #            if metaKey not in metaDict.keys():
 #                metaDict[metaKey] = set([metaValue])

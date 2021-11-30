@@ -26,6 +26,7 @@ from . import mapping as mapp
 from . import io_tools as io
 from . import util
 from . import core
+from .tools import xarray
 
 # helper funtions
 def restore_source(repoName):
@@ -74,6 +75,9 @@ def unique(table, field=None):
         unique_data.loc[unique_data.index[:len_data],var] = unique_dict[var]
     with pd.option_context('display.max_rows', None, 'display.max_columns', None):  # more options can be specified also
         print(unique_data)
+        
+        
+
     #%%
     
         
@@ -297,9 +301,13 @@ class Database():
         table.graph   = types.MethodType(util.plot_query_as_graph, table)
         table.short   = types.MethodType(util.shorten_find_output, table)
         table.unique  = types.MethodType(unique, table)
-        table.to_pyam = types.MethodType(util.to_pyam, table)
-        table.load    = types.MethodType(self.getTables, table.index) 
+        
         table.filterp  = types.MethodType(util.filterp, table)
+        table.load    = types.MethodType(self.getTables, table.index) 
+        table.as_pyam = types.MethodType(util.to_pyam, table)
+        table.as_xarray = types.MethodType(xarray.load_as_xdataset, 
+                                           table)
+        table.as_wide_dataframe    = types.MethodType(self.query_to_long_table, table) 
         return table
     
     
@@ -1008,8 +1016,35 @@ class Database():
         
         self._gitCommit('udpate from remote')
         
+    
+    def query_to_long_table(self, 
+                            query, 
+                            meta_list = ['variable', 'region','scenario', 'model', 'unit']):
+    
+    
+        tables = [self.getTable(x) for x in query.index]
+        final_tables = list()
+        for table in tables:
+            if table.empty:
+                continue
+            inp_dict = dict()    
+            for metaKey in meta_list:
+                if metaKey == 'region':
+                    inp_dict[metaKey] = table.index
+                else:
+                    inp_dict[metaKey] = table.meta.get(metaKey, '')
+                
+            try:
+                final_tables.append(pd.DataFrame(table.assign(**inp_dict)).reset_index(drop=True))
+            except KeyError as exc:
+                raise AssertionError(f"meta of {table.ID} does not contain {exc.args[0]}")
+        long_df = pd.concat(final_tables, ignore_index=True, sort=False)
         
-        
+        # move id columns to the front
+        id_cols = pd.Index(meta_list)
+        long_df = long_df[list(id_cols) + list( long_df.columns.difference(id_cols))]
+        long_df = pd.DataFrame(long_df)
+        return long_df       
 #%%
 class GitRepository_Manager:
     """

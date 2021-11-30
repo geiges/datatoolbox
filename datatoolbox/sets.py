@@ -349,52 +349,27 @@ class _Pathways():
     def __init__(self):
         
         #%% 1.5 compatible
-        dict_ = dict()
-        dict_['models'] = ['AIM_CGE_2.0',
-                                         'AIM_CGE_2.0',
-                                         'AIM_CGE_2.1',
-                                         'AIM_CGE_2.1',
-                                         'IMAGE_3.0.1',
-                                         'IMAGE_3.0.1',
-                                         'MESSAGE-GLOBIOM_1.0',
-                                         'MESSAGE-GLOBIOM_1.0',
-                                         'MESSAGE-GLOBIOM_1.0',
-                                         'POLES_EMF33',
-                                         'POLES_EMF33',
-                                         'POLES_EMF33',
-                                         'POLES_EMF33',
-                                         'POLES_EMF33',
-                                         'POLES_EMF33',
-                                         'POLES_EMF33',
-                                         'WITCH-GLOBIOM_4.4',
-                                         'WITCH-GLOBIOM_4.4',
-                                         'MESSAGEix-GLOBIOM_1.0']
-
-        dict_['scenarios'] = ['SSP1-19',
-                              'SSP2-19',
-                            'TERL_15D_LowCarbonTransportPolicy',
-                            'TERL_15D_NoTransportPolicy',
-                            'IMA15-LiStCh',
-                            'SSP1-19',
-                            'ADVANCE_2020_1.5C-2100',
-                            'SSP1-19',
-                            'SSP2-19',
-                            'EMF33_1.5C_cost100',
-                            'EMF33_1.5C_limbio',
-                            'EMF33_1.5C_nofuel',
-                            'EMF33_WB2C_limbio',
-                            'EMF33_WB2C_nobeccs',
-                            'EMF33_WB2C_nofuel',
-                            'EMF33_WB2C_none',
-                            'CD-LINKS_NPi2020_1000',
-                            'CD-LINKS_NPi2020_400',
-                            'LowEnergyDemand']
         
-        pathways = list()
-        for scenario, model in zip(dict_['scenarios'], dict_['models']):
-            pathway = '|'.join([scenario, model])
-            pathways.append(pathway)
-        self.compatible_15_sustainable = pathways
+        self.compatible_15_sustainable = ['SSP2-19|AIM_CGE_2.0',
+                                         'TERL_15D_LowCarbonTransportPolicy|AIM_CGE_2.1',
+                                         'Ratchet-1.5-noCDR|C-ROADS-5.005',
+                                         'Ratchet-1.5-noCDR-noOS|C-ROADS-5.005',
+                                         'IMA15-LiStCh|IMAGE_3.0.1',
+                                         'SSP1-19|IMAGE_3.0.1',
+                                         'SSP1-19|MESSAGE-GLOBIOM_1.0',
+                                         'SSP2-19|MESSAGE-GLOBIOM_1.0',
+                                         'LowEnergyDemand|MESSAGEix-GLOBIOM_1.0',
+                                         'EMF33_1.5C_cost100|POLES_EMF33',
+                                         'EMF33_1.5C_full|POLES_EMF33',
+                                         'EMF33_1.5C_limbio|POLES_EMF33',
+                                         'EMF33_1.5C_nofuel|POLES_EMF33',
+                                         'EMF33_WB2C_cost100|POLES_EMF33',
+                                         'EMF33_WB2C_limbio|POLES_EMF33',
+                                         'EMF33_WB2C_nobeccs|POLES_EMF33',
+                                         'EMF33_WB2C_nofuel|POLES_EMF33',
+                                         'EMF33_WB2C_none|POLES_EMF33',
+                                         'CEMICS-1.5-CDR8|REMIND_1.7',
+                                         'CD-LINKS_NPi2020_400|WITCH-GLOBIOM_4.4']
         # self.compatible_15_sustainable = pd.DataFrame(dict_)
 
         #%% 2.0 compatible

@@ -1313,7 +1313,7 @@ class TableSet(dict):
                         long,
                         metaDict,
                         index=None)
-        #%%           
+    #%%           
     def to_xarray(self, dimensions=None):
         """
         Convert tableset to and xarray with the given dimenions.
@@ -1459,7 +1459,6 @@ class TableSet(dict):
         plt.colorbar()
         plt.yticks([x +.5 for x in range(len(avail.index))], avail.index)
         plt.xticks([x +.5 for x in range(len(avail.columns))], avail.columns, rotation=45)
-
 
 class Visualization():
     """ 
@@ -1829,17 +1828,27 @@ def read_compact_excel(file_name, sheet_name=None):
                 
             for idx, line in lDf.iterrows():
                 
-                print(idx)
+                #print(idx)
                     
                 meta = { x: metaDict[x] for x in metaDict.keys() if x not in  ['meta_columns']}
                 
                 for meta_col in meta_columns:
                     meta[meta_col] = line[meta_col]
                 region = line.loc['region']
-                ID = line.loc['ID']
-                if config.DEBUG:
-                    print(f'meta columns: {meta_columns}')
-                    print(f'numerical columns: {list(lDf.columns.difference(meta_columns + ["region"]))}')
+                
+                if 'ID' in line.index:
+                    ID = line.loc['ID']
+                else:
+                    try:
+                        meta = core._update_meta(meta)
+                        ID = core._createDatabaseID(meta)
+                    except:
+                        
+                        ID = config.ID_SEPARATOR.join([meta[key] for key in [x for x in config.ID_FIELDS if x in meta.keys()]])
+                        print(f'ID could not properly created, fallback to partial ID: {ID}')
+                # if config.DEBUG:
+                    # print(f'meta columns: {meta_columns}')
+                    # print(f'numerical columns: {list(lDf.columns.difference(meta_columns + ["region"]))}')
                 numerical_columns = list(lDf.columns.difference(meta_columns + ['region']).astype(int))
                 
                 if ID not in out.keys():
@@ -1848,9 +1857,6 @@ def read_compact_excel(file_name, sheet_name=None):
                                 columns= numerical_columns,
                                 index= [region],                
                                 meta = meta)
-                    # print(ID)
-                    # print(meta['unit'])
-                    # print(line)
                     
                     table.loc[region, numerical_columns] = line.loc[numerical_columns].astype(float)
                     out[ID] = table
@@ -1860,7 +1866,7 @@ def read_compact_excel(file_name, sheet_name=None):
                     factor = core.conversionFactor(meta['unit'], out[ID].meta['unit'])
                     out[ID].loc[region, numerical_columns] = line.loc[numerical_columns].astype(float) *factor
                     #
-                
+    #%%
                 
     return out
             
