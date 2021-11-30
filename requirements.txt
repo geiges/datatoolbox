@@ -13,5 +13,6 @@ pyam-iamc>=1.1.0
 hdx-python-country
 networkx >=2.4.0
 xarray
+pint-xarray
 deprecated
 xlsxwriter
