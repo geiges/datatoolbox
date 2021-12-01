@@ -10,7 +10,7 @@ This module contains all relevant tools regarding the use of xarray
 # from datatoolbox import core
 # import datatoolbox as dt
 
-from .. import core
+from .. import core, config
 import xarray as xr
 import numpy as np 
 import xarray as xr
@@ -139,11 +139,29 @@ def to_XDataArray(tableSet, dimensions = ['region', 'time', 'pathway']):
 from time import time
 
 def _to_xarray(tables, dimensions, stacked_dims):
-    #%%
-    # from datatoolbox.core import get_dimensions, get_dimension_indices
+    """ 
+    Return a database query result as an xarray . This constuctor allows only for
+    one unit, since the full array is quantified using pint-xarray. 
+    The xarray dimensions (coordiantes) are defined
+    by the provided dimensions. A multi-index for a coordinate can be created
+    by using stacked_dims.
+    
+    Usage:
+    -------
+    tables : Iterable[[dt.Datatable]]
+    dimensions :  Iterable[str]]
+        Dimensions of the shared yarray dimensions / coordinates
+    stacked_dims : Dict[str]]
+        Dictionary of all mutli-index coordinates and their sub-dimensions
+    
+    Returns
+    -------
+    matches : xarray.Dataset + pint quantification
+    """   
     tt = time()
     metaCollection = core.get_meta_collection(tables, dimensions)
-    print(f'Meta collection: {time()-tt:2.2f}s')
+    if config.DEBUG:
+        print(f'ime required for meta collection: {time()-tt:2.2f}s')
     
     
     tt = time()
@@ -170,35 +188,55 @@ def _to_xarray(tables, dimensions, stacked_dims):
     
     dimSize = [len(labels) for dim, labels in dims.items()]
     
-    print(f'Get timension: {time()-tt:2.2f}s')
+    if config.DEBUG:
+        print(f'Get timension: {time()-tt:2.2f}s')
     
     tt = time()
     xData =  xr.DataArray(np.zeros(dimSize)*np.nan, coords=coords, dims=final_dims).assign_coords(labels)
-    print(f'Empty xarry: {time()-tt:2.2f}s')
+    
     tt= time()
     for table in tables:
         ind = get_dimension_indices(table,xdims)
         # xData.loc[tuple(ind)] = table.values.reshape(len(table.index),len(table.columns),1)
         
         xData.loc[tuple(ind)] = table.values.reshape(*[len(x) for x in ind])
-    print(f'Data filling: {time()-tt:2.2f}s')    
+    if config.DEBUG:
+        print(f'Time required for xr data filling: {time()-tt:2.2f}s')    
     tt=time()
     metaCollection['unit'] = list(metaCollection['unit'])[0]
     xData = xData.pint.quantify(metaCollection['unit']).assign_coords(labels)
     xData.attrs = metaCollection
-    print(f'quantify: {time()-tt:2.2f}s')
+    
     #%%
     return xData
 
 
-def load_as_xdataset(query,
+def load_as_xdataset(query_results,
                      dimensions = ['model', 'scenario', 'region', 'time'],
-                  stacked_dims = {'pathway': ('model', 'scenario')}):
-    variables = query.variable.unique()
+                     stacked_dims = {'pathway': ('model', 'scenario')}):
+    """ 
+    Returns a database query result as an xarry dataset. Differenty variables
+    are stored as key variables. The xarray dimensions (coordiantes) are defined
+    by the provided dimensions. A multi-index for a coordinate can be created
+    by using stacked_dims.
+    
+    Usage:
+    -------
+    dimensions :  Iterable[str]]
+        Dimensions of the shared yarray dimensions / coordinates
+    stacked_dims : Dict[str]]
+        Dictionary of all mutli-index coordinates and their sub-dimensions
+    
+    Returns
+    -------
+    matches : xarray.Dataset + pint quantification
+    """    
+        
+    variables = query_results.variable.unique()
 
     data = list()
     for variable in variables:
-        tables = [core.DB.getTable(x) for x in query.filterp(variable = variable).index]
+        tables = [core.DB.getTable(x) for x in query_results.filterp(variable = variable).index]
         
         xarray = _to_xarray(tables, dimensions, stacked_dims)
         data.append(xr.Dataset({variable : xarray}))
