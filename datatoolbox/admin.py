@@ -206,6 +206,7 @@ def _re_link_functions(dt):
     
     dt.findc        = dt.core.DB.findc
     dt.findp        = dt.core.DB.findp
+    dt.find         = dt.core.DB.findc
     dt.findExact    = dt.core.DB.findExact
     dt.getTable     = dt.core.DB.getTable
     dt.getTables    = dt.core.DB.getTables

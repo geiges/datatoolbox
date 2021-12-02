@@ -211,11 +211,59 @@ def _to_xarray(tables, dimensions, stacked_dims):
     return xData
 
 
+def key_set_to_xdataset(dict_of_data,
+                        dimensions = ['model', 'scenario', 'region', 'time'],
+                        stacked_dims = {'pathway': ('model', 'scenario')}):
+    """ 
+    Returns xarry dataset converted from a dict of pandas dataframes  or dt.TableSet. Differenty variables
+    are stored as key variables. The xarray dimensions (coordiantes) are defined
+    by the provided dimensions. A multi-index for a coordinate can be created
+    by using stacked_dims.
+    
+    Usage:
+    -------
+    dimensions :  Iterable[str]]
+        Dimensions of the shared yarray dimensions / coordinates
+    stacked_dims : Dict[str]]
+        Dictionary of all mutli-index coordinates and their sub-dimensions
+    
+    Returns
+    -------
+    matches : xarray.Dataset + pint quantification
+    """    
+    
+    dim_to_sort = 'variable'
+    sort_dict = dict()
+    for key, table in dict_of_data.items():
+        
+        var = table.attrs['variable']
+        
+        if var in sort_dict.keys():
+            sort_dict[var].append(table)
+        else:
+            sort_dict[var] = [table]
+            
+    
+    variables = sort_dict.keys()
+
+    data = list()
+    for variable in variables:
+        tables = sort_dict[variable]
+        
+        xarray = _to_xarray(tables, dimensions, stacked_dims)
+        data.append(xr.Dataset({variable : xarray}))
+        
+    ds = xr.merge(data) 
+
+    
+    return ds
+    
+
 def load_as_xdataset(query_results,
                      dimensions = ['model', 'scenario', 'region', 'time'],
                      stacked_dims = {'pathway': ('model', 'scenario')}):
     """ 
-    Returns a database query result as an xarry dataset. Differenty variables
+    Returns xarry dataset pruduced from a database result. Differenty variables
     are stored as key variables. The xarray dimensions (coordiantes) are defined
     by the provided dimensions. A multi-index for a coordinate can be created
     by using stacked_dims.
