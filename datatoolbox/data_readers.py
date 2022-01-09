@@ -877,6 +877,7 @@ class IEA_World_Energy_Balance(BaseImportTool):
                 validSpatialRegions = self.spatialMapping.index[~self.spatialMapping.mapping.isnull()]
                 dataframe = dataframe.loc[validSpatialRegions,:]
                 dataframe.index = self.spatialMapping.mapping[~self.spatialMapping.mapping.isnull()]
+                dataframe.columns = dataframe.columns.astype(int)
 
                 dataTable = Datatable(dataframe, meta=metaDict)
                 # possible required unit conversion
