@@ -1206,12 +1206,12 @@ class GitRepository_Manager:
         else:
             origin = repo.create_remote("origin", config.DATASHELF_REMOTE + repoName + ".git")
 
-        branch = repo.heads.master
+        branch = repo.active_branch
         origin.push(branch, progress=TqdmProgressPrinter())
 
         # Update references on remote
         origin.fetch()
-        branch.set_tracking_branch(origin.refs.master)
+        branch.set_tracking_branch(origin.refs[0])
     
     def push_to_remote_datashelf(self, repoName):
         """
