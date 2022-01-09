@@ -226,7 +226,7 @@ class EEA_DATA(BaseImportTool):
     def __init__(self, year):
         self.setup = setupStruct()
         self.setup.SOURCE_ID    = f"EEA_{year}"
-        self.setup.SOURCE_PATH  = os.path.join(config.PATH_TO_DATASHELF, f'rawdata/EEA_{year}/')
+        self.setup.SOURCE_PATH  = os.path.join(config.PATH_TO_DATASHELF, f'rawdata/EEA_{year}')
         self.setup.DATA_FILE    = f'EU members targets 13_07_21.xlsx'
         # self.setup.MAPPING_FILE = self.setup.SOURCE_PATH + 'mapping_detailed.xlsx'
         self.setup.LICENCE = 'restricted'
@@ -341,9 +341,9 @@ class IEA_CO2_FUEL_DETAILED(BaseImportTool):
     def __init__(self, year):
         self.setup = setupStruct()
         self.setup.SOURCE_ID    = f"IEA_CO2_FUEL_DETAILED_{year}"
-        self.setup.SOURCE_PATH  = config.PATH_TO_DATASHELF + f'rawdata/IEA_CO2_FUEL_{year}/'
-        self.setup.DATA_FILE    = self.setup.SOURCE_PATH + f'WOLRD_CO2_emissions_fuel_{year}_detailed.csv'
-        self.setup.MAPPING_FILE = self.setup.SOURCE_PATH + 'mapping_detailed.xlsx'
+        self.setup.SOURCE_PATH  = os.path.join(config.PATH_TO_DATASHELF, f'rawdata/IEA_CO2_FUEL_{year}')
+        self.setup.DATA_FILE    = os.path.join(self.setup.SOURCE_PATH, f'WOLRD_CO2_emissions_fuel_{year}_detailed.csv')
+        self.setup.MAPPING_FILE = os.path.join(self.setup.SOURCE_PATH, 'mapping_detailed.xlsx')
         self.setup.LICENCE = 'restricted'
         self.setup.URL     = 'https://www.iea.org/statistics/co2emissions/'
 
@@ -505,9 +505,9 @@ class IEA_FUEL(BaseImportTool):
         self.setup.SOURCE_ID      = f"IEA_CO2_FUEL_{year}"
         self.setup.SOURCE_NAME    = "IEA_CO2_FUEL"
         self.setup.SOURCE_YEAR    = f"{year}"
-        self.setup.SOURCE_PATH  = config.PATH_TO_DATASHELF + 'frawdata/IEA_CO2_FUEL_{year}/'
-        self.setup.DATA_FILE    = self.setup.SOURCE_PATH + f'World_CO2_emissions_fuel_{year}.csv'
-        self.setup.MAPPING_FILE = self.setup.SOURCE_PATH + 'mapping.xlsx'
+        self.setup.SOURCE_PATH  = os.path.join(config.PATH_TO_DATASHELF, f'rawdata/IEA_CO2_FUEL_{year}')
+        self.setup.DATA_FILE    = os.path.join(self.setup.SOURCE_PATH, f'World_CO2_emissions_fuel_{year}.csv')
+        self.setup.MAPPING_FILE = os.path.join(self.setup.SOURCE_PATH, 'mapping.xlsx')
         self.setup.LICENCE = 'restricted'
         self.setup.URL     = 'https://www.iea.org/statistics/co2emissions/'
         
@@ -734,14 +734,14 @@ class IEA_World_Energy_Balance(BaseImportTool):
         self.setup = setupStruct()
         if not self.detailed:
             self.setup.SOURCE_ID    = "IEA_WEB_" + str(year)
-            self.setup.SOURCE_PATH  = config.PATH_TO_DATASHELF + 'rawdata/IEA_WEB_' + str(year) +'/'
-            self.setup.DATA_FILE    = self.setup.SOURCE_PATH + 'World_Energy_Balances_' + str(year) +'_clean.csv'
-            self.setup.MAPPING_FILE = self.setup.SOURCE_PATH + 'mapping.xlsx'
+            self.setup.SOURCE_PATH  = os.path.join(config.PATH_TO_DATASHELF, f'rawdata/IEA_WEB_{year}')
+            self.setup.DATA_FILE    = os.path.join(self.setup.SOURCE_PATH, f'World_Energy_Balances_{year}_clean.csv')
+            self.setup.MAPPING_FILE = os.path.join(self.setup.SOURCE_PATH, 'mapping.xlsx')
         else:
             self.setup.SOURCE_ID    = "IEA_WEB_DETAILED_" + str(year)
-            self.setup.SOURCE_PATH  = config.PATH_TO_DATASHELF + 'rawdata/IEA_WEB_' + str(year) +'/'
-            self.setup.DATA_FILE    = self.setup.SOURCE_PATH + 'WEB_' + str(year) +'_detailed.csv'
-            self.setup.MAPPING_FILE = self.setup.SOURCE_PATH + 'mapping_detailed.xlsx'
+            self.setup.SOURCE_PATH  = os.path.join(config.PATH_TO_DATASHELF, f'rawdata/IEA_WEB_{year}')
+            self.setup.DATA_FILE    = os.path.join(self.setup.SOURCE_PATH, f'WEB_{year}_detailed.csv')
+            self.setup.MAPPING_FILE = os.path.join(self.setup.SOURCE_PATH, 'mapping_detailed.xlsx')
         
         self.setup.LICENCE = 'restricted'
         self.setup.URL     = 'https://webstore.iea.org/world-energy-balances-' + str(year)
@@ -929,10 +929,10 @@ class ADVANCE_DB(BaseImportTool):
     def __init__(self):
         self.setup = setupStruct()
         self.setup.SOURCE_ID    = "ADVANCE_2016"
-        self.setup.SOURCE_PATH  = config.PATH_TO_DATASHELF + 'rawdata/ADVANCE_DB/'
-        self.setup.DATA_FILE    = self.setup.SOURCE_PATH + 'ADVANCE_Synthesis_version101_compare_20190619-143200.csv'
+        self.setup.SOURCE_PATH  = os.path.join(config.PATH_TO_DATASHELF, 'rawdata/ADVANCE_DB')
+        self.setup.DATA_FILE    = os.path.join(self.setup.SOURCE_PATH, 'ADVANCE_Synthesis_version101_compare_20190619-143200.csv')
         #self.setup.META_FILE    = self.setup.SOURCE_PATH + 'sr15_metadata_indicators_r1.1.xlsx'
-        self.setup.MAPPING_FILE = self.setup.SOURCE_PATH + 'mapping.xlsx'
+        self.setup.MAPPING_FILE = os.path.join(self.setup.SOURCE_PATH, 'mapping.xlsx')
         
         
         self.setup.LICENCE = ' CC-BY 4.0'
@@ -1084,10 +1084,10 @@ class AR5_DATABASE(BaseImportTool):
     def __init__(self):
         self.setup = setupStruct()
         self.setup.SOURCE_ID    = "AR5_DB"
-        self.setup.SOURCE_PATH  = config.PATH_TO_DATASHELF + 'rawdata/AR5_database/'
-        self.setup.DATA_FILE    = self.setup.SOURCE_PATH + 'ar5_public_version102_compare_compare_20150629-130000.csv'
+        self.setup.SOURCE_PATH  = os.path.join(config.PATH_TO_DATASHELF, 'rawdata/AR5_database')
+        self.setup.DATA_FILE    = os.path.join(self.setup.SOURCE_PATH, 'ar5_public_version102_compare_compare_20150629-130000.csv')
         #self.setup.META_FILE    = self.setup.SOURCE_PATH + 'sr15_metadata_indicators_r1.1.xlsx'
-        self.setup.MAPPING_FILE = self.setup.SOURCE_PATH + 'mapping.xlsx'
+        self.setup.MAPPING_FILE = os.path.join(self.setup.SOURCE_PATH, 'mapping.xlsx')
         
         
         self.setup.LICENCE = ' CC-BY 4.0'
@@ -1240,10 +1240,10 @@ class IAMC15_2019(BaseImportTool):
     def __init__(self):
         self.setup = setupStruct()
         self.setup.SOURCE_ID    = "IAMC15_2019_R2"
-        self.setup.SOURCE_PATH  = config.PATH_TO_DATASHELF + 'rawdata/IAMC15_2019b/'
-        self.setup.DATA_FILE    = self.setup.SOURCE_PATH + 'iamc15_scenario_data_all_regions_r2.0.xlsx'
-        self.setup.META_FILE    = self.setup.SOURCE_PATH + 'sr15_metadata_indicators_r2.0.xlsx'
-        self.setup.MAPPING_FILE = self.setup.SOURCE_PATH + 'mapping.xlsx'
+        self.setup.SOURCE_PATH  = os.path.join(config.PATH_TO_DATASHELF, 'rawdata/IAMC15_2019b')
+        self.setup.DATA_FILE    = os.path.join(self.setup.SOURCE_PATH, 'iamc15_scenario_data_all_regions_r2.0.xlsx')
+        self.setup.META_FILE    = os.path.join(self.setup.SOURCE_PATH, 'sr15_metadata_indicators_r2.0.xlsx')
+        self.setup.MAPPING_FILE = os.path.join(self.setup.SOURCE_PATH, 'mapping.xlsx')
         
         
         self.setup.LICENCE = ' CC-BY 4.0'
@@ -1450,10 +1450,10 @@ class CDLINKS_2018(BaseImportTool):
     def __init__(self):
         self.setup = setupStruct()
         self.setup.SOURCE_ID    = "CDLINKS_2018"
-        self.setup.SOURCE_PATH  = config.PATH_TO_DATASHELF + 'rawdata/CDLINKS_2018/'
-        self.setup.DATA_FILE    = self.setup.SOURCE_PATH + 'cdlinks_public_version101_compare__20181010-142000.csv'
+        self.setup.SOURCE_PATH  = os.path.join(config.PATH_TO_DATASHELF, 'rawdata/CDLINKS_2018')
+        self.setup.DATA_FILE    = os.path.join(self.setup.SOURCE_PATH, 'cdlinks_public_version101_compare__20181010-142000.csv')
 #        self.setup.META_FILE    = self.setup.SOURCE_PATH + 'sr15_metadata_indicators_r2.0.xlsx'
-        self.setup.MAPPING_FILE = self.setup.SOURCE_PATH + 'mapping.xlsx'
+        self.setup.MAPPING_FILE = os.path.join(self.setup.SOURCE_PATH, 'mapping.xlsx')
         
         
         self.setup.LICENCE = ' CC-BY 4.0'
@@ -1786,10 +1786,10 @@ class AIM_SSP_DATA_2019(BaseImportTool):
     def __init__(self):
         self.setup = setupStruct()
         self.setup.SOURCE_ID    = "AIM_SSPx_DATA_2019"
-        self.setup.SOURCE_PATH  = config.PATH_TO_DATASHELF + 'rawdata/AIM_SSP_scenarios/'
-        self.setup.DATA_FILE    = [self.setup.SOURCE_PATH + '/data/ssp' + str(x) + '.csv' for x in range(1,5)]
+        self.setup.SOURCE_PATH  = os.path.join(config.PATH_TO_DATASHELF, 'rawdata/AIM_SSP_scenarios')
+        self.setup.DATA_FILE    = [os.path.join(self.setup.SOURCE_PATH, 'data/ssp' + str(x) + '.csv') for x in range(1,5)]
         #self.setup.META_FILE    = self.setup.SOURCE_PATH + 'sr15_metadata_indicators_r2.0.xlsx'
-        self.setup.MAPPING_FILE = self.setup.SOURCE_PATH + 'mapping.xlsx'
+        self.setup.MAPPING_FILE = os.path.join(self.setup.SOURCE_PATH, 'mapping.xlsx')
         
         
         self.setup.LICENCE = ''
@@ -1999,7 +1999,7 @@ class IRENA2019(BaseImportTool):
         self.setup = setupStruct()
         self.setup.SOURCE_ID    = "IRENA_" + str(year)
         self.setup.year = year
-        self.setup.SOURCE_PATH  = config.PATH_TO_DATASHELF + 'rawdata/IRENA_' + str(year)
+        self.setup.SOURCE_PATH  = os.path.join(config.PATH_TO_DATASHELF, 'rawdata/IRENA_' + str(year))
         self.setup.DATA_FILE    = os.path.join(self.setup.SOURCE_PATH, 'IRENA_RE_electricity_statistics.xlsx')
         self.setup.MAPPING_FILE = os.path.join(self.setup.SOURCE_PATH, 'mapping.xlsx')
         self.setup.LICENCE = 'open source'
@@ -2187,10 +2187,10 @@ class SSP_DATA(BaseImportTool):
         self.setup = setupStruct()
         
         self.setup.SOURCE_ID    = "SSP_DB_2013"
-        self.setup.SOURCE_PATH  = config.PATH_TO_DATASHELF + 'rawdata/SSP_DB/'
-        self.setup.DATA_FILE    = [self.setup.SOURCE_PATH + 'SspDb_country_data_2013-06-12.csv',
-                                   self.setup.SOURCE_PATH + 'SspDb_compare_regions_2013-06-12.csv']
-        self.setup.MAPPING_FILE = self.setup.SOURCE_PATH + 'mapping.xlsx'
+        self.setup.SOURCE_PATH  = os.path.join(config.PATH_TO_DATASHELF, 'rawdata/SSP_DB')
+        self.setup.DATA_FILE    = [os.path.join(self.setup.SOURCE_PATH, 'SspDb_country_data_2013-06-12.csv'),
+                                   os.path.join(self.setup.SOURCE_PATH, 'SspDb_compare_regions_2013-06-12.csv')]
+        self.setup.MAPPING_FILE = os.path.join(self.setup.SOURCE_PATH, 'mapping.xlsx')
         self.setup.LICENCE = 'open access'
         self.setup.URL     = 'tntcat.iiasa.ac.at/SspWorkDb'
 
@@ -2352,12 +2352,13 @@ class PRIMAP_DOWNSCALE(BaseImportTool):
         self.setup.SOURCE_ID    = "PRIMAP_DOWN_2020"
         self.setup.SOURCE_YEAR  = "2020"
         self.setup.SOURCE_NAME  = "PRIMAP_DOWN"
-        self.setup.SOURCE_PATH  = os.path.join(config.PATH_TO_DATASHELF, 'rawdata/PRIMAP_DOWNSCALE/')
+        self.setup.SOURCE_PATH  = os.path.join(config.PATH_TO_DATASHELF, 'rawdata/PRIMAP_DOWNSCALE')
         
-        csvFiles  = os.listdir(self.setup.SOURCE_PATH)
-        csvFiles = [file for file in csvFiles if '.csv' in file]
-        self.setup.DATA_FILES    = [os.path.join(self.setup.SOURCE_PATH, x) for x in csvFiles]
-        self.setup.MAPPING_FILE = self.setup.SOURCE_PATH + 'mapping.xlsx'
+        self.setup.DATA_FILES    = [
+            os.path.join(self.setup.SOURCE_PATH, x)
+            for x in os.listdir(self.setup.SOURCE_PATH) if x.endswith('.csv')
+        ]
+        self.setup.MAPPING_FILE = os.path.join(self.setup.SOURCE_PATH, 'mapping.xlsx')
         
         
         self.setup.LICENCE = 'Creative Commons Attribution 4.0 International'
@@ -2545,9 +2546,9 @@ class AIM15_2020(BaseImportTool):
         self.setup.SOURCE_ID    = "AIM15_2020"
         self.setup.SOURCE_NAME    = "AIM15"
         self.setup.SOURCE_YEAR    = "2020"
-        self.setup.SOURCE_PATH  = config.PATH_TO_DATASHELF + 'rawdata/AIM15_2020/'
-        self.setup.DATA_FILE    = self.setup.SOURCE_PATH + '201029_SSP12_19_26_base_AIM.xlsx'
-        self.setup.MAPPING_FILE = self.setup.SOURCE_PATH + 'mapping.xlsx'
+        self.setup.SOURCE_PATH  = os.path.join(config.PATH_TO_DATASHELF, 'rawdata/AIM15_2020')
+        self.setup.DATA_FILE    = os.path.join(self.setup.SOURCE_PATH, '201029_SSP12_19_26_base_AIM.xlsx')
+        self.setup.MAPPING_FILE = os.path.join(self.setup.SOURCE_PATH, 'mapping.xlsx')
         self.setup.LICENCE = '?' # TODO
         self.setup.URL     = '?' # TODO
 
@@ -2694,9 +2695,9 @@ class LED_2019(BaseImportTool):
         self.setup.SOURCE_ID    = "LED_2019"
         self.setup.SOURCE_NAME    = "LED"
         self.setup.SOURCE_YEAR    = "2019"
-        self.setup.SOURCE_PATH  = config.PATH_TO_DATASHELF + 'rawdata/LED_2019/'
-        self.setup.DATA_FILE    = self.setup.SOURCE_PATH + 'led.csv'
-        self.setup.MAPPING_FILE = self.setup.SOURCE_PATH + 'mapping.xlsx'
+        self.setup.SOURCE_PATH  = os.path.join(config.PATH_TO_DATASHELF, 'rawdata/LED_2019/')
+        self.setup.DATA_FILE    = os.path.join(self.setup.SOURCE_PATH, 'led.csv')
+        self.setup.MAPPING_FILE = os.path.join(self.setup.SOURCE_PATH, 'mapping.xlsx')
         self.setup.LICENCE = '?' # TODO
         self.setup.URL     = '?' # TODO
 
@@ -2842,13 +2843,13 @@ class IMAGE15_2020(BaseImportTool):
         self.setup.SOURCE_ID    = "IMAGE15_2020"
         self.setup.SOURCE_NAME    = "IMAGE15"
         self.setup.SOURCE_YEAR    = "2020"
-        self.setup.SOURCE_PATH  = config.PATH_TO_DATASHELF + 'rawdata/IMAGE15_2020/'
+        self.setup.SOURCE_PATH  = os.path.join(config.PATH_TO_DATASHELF, 'rawdata/IMAGE15_2020')
         self.setup.DATA_FILE    = {
             fn[:fn.rindex(".")]: os.path.join(self.setup.SOURCE_PATH, fn)
             for fn in os.listdir(self.setup.SOURCE_PATH)
             if fn.endswith((".csv", ".xlsx")) and fn != 'mapping.xlsx'
         }
-        self.setup.MAPPING_FILE = self.setup.SOURCE_PATH + 'mapping.xlsx'
+        self.setup.MAPPING_FILE = os.path.join(self.setup.SOURCE_PATH, 'mapping.xlsx')
         self.setup.LICENCE = '?' # TODO
         self.setup.URL     = '?' # TODO
 
@@ -3191,7 +3192,7 @@ class CRF_DATA(BaseImportTool):
         self.year  = str(reportingYear)
         
         self.setup.SOURCE_ID    = "UNFCCC_CRF_" + str(reportingYear)
-        self.setup.SOURCE_PATH  = config.PATH_TO_DATASHELF + 'rawdata/UNFCCC_CRF_' + str(reportingYear) + '/'
+        self.setup.SOURCE_PATH  = os.path.join(config.PATH_TO_DATASHELF, 'rawdata/UNFCCC_CRF_' + str(reportingYear))
         self.setup.LICENCE = 'open access (UN)'
         self.setup.URL     = 'https://unfccc.int/process-and-meetings/transparency-and-reporting/reporting-and-review-under-the-convention/greenhouse-gas-inventories-annex-i-parties/national-inventory-submissions-' + str(reportingYear)
     
@@ -3258,7 +3259,7 @@ class CRF_DATA(BaseImportTool):
         folderList = [ name for name in os.listdir(self.setup.SOURCE_PATH) if os.path.isdir(os.path.join(self.setup.SOURCE_PATH, name)) ]
         for folder in folderList:
             coISO = folder
-            countryPath = self.setup.SOURCE_PATH + folder + '/'
+            countryPath = os.path.join(self.setup.SOURCE_PATH, folder)
             try:
                 countryList.append(dt.mapp.countries.codes.loc[coISO,'name'])
             except:
@@ -3317,9 +3318,9 @@ class SDG_DATA_2019(BaseImportTool):
         self.setup = setupStruct()
         
         self.setup.SOURCE_ID    = "SDG_DB_2019"
-        self.setup.SOURCE_PATH  = config.PATH_TO_DATASHELF + 'rawdata/SDG_DB_2019/'
-        self.setup.DATA_FILE    = self.setup.SOURCE_PATH + 'extract_05_2019.csv'
-        self.setup.MAPPING_FILE = self.setup.SOURCE_PATH + 'mapping.xlsx'
+        self.setup.SOURCE_PATH  = os.path.join(config.PATH_TO_DATASHELF, 'rawdata/SDG_DB_2019')
+        self.setup.DATA_FILE    = os.path.join(self.setup.SOURCE_PATH, 'extract_05_2019.csv')
+        self.setup.MAPPING_FILE = os.path.join(self.setup.SOURCE_PATH, 'mapping.xlsx')
         self.setup.LICENCE = 'open access (UN)'
         self.setup.URL     = 'https://unstats.un.org/sdgs/indicators/database/'
 
@@ -3436,9 +3437,9 @@ class HOESLY2018(BaseImportTool):
     def __init__(self):
         self.setup = setupStruct()
         self.setup.SOURCE_ID    = "HOESLY2018"
-        self.setup.SOURCE_PATH  = config.PATH_TO_DATASHELF + 'rawdata/HOESLY2018/'
-        self.setup.DATA_FILE    = self.setup.SOURCE_PATH + 'compiled_raw_hoesly.csv'
-        self.setup.MAPPING_FILE = self.setup.SOURCE_PATH + 'mapping.xlsx'
+        self.setup.SOURCE_PATH  = os.path.join(config.PATH_TO_DATASHELF, 'rawdata/HOESLY2018')
+        self.setup.DATA_FILE    = os.path.join(self.setup.SOURCE_PATH, 'compiled_raw_hoesly.csv')
+        self.setup.MAPPING_FILE = os.path.join(self.setup.SOURCE_PATH, 'mapping.xlsx')
         self.setup.LICENCE = ' Creative Commons Attribution 3.0 License'
         self.setup.URL     = 'https://www.geosci-model-dev.net/11/369/2018/'
         
@@ -3563,9 +3564,9 @@ class VANMARLE2017(BaseImportTool):
     def __init__(self):
         self.setup = setupStruct()
         self.setup.SOURCE_ID    = "VANMARLE2017"
-        self.setup.SOURCE_PATH  = config.PATH_TO_DATASHELF + 'rawdata/VANMARLE2017/'
-        self.setup.DATA_FILE    = self.setup.SOURCE_PATH + 'compiled_raw_vanmarle.csv'
-        self.setup.MAPPING_FILE = self.setup.SOURCE_PATH + 'mapping.xlsx'
+        self.setup.SOURCE_PATH  = os.path.join(config.PATH_TO_DATASHELF, 'rawdata/VANMARLE2017')
+        self.setup.DATA_FILE    = os.path.join(self.setup.SOURCE_PATH, 'compiled_raw_vanmarle.csv')
+        self.setup.MAPPING_FILE = os.path.join(self.setup.SOURCE_PATH, 'mapping.xlsx')
         self.setup.LICENCE = ' Creative Commons Attribution 3.0 License'
         self.setup.URL     = 'https://www.geosci-model-dev.net/10/3329/2017/'
         
@@ -3698,9 +3699,9 @@ class APEC(BaseImportTool):
     def __init__(self, year):
         self.setup = setupStruct()
         self.setup.SOURCE_ID    = "APEC_" + str(year)
-        self.setup.SOURCE_PATH  = config.PATH_TO_DATASHELF + 'rawdata/APEC/' + str(year) + '/'
-        self.setup.DATA_FILE    = self.setup.SOURCE_PATH + 'compiled_raw_hoesly.csv'
-        self.setup.MAPPING_FILE = self.setup.SOURCE_PATH + 'mapping.xlsx'
+        self.setup.SOURCE_PATH  = os.path.join(config.PATH_TO_DATASHELF, 'rawdata/APEC/' + str(year))
+        self.setup.DATA_FILE    = os.path.join(self.setup.SOURCE_PATH, 'compiled_raw_hoesly.csv')
+        self.setup.MAPPING_FILE = os.path.join(self.setup.SOURCE_PATH, 'mapping.xlsx')
         self.setup.LICENCE = '(c) 2019 Asia Pacific Economic Cooperation (APERC)'
         self.setup.URL     = 'https://www.apec.org/Publications/2019/05/APEC-Energy-Demand-and-Supply-Outlook-7th-Edition---Volume-I'
         
@@ -3989,9 +3990,9 @@ class WEO(BaseImportTool):
     def __init__(self, year):
         self.setup = setupStruct()
         self.setup.SOURCE_ID    = "WEO_" + str(year)
-        self.setup.SOURCE_PATH  = config.PATH_TO_DATASHELF + 'rawdata/WEO/' + str(year) + '/'
-        self.setup.DATA_FILE    = 'WEO' + str(year) + '_AnnexA.xlsx'
-        self.setup.MAPPING_FILE = config.PATH_TO_DATASHELF + 'rawdata/WEO/' + str(year) + '/mapping_WEO_' + str(year) + '.xlsx'
+        self.setup.SOURCE_PATH  = os.path.join(config.PATH_TO_DATASHELF, f'rawdata/WEO/{year}')
+        self.setup.DATA_FILE    = f'WEO{year}_AnnexA.xlsx'
+        self.setup.MAPPING_FILE = os.path.join(self.setup.SOURCE_PATH, f'mapping_WEO_{year}.xlsx')
         self.setup.LICENCE = 'IEA all rights reserved'
         self.setup.URL     = 'https://www.iea.org/weo/'
         
@@ -4028,7 +4029,7 @@ class WEO(BaseImportTool):
         
         # loop over energy mapping
         for region in self.spatialMapping.index:
-            se7tup['sheetName'] = region + '_Balance'
+            setup['sheetName'] = region + '_Balance'
             for i, idx in enumerate(list(self.mappingEnergy.index)):
 #                print(i)
                 metaDf = self.mappingEnergy.loc[idx,:]
@@ -4367,9 +4368,9 @@ class CAT_Paris_Sector_Rollout(BaseImportTool):
     def __init__(self):
         self.setup = setupStruct()
         self.setup.SOURCE_ID    = "CAT_PSR_2019"
-        self.setup.SOURCE_PATH  = config.PATH_TO_DATASHELF + 'rawdata/CAT_PSR_2019/'
-        self.setup.DATA_FILE    = self.setup.SOURCE_PATH + 'portal_data_all_160620.csv'
-        self.setup.MAPPING_FILE = self.setup.SOURCE_PATH + 'mapping.xlsx'
+        self.setup.SOURCE_PATH  = os.path.join(config.PATH_TO_DATASHELF, 'rawdata/CAT_PSR_2019')
+        self.setup.DATA_FILE    = os.path.join(self.setup.SOURCE_PATH, 'portal_data_all_160620.csv')
+        self.setup.MAPPING_FILE = os.path.join(self.setup.SOURCE_PATH, 'mapping.xlsx')
         self.setup.LICENCE = ' Creative Commons Attribution 3.0 License'
         self.setup.URL     = 'https://climateactiontracker.org/data-portal/'
         
@@ -4516,7 +4517,7 @@ def HDI_import(year=2020):
                   'source_url' : 'http://hdr.undp.org/en/data',
                   'licence': 'open source' }
     
-    SOURCE_PATH = os.path.join(dt.config.PATH_TO_DATASHELF, 'rawdata/', sourceMeta['SOURCE_ID'])
+    SOURCE_PATH = os.path.join(dt.config.PATH_TO_DATASHELF, 'rawdata', sourceMeta['SOURCE_ID'])
     data = pd.read_csv(os.path.join(SOURCE_PATH, "Human Development Index (HDI).csv"), na_values='..',
                        )
     
@@ -4761,7 +4762,7 @@ def UN_WPP_2019_import():
     mappingDict = {int(x) : y for x,y  in zip(dt.mapp.countries.codes.numISO, dt.mapp.countries.codes.index) if not(pd.np.isnan(x))}
     mappingDict[900] = 'World'
     SOURCE = "UN_WPP2019"
-    SOURCE_PATH = dt.config.PATH_TO_DATASHELF + 'rawdata/UN_WPP2019/'
+    SOURCE_PATH = os.path.join(dt.config.PATH_TO_DATASHELF, 'rawdata/UN_WPP2019')
     metaSetup = {'source'   : SOURCE,
                  'entity'   : 'population',
                  'unit'     : 'thousands',
