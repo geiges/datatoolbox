@@ -4440,7 +4440,7 @@ class IIASA(BaseImportTool):
             .replace('Mt CO2-equiv/yr', 'Mt CO2eq/yr')
             .replace('kt CF4-equiv/y', 'kt CF4eq/y')
             .replace('kt HFC134a-equiv/yr', 'kt HFC134aeq/yr')
-            .replace('Index (2005 = 1)', '1') # ?? TODO
+            .replace('Index (2005 = 1)', 'dimensionless') # ?? TODO
             .replace('US$2005', 'USD2005'))
         return meta   
          

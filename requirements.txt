@@ -16,3 +16,4 @@ xarray
 pint-xarray
 deprecated
 xlsxwriter
+pyam-iamc==0.12.0

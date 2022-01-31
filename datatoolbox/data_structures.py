@@ -1700,9 +1700,6 @@ def read_csv(fileName, load_raw=False):
         if "unit" not in meta.keys():
             meta["unit"] = ""
     
-    # fix of old tables
-    # if '_index_names' not in meta.keys():
-    #     meta["_index_names"] = ['region']
     if 'timeformat' in meta.keys():
          meta['_timeformat'] = meta['timeformat']
          del meta['timeformat']
@@ -1722,9 +1719,6 @@ def read_csv(fileName, load_raw=False):
         else:
             df = df.set_index('standard_region')
             df = df.drop('region',axis=1)
-            
-        
-            
     
     if ('_timeformat' in df.meta.keys()) and (df.meta['_timeformat'] != '%Y'):
         df.columns_to_datetime()

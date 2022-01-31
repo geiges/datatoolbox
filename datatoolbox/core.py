@@ -262,8 +262,8 @@ def getUnit(string):
     -------
     unit : pint unit
     """
-    if not isinstance(string, str):
-        string = str(string)
+    # if not isinstance(string, str):
+    #     string = str(string)
     if string is None:
         string = ''
     else:
