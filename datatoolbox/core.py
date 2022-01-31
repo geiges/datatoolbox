@@ -10,9 +10,12 @@ in various locations and tools.
 import time
 import pint
 
+import re
+
 import numpy as np
 import pandas as pd
 from datatoolbox import config
+from datatoolbox import naming_convention
 
 tt = time.time()
 
@@ -71,6 +74,51 @@ LOG['tableIDs'] = list()
 
 ur.add_context(c)
 
+
+def _split_variable(metaDict):
+    """
+    Split variable into a known entity (see naming_converntion.py) and a 
+    category.
+    
+    Parameters
+    ----------
+    metaDict : TYPE
+        DESCRIPTION.
+
+    Returns
+    -------
+    None.
+
+    """
+    
+    #Find entity
+    entity_matches = list()
+    for entity in naming_convention.entities:
+        if metaDict['variable'].startswith(entity):
+            entity_matches.append(entity)
+    
+    if len(entity_matches)> 0:
+        longest_matchg = max(entity_matches, key=len)
+        metaDict['entity'] = longest_matchg
+    
+    else:
+        if config.DEBUG:
+            print(f'Warning: Entity could not be derived from {metaDict["variable"]}')
+            
+            # exit here
+            return metaDict
+        
+        
+    #derive or check category
+    if 'category' not in metaDict.keys():
+        metaDict['category'] = metaDict['variable'].replace(longest_matchg,'').strip('|')
+    else:
+        if metaDict['category'] != metaDict['variable'].replace(longest_matchg,'').strip('|'):
+            print('Warming current category not fitting derived category, please review')
+    return metaDict
+
+
+
 def _update_meta(metaDict):
     """
     Private funcion to update the meta data of a datatable
@@ -86,7 +134,11 @@ def _update_meta(metaDict):
     metaDict : dict
 
     """
-    
+    if 'entity' not in metaDict.keys():
+        
+        metaDict = _split_variable(metaDict)
+        
+        
     for key in list(metaDict.keys()):
         if (metaDict[key] is np.nan) or metaDict[key] == '':
             if key != 'unit':
@@ -95,14 +147,47 @@ def _update_meta(metaDict):
     for id_field in config.ID_FIELDS:
         fieldList = [ metaDict[key] for key in config.SUB_FIELDS[id_field] if key in  metaDict.keys()]
         if len(fieldList)>0:
-            metaDict[id_field] =  config.SUB_SEP[id_field].join([str(x) for x in fieldList]).strip('|')
+            new_value = config.SUB_SEP[id_field].join([str(x) for x in fieldList]).strip('|')
+            if config.DEBUG and id_field in metaDict.keys() and metaDict[id_field] != new_value:
+                print(f'Warning: {id_field} will be overritten {metaDict[id_field]} -> {new_value}')
+            metaDict[id_field] =  new_value
     
     return metaDict
 
+def _fix_filename(name, max_length=255):
+    """
+    Replace invalid characters on Linux/Windows/MacOS with underscores.
+    List from https://stackoverflow.com/a/31976060/819417
+    Trailing spaces & periods are ignored on Windows.
+    >>> fix_filename("  COM1  ")
+    '_ COM1 _'
+    >>> fix_filename("COM10")
+    'COM10'
+    >>> fix_filename("COM1,")
+    'COM1,'
+    >>> fix_filename("COM1.txt")
+    '_.txt'
+    >>> all('_' == fix_filename(chr(i)) for i in list(range(32)))
+    True
+    """
+    return re.sub(r'[/\\:|<>"?*\0-\x1f]|^(AUX|COM[1-9]|CON|LPT[1-9]|NUL|PRN)(?![^.])|^\s|[\s.]$', "_", name[:max_length], flags=re.IGNORECASE)
 
-def _createDatabaseID(metaDict):
+def _validate_unit(table):
     
-    return config.ID_SEPARATOR.join([metaDict[key] for key in config.ID_FIELDS])
+    try:
+        getUnit(table.meta['unit'])
+        
+        return True
+    except:
+        return False
+
+    
+def _createDatabaseID(metaDict):
+    ID =config.ID_SEPARATOR.join(
+        [metaDict[key] for key in config.ID_FIELDS]
+        )
+    ID = _fix_filename(ID)
+    return ID
 
 def csv_writer(filename, 
                dataframe,
@@ -177,6 +262,8 @@ def getUnit(string):
     -------
     unit : pint unit
     """
+    if not isinstance(string, str):
+        string = str(string)
     if string is None:
         string = ''
     else:

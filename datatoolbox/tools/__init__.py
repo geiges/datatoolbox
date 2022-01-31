@@ -22,3 +22,5 @@ if config.AVAILABLE_DOCX:
 
 #from . import magicc6
 
+from . import  pyam
+

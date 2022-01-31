@@ -9,11 +9,13 @@ Created on Tue Apr  2 11:20:42 2019
 import datatoolbox as dt
 from datatoolbox import config
 from datatoolbox.data_structures import Datatable
-from datatoolbox.util import isUnit
+from datatoolbox.util import isUnit, identifyCountry
 from datatoolbox.tools.pandas import  yearsColumnsOnly
+from datatoolbox import mapping
 from collections import defaultdict
 from functools import reduce
 import pandas as pd
+import numpy as np
 import os
 import time
 import pint
@@ -59,6 +61,21 @@ class BaseImportTool():
     
     def __init__(self):
         self.setup = setupStruct()
+    
+    def add_standard_region(self, table, mapping):
+        
+        # for idx in table.index:
+        #     if idx not in mapping.keys():
+        #         iso = identifyCountry(idx)
+        #         if iso is not None:
+        #             mapping[idx] = iso
+        #         else:
+        #             mapping[idx] = np.nan
+        
+        table['standard_region'] = table.index.map(mapping)
+        # table.meta['_index_names'] = ['region', 'standard_region']
+        
+        return table
     
     def loadData(self):
         pass
@@ -110,9 +127,10 @@ class BaseImportTool():
         dt.commitTables(tableList, 
                         f'update {self.__class__.__name__} data at {dt.getDateString} by {dt.config.CRUNCHER}', 
                         sourceMetaDict = self.meta, 
-                        update=updateContent)
+                        update=updateContent,
+                        cleanTables  = True)
 
- 
+#%% 
 
 class WDI(BaseImportTool):
     
@@ -4361,7 +4379,168 @@ class PIK_NDC(BaseImportTool):
         
     
         return [pledge_high, pledge_low], None
+#%%
+import pyam    
+from tqdm import tqdm 
+class IIASA(BaseImportTool):
     
+    def __init__(self, 
+                 SOURCE_ID,
+                 iiasa_source=None,
+                 data_file = None,
+                 meta_file = None):
+        self.setup = setupStruct()
+            
+        self.setup.SOURCE_ID     = SOURCE_ID
+
+        self.setup.DATA_FILE    = ''
+        # self.setup.MAPPING_FILE = os.path.join(self.setup.SOURCE_PATH, 'mapping.xlsx')
+        self.setup.LICENCE = '?' # TODO
+        self.setup.URL     = 'data.ene.iiasa.ac.at'
+        
+
+        self.SOURCE_ID = SOURCE_ID
+        
+        if iiasa_source is not None:
+            self.conn = pyam.iiasa.Connection(iiasa_source)
+            self.iiasa_source = iiasa_source
+            self.meta = self.conn.meta()
+            self.api = True
+            self.mapping_key = iiasa_source
+        
+        elif data_file is not None:
+            self.data_file  = data_file
+            self.meta_file = meta_file
+            self.meta = pd.DataFrame()
+            self.api = False
+            self.mapping_key = SOURCE_ID
+        
+        self.region_mapping = dict()
+        
+        
+        self.region_mapping['iamc15'] =mapping.IPCC_SR15().region_mapping()
+        self.region_mapping['IPCC_SR15'] = self.region_mapping['iamc15']
+        
+        
+        self.region_mapping['cdlinks'] =mapping.CD_LINKS().region_mapping()
+        
+        self.region_mapping['engage'] =mapping.ENGAGE().region_mapping()
+        
+        self.region_mapping['IPCC_AR5'] = mapping.IPCC_AR5().region_mapping()
+        
+        self.region_mapping['ngfs_2'] = mapping.NGFS().region_mapping()
+        
+        self.region_mapping['ADVANCE'] = mapping.ADVANCE().region_mapping()
+            
+    def adapt_units(self, meta):
+        meta['unit'] = (meta['unit']
+            .replace('ktU', 'kt U')
+            .replace('Mt CO2-equiv/yr', 'Mt CO2eq/yr')
+            .replace('kt CF4-equiv/y', 'kt CF4eq/y')
+            .replace('kt HFC134a-equiv/yr', 'kt HFC134aeq/yr')
+            .replace('Index (2005 = 1)', '1') # ?? TODO
+            .replace('US$2005', 'USD2005'))
+        return meta   
+         
+    def gatherMappedData(self,
+                              models = None,
+                              iamc_filter = []):
+         
+        tables = list()
+        tables_excluded = list()
+        
+        
+        if not hasattr(self, 'data'):
+            if not self.api:
+                # load data 
+                self.loadData()
+        
+        if models is None:
+            
+            if self.api:
+                models = self.meta.index.get_level_values(0).unique()
+            else:
+                models = self.data.model
+            
+        for model in tqdm(models):
+            
+            if self.api:
+                idf = self.conn.query(**iamc_filter,
+                                      model = model)
+            else:
+                idf = self.data.filter(**iamc_filter,
+                                       model=model)
+                
+            if len(idf) ==0:
+                continue
+            
+            
+            tables, tables_excluded = self._read_idf_data(idf,
+                                                          model,
+                                                          tables,
+                                                          tables_excluded)
+            
+            
+    
+            
+        
+        return tables, tables_excluded
+
+    def loadData(self):
+        self.data =pyam.IamDataFrame(self.data_file)
+        if self.meta_file is not None:
+            reader.data.load_meta(self.meta_file)
+            
+            
+        
+    def _read_idf_data(self, 
+                       idf, 
+                       model,
+                       tables, 
+                       tables_excluded):
+        
+        wdf = idf.timeseries()
+        for scenario in wdf.index.get_level_values(1).unique():
+            sub_scenario = wdf.loc[slice(None), scenario, slice(None),slice(None)]
+            
+            for var in sub_scenario.index.get_level_values(3).unique():
+                subset = sub_scenario.loc[slice(None), slice(None), slice(None),var].reset_index().set_index('region')
+                
+                time_cols = dt.util.yearsColumnsOnly(subset.columns)
+                meta_cols = subset.columns.difference(time_cols)
+                
+                table = dt.Datatable(subset.loc[:, time_cols])
+                for meta_key in meta_cols:
+                    table.meta[meta_key] = list(subset[meta_key].unique())[0]
+                if (model, scenario) in self.meta.index:
+                    for meta_col, value in self.meta.loc[(model, scenario),:].items():
+                        
+                        # manually change meta category to avoid overwrite of datatoolbox category
+                        if meta_col == 'category':
+                            meta_col = 'climate_category'
+                        if meta_col not in config.ID_FIELDS:
+                            table.meta[meta_col] = value
+                        else:
+                            print('Warming: could not set meta key {meta_col} since it is part of ID fields')
+                table.meta['source']  = self.SOURCE_ID
+                
+                table  = self.add_standard_region(table, self.region_mapping[self.mapping_key])
+                table.meta = self.adapt_units(table.meta)
+                
+                table.generateTableID()
+                if dt.core._validate_unit(table) :
+                    tables.append(table)  
+                else:
+                    tables_excluded.append(table)
+        return tables, tables_excluded
+    
+
+    def get_region_mapping(self):
+        return self.region_mappire
+         
+
+                    
+#%%
 class CAT_Paris_Sector_Rollout(BaseImportTool):
    
     def __init__(self):
@@ -4847,7 +5026,15 @@ if __name__ == '__main__':
     # reader = PRIMAP_HIST(version="v2.3_no_rounding_28_Jul_2021", year=2021)
     # reader = PIK_NDC(2021, version = 'v1.0.2')
     # reader = PRIMAP(year = 2021)
-    
+    # reader = IIASA('ENGAGE_2021', 'engage')
+    # reader = IIASA('NGFS_2021', 'ngfs_2')
+    # reader = IIASA('CD_LINKS', 'cdlinks')
+    # reader = IIASA('IPCC_AR5', data_file ='/media/sf_Documents/datashelf_v03/rawdata/AR5_database/ar5_public_version102_compare_compare_20150629-130000.csv')
+    # reader = IIASA('ADVANCE', data_file ='/media/sf_Documents/datashelf_v03/rawdata/ADVANCE_DB/ADVANCE_Synthesis_version101_compare_20190619-143200.csv')
+    # reader = IIASA('IPCC_SR15', 'iamc15')
+    reader = IIASA('IPCC_SR15', 
+                   data_file ='/media/sf_Documents/datashelf_v03/rawdata/IAMC15_2019b/iamc15_scenario_data_all_regions_r2.0.xlsx',
+                   meta_file ='/media/sf_Documents/datashelf_v03/rawdata/IAMC15_2019b/sr15_metadata_indicators_r2.0.xlsx')
     # sdf
     """ 
     Process data:
@@ -4856,7 +5043,47 @@ if __name__ == '__main__':
     
     Excluded tables will be listed seperately for review.
     """
-    tableList, excludedTables = reader.gatherMappedData()
+    # filter_var = lambda x : any([x.startswith(var) for var in ['Emissions',
+    #                                                            'Primary',
+    #                                                            'Secondary'
+    #                                                            'GDP',
+    #                                                            'Population']])
+    iamc_filter = {'variable' : [
+                            'Emissions**',
+                            # 'Primary**',
+                            # 'Secondary**'
+                            # 'GDP**',
+                            # 'Population**'
+                            # 'Subsidies**',
+                            # 'Price**',
+                            # 'Investments**',
+                            # 'Carbon Sequestratio**',
+                            # 'Capacity**',
+                            # 'Cumulative Capacity**'
+                            ]
+                }
+    # models = ['AIM/Hub-India 2.2', 
+    #           'AIM/Hub-Thailand 2.2', 
+    #           'AIM/Hub-Japan 2.1',
+    #             'AIM/Hub-China 2.2', 
+    #             'AIM/Hub-Korea 2.0', 
+    #             'AIM/Hub-Vietnam 2.2',
+    #             'AIM/CGE V2.2', 
+    #             'COFFEE 1.1']
+    # models = ['TIAM-ECN 1.1',
+    #     'MESSAGEix-GLOBIOM V1.2', 'MESSAGEix-GLOBIOM 1.1', 'WITCH 5.0',
+    #     'GEM-E3 V2021', 'REMIND-MAgPIE 2.1-4.2', 'IMAGE 3.0',
+    #     'POLES-JRC ENGAGE']
+    
+    # iamc_filter = {'variable' : [
+    #                         'Emissions|CO2',
+    #                         'Emissions|CH4',
+    #                         'Emissions|N2O',
+    #                         'Emissions|F-Gases',
+    #                         'Emissions|Kyo**']}
+    models = None
+    # tables_to_commit, excludedTables = reader.gatherMappedData_test(models, iamc_filter=iamc_filter)
+    tables_to_commit, excludedTables = reader.gatherMappedData(iamc_filter=iamc_filter)
     
     # For review:
     # tableIDs = [table.ID for table in tableList]
@@ -4864,16 +5091,41 @@ if __name__ == '__main__':
     
     # find empty tablse
     #[x.ID for x in tableList if len(x.index) ==0]
-    """
-    Update database:
     
-    This will add the tables in the list to the database and will also add the
-    mapping file to the repository.
-    """
+    #%%
+    # new_exclude_tables = list()
+    # new_tables_to_commit = list()
+    # for table in excludedTables:
+    #     table.meta = adapt_meta(table.meta)
+        
+    #     if dt.core.check_table(table):
+    #         new_exclude_tables.append(table)
+    #     else:
+    #         new_tables_to_commit.append(table)
+  # #%%
+  #   compare_regions = set()
+  #   for table in tables_to_commit:
+  #       compare_regions_table = [x for x in table.index if '(R' in x]
+  #       compare_regions = compare_regions.union(set(compare_regions_table))
+        
+  #   #%%    
+  #   for table in tables_to_commit:
+  #       table  = self.add_standard_region(table, self.region_mapping['engage'])
+  #       sdf
+    #%%
+    # def standardise_regions(table):
+        
+    #%%
+    # """
+    # Update database:
+    
+    # This will add the tables in the list to the database and will also add the
+    # mapping file to the repository.
+    # """
     
     
-    reader.update_database(tableList, 
-                           updateContent=update_content)
+    reader.update_database(tables_to_commit, 
+                            updateContent=False)
 
 #%%
 

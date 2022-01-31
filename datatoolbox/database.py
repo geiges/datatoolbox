@@ -311,7 +311,6 @@ class Database():
         return table
     
     
-    
     def findExact(self, **kwargs):
         """
         Finds an exact match for the given filter criteria
@@ -348,7 +347,7 @@ class Database():
     def _get_source_path(self, sourceID):
         return  os.path.join(config.PATH_TO_DATASHELF, 'database', sourceID)
     
-    def getTable(self, ID):
+    def getTable(self, ID, load_raw=False):
         """
         Method to load the datatable for the given tableID.
         
@@ -367,14 +366,18 @@ class Database():
             # load table from database
             
             filePath = self._getTableFilePath(ID)
-            return read_csv(filePath)
+            table = read_csv(filePath,load_raw).drop_duplicates()
+            table = table[table.index.notnull()]
+            return table
         
         elif os.path.exists('data'):
             fileName = self._getTableFileName(ID)
             filePath = os.path.join('data', fileName)
             
             if os.path.exists(filePath):
-                return read_csv(filePath)
+               table = read_csv(filePath,load_raw).drop_duplicates()
+               table = table[table.index.notnull()]
+               return table
             
                 
         
@@ -399,7 +402,9 @@ class Database():
                 # load table from database
                 
                     filePath = self._getTableFilePath(ID)
-                    return read_csv(filePath)
+                    table = read_csv(filePath,load_raw).drop_duplicates()
+                    table = table[table.index.notnull()]
+                    return table
             except Exception:
                 
                 if config.DEBUG:
@@ -576,8 +581,8 @@ class Database():
             for dataTable in tqdm.tqdm(dataTables):
                 if config.DEBUG:
                     print(dataTable.ID)
-                if cleanTables:
-                    dataTable = util.cleanDataTable(dataTable)
+                # if cleanTables:
+                #    dataTable = util.cleanDataTable(dataTable)
                 
                 if dataTable.isnull().all().all():
                     print('ommiting empty table: ' + dataTable.ID)
@@ -695,7 +700,7 @@ class Database():
         oldID = oldDataTable.meta['ID']
         newID = newDataTable.generateTableID()
         
-        if oldID == newID and (oldDataTable.meta['unit'] == newDataTable.meta['unit']):
+        if oldID == newID:# and (oldDataTable.meta['unit'] == newDataTable.meta['unit']):
             #only change data
             self._addTable( newDataTable)
         else:
@@ -842,9 +847,9 @@ class Database():
             raise(BaseException('Sorry, data of table {} is needed to be numeric'.format(datatable)))            
             
         # check that spatial index is consistend with defined countries or regions
-        invalidSpatialIDs = datatable.index.difference(mapp.getValidSpatialIDs())
-        if len(invalidSpatialIDs) > 0:
-            raise(BaseException('Sorry, regions in table {}: {} do not exist'.format(datatable, invalidSpatialIDs)))
+        # invalidSpatialIDs = datatable.index.difference(mapp.getValidSpatialIDs())
+        # if len(invalidSpatialIDs) > 0:
+        #     raise(BaseException('Sorry, regions in table {}: {} do not exist'.format(datatable, invalidSpatialIDs)))
         
         # check that the time colmns are years
         from pandas.api.types import is_integer_dtype
@@ -871,6 +876,11 @@ class Database():
         if (config.OS == 'win32') | (config.OS == "Windows"):
             filePath = filePath.replace('|','___')
         
+        if 'standard_region' in datatable.columns or 'region' in datatable.columns:
+            datatable = datatable.reset_index().set_index(['region', 'standard_region'])
+            datatable.columns = datatable.columns.astype(int)
+        
+        datatable = util.cleanDataTable(datatable)
         datatable = datatable.sort_index(axis='index')
         datatable = datatable.sort_index(axis='columns')
         

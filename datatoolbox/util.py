@@ -161,13 +161,13 @@ def scatterIndicatorComparison(tableX, tableY):
     
 def cleanDataTable(dataTable):
     # ensure valid ISO or region IDs
-    invalidSpatialIDs = dataTable.index.difference(mapp.getValidSpatialIDs())
-    if not invalidSpatialIDs.empty:
-        print(
-            f"Removing unknown regions from dataTable {dataTable.meta.get('ID', 'unnamed')}:",
-            ", ".join(invalidSpatialIDs)
-        )
-        dataTable = dataTable.loc[dataTable.index.difference(invalidSpatialIDs)]
+    # invalidSpatialIDs = dataTable.index.difference(mapp.getValidSpatialIDs())
+    # if not invalidSpatialIDs.empty:
+    #     print(
+    #         f"Removing unknown regions from dataTable {dataTable.meta.get('ID', 'unnamed')}:",
+    #         ", ".join(invalidSpatialIDs)
+    #     )
+    #     dataTable = dataTable.loc[dataTable.index.difference(invalidSpatialIDs)]
     
     dataTable = dataTable.dropna(how="all", axis=1).dropna(how="all", axis=0).astype(float)
 
@@ -863,7 +863,6 @@ def open_file(path):
                         path]))
         # elif dt.config.OS == 'Darwin':
         #     os.system('open -a "Microsoft Excel" ' + self.setup.MAPPING_FILE)
-
 
 
 def shorten_find_output(dataframe):

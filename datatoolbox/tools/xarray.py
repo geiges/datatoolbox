@@ -10,6 +10,8 @@ This module contains all relevant tools regarding the use of xarray
 # from datatoolbox import core
 # import datatoolbox as dt
 
+from time import time
+
 from .. import core, config
 import xarray as xr
 import numpy as np 
@@ -44,8 +46,8 @@ def _get_unique_labels(table, dim):
         unique_lables = table.index
     elif dim == table.columns.name:
         unique_lables = table.columns
-    elif dim in table.attrs.keys():
-        unique_lables = [table.attrs[dim]]
+    elif dim in table.meta.keys():
+        unique_lables = [table.meta[dim]]
     else:
         #raise(Exception(f'Dimension {dim} not available'))
         unique_lables = [np.nan]
@@ -66,7 +68,7 @@ def get_dimensions(table_iterable, dimensions):
     return dims
 
 
-
+#%%
     
 def to_XDataSet(tableSet, dimensions=['region', 'time']):
     """
@@ -136,7 +138,7 @@ def to_XDataArray(tableSet, dimensions = ['region', 'time', 'pathway']):
     
     return xData
 
-from time import time
+
 
 def _to_xarray(tables, dimensions, stacked_dims):
     """ 
@@ -175,6 +177,8 @@ def _to_xarray(tables, dimensions, stacked_dims):
         final_dims.append(st_dim)
         
     dims = get_dimensions(tables, xdims)
+    if config.DEBUG:
+        print(dims)
     coords = {x: sorted(list(dims[x])) for x in dims.keys()}
     labels = dict()
     for st_dim, sub_dims in stacked_dims.items():
@@ -210,7 +214,6 @@ def _to_xarray(tables, dimensions, stacked_dims):
     #%%
     return xData
 
-
 def key_set_to_xdataset(dict_of_data,
                         dimensions = ['model', 'scenario', 'region', 'time'],
                         stacked_dims = {'pathway': ('model', 'scenario')}):
@@ -236,7 +239,7 @@ def key_set_to_xdataset(dict_of_data,
     sort_dict = dict()
     for key, table in dict_of_data.items():
         
-        var = table.attrs['variable']
+        var = table.meta['variable']
         
         if var in sort_dict.keys():
             sort_dict[var].append(table)

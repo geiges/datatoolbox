@@ -28,7 +28,7 @@ class Datatable(pd.DataFrame):
     
     Datatable is derrived from pandas dataframe. 
     """
-    _metadata = ['meta', 'ID']
+    _metadata = ['meta', 'ID', 'attrs']
 
     def __init__(self, *args, **kwargs):
         
@@ -68,7 +68,7 @@ class Datatable(pd.DataFrame):
         self.index.name   = 'region'
         
         # print(self.meta)
-        if ('timeformat' in self.meta.keys()) and (self.meta['timeformat'] != '%Y'):
+        if ('_timeformat' in self.meta.keys()) and (self.meta['_timeformat'] != '%Y'):
             self.columns_to_datetime()
 
         self.attrs = self.meta
@@ -231,7 +231,7 @@ class Datatable(pd.DataFrame):
 
     def columns_to_datetime(self):
         self.columns = pd.to_datetime(self.columns, 
-                                      format=self.meta['timeformat'])
+                                      format=self.meta['_timeformat'])
 
     def copy(self, deep=True):
         """
@@ -789,7 +789,7 @@ class Datatable(pd.DataFrame):
         else:
             outStr += '=== Datatable ===\n'
         for key in self.meta.keys():
-            if self.meta[key] is not None:
+            if self.meta[key] is not None and not str(self.meta[key]).startswith('_'):
                 outStr += key + ': ' + str(self.meta[key]) + ' \n'
         outStr += super(Datatable, self).__repr__()
         return outStr
@@ -801,7 +801,7 @@ class Datatable(pd.DataFrame):
         else:
             outStr += '=== Datatable ===<br/>\n'
         for key in self.meta.keys():
-            if self.meta[key] is not None:
+            if self.meta[key] is not None and not str(self.meta[key]).startswith('_'):
                 outStr += key + ': ' + str(self.meta[key]) + ' <br/>\n'
         outStr += super(Datatable, self)._repr_html_()
         return outStr
@@ -1682,7 +1682,7 @@ def _try_number_format(x):
         except:
             return x
             
-def read_csv(fileName):
+def read_csv(fileName, load_raw=False):
     
     fid = open(fileName,'r', encoding='utf-8')
     
@@ -1699,9 +1699,34 @@ def read_csv(fileName):
         meta[dataTuple[0]] = _try_number_format(dataTuple[1].strip())
         if "unit" not in meta.keys():
             meta["unit"] = ""
-    df = Datatable(pd.read_csv(fid, index_col=0), meta=meta)
     
-    if ('timeformat' in df.meta.keys()) and (df.meta['timeformat'] != '%Y'):
+    # fix of old tables
+    # if '_index_names' not in meta.keys():
+    #     meta["_index_names"] = ['region']
+    if 'timeformat' in meta.keys():
+         meta['_timeformat'] = meta['timeformat']
+         del meta['timeformat']
+    #print(meta) 
+    df = Datatable(pd.read_csv(fid), meta=meta)
+    
+    if 'standard_region' not in df.columns:
+        #backward compatibility
+        df = df.set_index(df.columns[0])
+    else:
+        # new datatable
+        if load_raw :
+            
+            df = df.set_index('region')
+            if 'standard_region' in df.columns:
+                df = df.drop('standard_region',axis=1)
+        else:
+            df = df.set_index('standard_region')
+            df = df.drop('region',axis=1)
+            
+        
+            
+    
+    if ('_timeformat' in df.meta.keys()) and (df.meta['_timeformat'] != '%Y'):
         df.columns_to_datetime()
     else:
         df.columns = df.columns.astype(int)
@@ -1767,7 +1792,7 @@ def read_excel(fileName,
                                   index   = fileContent.loc[columnIdx+1:, 0], 
                                   columns = fileContent.loc[columnIdx, 1:], 
                                   meta    = metaDict)
-            if ('timeformat' in dataTable.meta.keys()) and (dataTable.meta['timeformat'] != '%Y'):
+            if ('_timeformat' in dataTable.meta.keys()) and (dataTable.meta['_timeformat'] != '%Y'):
                 dataTable.columns_to_datetime()
         
             try:
@@ -1846,9 +1871,9 @@ def read_compact_excel(file_name, sheet_name=None):
                         
                         ID = config.ID_SEPARATOR.join([meta[key] for key in [x for x in config.ID_FIELDS if x in meta.keys()]])
                         print(f'ID could not properly created, fallback to partial ID: {ID}')
-                # if config.DEBUG:
-                    # print(f'meta columns: {meta_columns}')
-                    # print(f'numerical columns: {list(lDf.columns.difference(meta_columns + ["region"]))}')
+                if config.DEBUG:
+                    print(f'meta columns: {meta_columns}')
+                    print(f'numerical columns: {list(lDf.columns.difference(meta_columns + ["region"]))}')
                 numerical_columns = list(lDf.columns.difference(meta_columns + ['region']).astype(int))
                 
                 if ID not in out.keys():
@@ -1866,8 +1891,7 @@ def read_compact_excel(file_name, sheet_name=None):
                     factor = core.conversionFactor(meta['unit'], out[ID].meta['unit'])
                     out[ID].loc[region, numerical_columns] = line.loc[numerical_columns].astype(float) *factor
                     #
-    #%%
-                
+         
     return out
             
         # except:
