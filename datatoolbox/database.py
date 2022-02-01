@@ -334,15 +334,15 @@ class Database():
         Return the file path for a given tableID
         """
         source = self.inventory.loc[ID].source
-        fileName = self._getTableFileName(ID)
+        fileName = core.generate_table_file_name(ID)
         return os.path.join(config.PATH_TO_DATASHELF, 'database/', source, 'tables', fileName)
 
-    def _getTableFileName(self, ID):
-        """
-        For compatibility to windows based sytems, the pipe '|' symbols is replaces
-        by double underscore '__' for the csv filename.
-        """
-        return ID.replace('|','-').replace('/','-') + '.csv'
+    # def _getTableFileName(self, ID):
+    #     """
+    #     For compatibility to windows based sytems, the pipe '|' symbols is replaces
+    #     by double underscore '__' for the csv filename.
+    #     """
+    #     return ID.replace('|','-').replace('/','-') + '.csv'
 
     def _get_source_path(self, sourceID):
         return  os.path.join(config.PATH_TO_DATASHELF, 'database', sourceID)
@@ -371,7 +371,7 @@ class Database():
             return table
         
         elif os.path.exists('data'):
-            fileName = self._getTableFileName(ID)
+            fileName = core.generate_table_file_name(ID)
             filePath = os.path.join('data', fileName)
             
             if os.path.exists(filePath):
@@ -743,7 +743,7 @@ class Database():
                 print(RED + "ID is missing in the inventory")
             valid.append(False)
             
-        fileName = self._getTableFileName(ID)
+        fileName = core.generate_table_file_name(ID)
         tablePath = os.path.join(config.PATH_TO_DATASHELF, 'database', source, 'tables', fileName)
 
         if os.path.isfile(tablePath):
@@ -868,11 +868,11 @@ class Database():
         Pools functionality to add table to the database
         """
         
-        ID = datatable.generateTableID()
+        # ID = datatable.generateTableID()
         source = datatable.source()
         datatable.meta['creator'] = config.CRUNCHER
         sourcePath = os.path.join('database', source)
-        filePath = os.path.join(sourcePath, 'tables',  self._getTableFileName(ID))
+        filePath = os.path.join(sourcePath, 'tables',  datatable.getTableFileName())
         if (config.OS == 'win32') | (config.OS == "Windows"):
             filePath = filePath.replace('|','___')
         
@@ -897,8 +897,8 @@ class Database():
         Added file to git system
         """
         datatable.to_csv(os.path.join(config.PATH_TO_DATASHELF, filePath))
-        
-        self.gitManager.gitAddFile(source, os.path.join('tables', self._getTableFileName(datatable.ID)))
+        ID = datatable.ID
+        self.gitManager.gitAddFile(source, os.path.join('tables', core.generate_table_file_name(ID)))
         
     def _gitCommit(self, message):
         """

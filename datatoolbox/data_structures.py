@@ -608,7 +608,16 @@ class Datatable(pd.DataFrame):
         self.ID   =  core._createDatabaseID(self.meta)
         self.meta['ID'] = self.ID
         return self.ID
-
+    
+    def getTableFileName(self):
+        """
+        For compatibility to windows based sytems, the pipe '|' symbols is replaces
+        by double underscore '__' for the csv filename.
+        """
+        self.generateTableID()
+        
+        return core.generate_table_file_name(self.ID)
+    
     def _update_meta(self):
         self.meta =  core._update_meta(self.meta)
     
@@ -1704,8 +1713,8 @@ def read_csv(fileName, load_raw=False):
          meta['_timeformat'] = meta['timeformat']
          del meta['timeformat']
     #print(meta) 
-    df = Datatable(pd.read_csv(fid), meta=meta)
     
+    df = pd.read_csv(fid)
     if 'standard_region' not in df.columns:
         #backward compatibility
         df = df.set_index(df.columns[0])
@@ -1719,13 +1728,15 @@ def read_csv(fileName, load_raw=False):
         else:
             df = df.set_index('standard_region')
             df = df.drop('region',axis=1)
-    
-    if ('_timeformat' in df.meta.keys()) and (df.meta['_timeformat'] != '%Y'):
+    fid.close()
+    df = Datatable(df, meta=meta)
+    if ('_timeformat' in meta.keys()) and (meta['_timeformat'] != '%Y'):
         df.columns_to_datetime()
     else:
         df.columns = df.columns.astype(int)
 
-    fid.close()
+    
+    
     return df
 
 def read_excel(fileName, 

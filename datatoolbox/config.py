@@ -34,7 +34,7 @@ REQUIRED_META_FIELDS = {'entity',
                         'unit',
                         'timeformat'}
 
-META_DEFAULTS = {'timeformat'  : '%Y'}
+META_DEFAULTS = {'_timeformat'  : '%Y'}
 
 OPTIONAL_META_FIELDS = ['category',
                        'model']

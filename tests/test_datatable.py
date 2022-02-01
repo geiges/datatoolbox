@@ -9,6 +9,17 @@ import datatoolbox as dt
 import numpy as np
 from pandas.testing import assert_frame_equal
 
+def test_meta_update():
+    metaDict = {'source'   : 'TEST',
+            'entity'   : 'values',
+            'category' : 'cat1',
+            'scenario' : '#1',
+            'unit'     : 'm'}
+    new_meta = dt.core._update_meta(metaDict)
+    
+    exp = dt.config.SUB_SEP['variable'].join(metaDict[x] for x in ['entity', 'category'])
+    obs = new_meta['variable']
+    assert exp == obs
 
 def test_creation():
     metaDict = {'source' : 'TEST',
@@ -95,8 +106,8 @@ def test_clean():
     
     
     df2 = dt.Datatable(data2, meta=metaDict2, columns = [2009, 2012, 2013, 2015], index = ['ARG', 'DEU', 'FRA', 'USSDR'])
-    exp = dt.Datatable(data2, meta=metaDict2, columns = [2009, 2012, 2013, 2015], index = ['ARG', 'DEU', 'FRA', 'UDSSR'])
-    exp = exp.drop('UDSSR')
+    exp = dt.Datatable(data2, meta=metaDict2, columns = [2009, 2012, 2013, 2015], index = ['ARG', 'DEU', 'FRA', 'USSDR'])
+    # exp = exp.drop('UDSSR')
     exp = exp.drop(2015, axis=1)
     df2_clean = df2.clean()
     df2_clean == df2.clean()
@@ -160,7 +171,6 @@ def test_csv_write():
            'pathway,Historic\n', 
            'scenario,Historic\n', 
            'source,TEST\n',
-           'timeformat,%Y\n',
            'unit,m\n', 
            'variable,Area|Forestery\n', 
            '### DATA ###\n', 

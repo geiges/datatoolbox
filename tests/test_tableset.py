@@ -53,7 +53,7 @@ def test_add_remove():
     
     obs = list(tableSet.keys())
     exp = ['values|cat1__#1__TEST']
-    assert obs == exp
+    assert obs[0] == exp[0]
     
     tableSet.add(df2)
     assert len(tableSet.inventory.index) == 2

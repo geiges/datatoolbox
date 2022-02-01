@@ -170,7 +170,7 @@ def _fix_filename(name, max_length=255):
     >>> all('_' == fix_filename(chr(i)) for i in list(range(32)))
     True
     """
-    return re.sub(r'[/\\:|<>"?*\0-\x1f]|^(AUX|COM[1-9]|CON|LPT[1-9]|NUL|PRN)(?![^.])|^\s|[\s.]$', "_", name[:max_length], flags=re.IGNORECASE)
+    return re.sub(r'[/\\:<>"?*\0-\x1f]|^(AUX|COM[1-9]|CON|LPT[1-9]|NUL|PRN)(?![^.])|^\s|[\s.]$', "_", name[:max_length], flags=re.IGNORECASE)
 
 def _validate_unit(table):
     
@@ -181,7 +181,11 @@ def _validate_unit(table):
     except:
         return False
 
-    
+def generate_table_file_name(ID):
+    #ID_for_filename = _fix_filename(ID) 
+    ID_for_filename = ID.replace('|','-').replace('/','-')
+    return ID_for_filename + '.csv'
+
 def _createDatabaseID(metaDict):
     ID =config.ID_SEPARATOR.join(
         [metaDict[key] for key in config.ID_FIELDS]

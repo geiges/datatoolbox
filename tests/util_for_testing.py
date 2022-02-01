@@ -69,7 +69,7 @@ meta_datetime = { 'entity' : 'GDP|PPP',
                    'scenario' : 'Historic',
                    'source' : 'table_with_datetime',
                    'unit' : 'USD 2010',
-                   'timeformat' : '%Y-%m-%d %H:%M:%S'}
+                   '_timeformat' : '%Y-%m-%d %H:%M:%S'}
 
 df_datetime = dt.Datatable(data_datetime, 
                            meta=meta_datetime, 
