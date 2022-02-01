@@ -366,7 +366,7 @@ class Database():
             # load table from database
             
             filePath = self._getTableFilePath(ID)
-            table = read_csv(filePath,load_raw).drop_duplicates()
+            table = read_csv(filePath,load_raw)
             table = table[table.index.notnull()]
             return table
         
@@ -375,7 +375,7 @@ class Database():
             filePath = os.path.join('data', fileName)
             
             if os.path.exists(filePath):
-               table = read_csv(filePath,load_raw).drop_duplicates()
+               table = read_csv(filePath,load_raw)
                table = table[table.index.notnull()]
                return table
             
