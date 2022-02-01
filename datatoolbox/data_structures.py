@@ -33,7 +33,7 @@ class Datatable(pd.DataFrame):
     def __init__(self, *args, **kwargs):
         
         # pop meta out of kwargs since pandas is not expecting it
-        overwrite_meta = kwargs.pop('meta', {}) # retrun empty dict if no meta is provide
+        overwrite_meta = kwargs.pop('meta', {}) # return empty dict if no meta is provide
         
         
         
@@ -1696,7 +1696,24 @@ def _try_number_format(x):
         except:
             return x
             
-def read_csv(fileName, load_raw=False):
+def read_csv(fileName, native_regions=False):
+    """
+    Load DataTable from csv file.
+
+    Parameters
+    ----------
+    fileName : str
+        Path of file.
+    native_regions : bool, optional
+            Load native region defintions if available. The default is False.
+
+
+    Returns
+    -------
+    DataTable
+        DataTable with data and meta.
+
+    """
     
     fid = open(fileName,'r', encoding='utf-8')
     
@@ -1725,7 +1742,7 @@ def read_csv(fileName, load_raw=False):
         df = df.set_index(df.columns[0])
     else:
         # new datatable
-        if load_raw :
+        if native_regions :
             
             df = df.set_index('region')
             if 'standard_region' in df.columns:

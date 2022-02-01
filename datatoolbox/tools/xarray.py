@@ -264,7 +264,8 @@ def key_set_to_xdataset(dict_of_data,
 
 def load_as_xdataset(query_results,
                      dimensions = ['model', 'scenario', 'region', 'time'],
-                     stacked_dims = {'pathway': ('model', 'scenario')}):
+                     stacked_dims = {'pathway': ('model', 'scenario')},
+                     native_regions=False):
     """ 
     Returns xarry dataset pruduced from a database result. Differenty variables
     are stored as key variables. The xarray dimensions (coordiantes) are defined
@@ -277,7 +278,9 @@ def load_as_xdataset(query_results,
         Dimensions of the shared yarray dimensions / coordinates
     stacked_dims : Dict[str]]
         Dictionary of all mutli-index coordinates and their sub-dimensions
-    
+    native_regions : bool, optional
+        Load native region defintions if available. The default is False.
+
     Returns
     -------
     matches : xarray.Dataset + pint quantification
@@ -287,7 +290,7 @@ def load_as_xdataset(query_results,
 
     data = list()
     for variable in variables:
-        tables = [core.DB.getTable(x) for x in query_results.filterp(variable = variable).index]
+        tables = [core.DB.getTable(x,native_regions) for x in query_results.filterp(variable = variable).index]
         
         xarray = _to_xarray(tables, dimensions, stacked_dims)
         data.append(xr.Dataset({variable : xarray}))

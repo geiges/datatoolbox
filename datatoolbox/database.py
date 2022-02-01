@@ -348,14 +348,16 @@ class Database():
     def _get_source_path(self, sourceID):
         return  os.path.join(config.PATH_TO_DATASHELF, 'database', sourceID)
     
-    def getTable(self, ID, load_raw=False):
+    def getTable(self, ID, native_regions=False):
         """
         Method to load the datatable for the given tableID.
         
         Input
         -----
         tableID : str
-        
+        native_regions : bool, optional
+            Load native region defintions if available. The default is False.
+
         Returns
         table : Datatable
         """
@@ -367,7 +369,7 @@ class Database():
             # load table from database
             
             filePath = self._getTableFilePath(ID)
-            table = read_csv(filePath,load_raw)
+            table = read_csv(filePath,native_regions)
             table = table[table.index.notnull()]
             return table
         
@@ -376,7 +378,7 @@ class Database():
             filePath = os.path.join('data', fileName)
             
             if os.path.exists(filePath):
-               table = read_csv(filePath,load_raw)
+               table = read_csv(filePath,native_regions)
                table = table[table.index.notnull()]
                return table
             
@@ -403,7 +405,7 @@ class Database():
                 # load table from database
                 
                     filePath = self._getTableFilePath(ID)
-                    table = read_csv(filePath,load_raw).drop_duplicates()
+                    table = read_csv(filePath,native_regions).drop_duplicates()
                     table = table[table.index.notnull()]
                     return table
             except Exception:
@@ -414,15 +416,18 @@ class Database():
         
         raise(BaseException('Table {} not found'.format(ID)))
         
-    def getTables(self, iterIDs):
+    def getTables(self, iterIDs, native_regions=False):
         """
         Method to return multiple datatables at once as a dictionary like 
         set fo tables.
         
         Input 
         -----
-        table list : list [str]
-        
+        iterIDS: list [str]
+            List of IDs to load.
+        native_regions : bool, optional
+            Load native region defintions if available. The default is False.
+
         Returns
         tables : TableSet
         """
@@ -431,7 +436,7 @@ class Database():
             IDs = list()
         res = TableSet()
         for ID in tqdm.tqdm(iterIDs):
-            table = self.getTable(ID)
+            table = self.getTable(ID,native_regions)
             if config.logTables:
                 IDs.append(ID)
             res.add(table)

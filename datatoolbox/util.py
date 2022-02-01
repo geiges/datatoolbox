@@ -1131,8 +1131,24 @@ def plot_query_as_graph(results, savefig_path=None):
 #                 figsize=[5,6],
                  savefig_path=savefig_path)
 
-def to_pyam(results):
-    return core.DB.getTables(results.index).to_pyam()
+def to_pyam(results, native_regions = False):
+    """
+    Load resuls as pyam IDateFrame.
+    
+    Parameters
+    ----------
+    results : pandas Dataframe with datatoolbox query results
+        Results from find.
+    native_regions : bool, optional
+        Load native region defintions if available. The default is False.
+
+    Returns
+    -------
+    TYPE
+        DESCRIPTION.
+
+    """
+    return core.DB.getTables(results.index, native_regions).to_pyam()
 
 def filterp(df, level=None, regex=False, **filters):
         """ 
