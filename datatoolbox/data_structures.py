@@ -19,7 +19,7 @@ from . import core
 from . import config 
 import traceback
 from . import util
-
+import os
        
 class Datatable(pd.DataFrame):
     """
@@ -59,7 +59,6 @@ class Datatable(pd.DataFrame):
             self.generateTableID()
         except:
             self.ID = None
-
     
         if config.AVAILABLE_XARRAY:
             self.to_xarray = self._to_xarray
@@ -609,6 +608,12 @@ class Datatable(pd.DataFrame):
         self.meta['ID'] = self.ID
         return self.ID
     
+    def getTableFilePath(self):
+        source = self.meta['source']
+        fileName = core.generate_table_file_name(self.ID)
+        return os.path.join(config.PATH_TO_DATASHELF, 'database/', source, 'tables', fileName)
+
+        
     def getTableFileName(self):
         """
         For compatibility to windows based sytems, the pipe '|' symbols is replaces
@@ -1734,10 +1739,15 @@ def read_csv(fileName, load_raw=False):
         df.columns_to_datetime()
     else:
         df.columns = df.columns.astype(int)
-
+    dupl_mask = df.index.duplicated()
     
+    #removing duplicated entries that might results in different native and standart region definitions
+    if  sum(dupl_mask) > 0:
+        if config.DEBUG:
+            print('Removing duplicated entry')
+        df = df.iloc[~dupl_mask,:]
     
-    return df
+    return df#.drop_duplicates()
 
 def read_excel(fileName, 
                sheetNames = None,

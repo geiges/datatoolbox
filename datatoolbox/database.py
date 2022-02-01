@@ -12,6 +12,7 @@ import tqdm
 import time
 import copy
 import types
+
 import traceback
 from collections import defaultdict
 from pathlib import Path
@@ -429,7 +430,7 @@ class Database():
         if config.logTables:
             IDs = list()
         res = TableSet()
-        for ID in iterIDs:
+        for ID in tqdm.tqdm(iterIDs):
             table = self.getTable(ID)
             if config.logTables:
                 IDs.append(ID)
