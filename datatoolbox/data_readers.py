@@ -834,7 +834,7 @@ class IEA_World_Energy_Balance(BaseImportTool):
         
         writer.close()
 
-    def gatherMappedData(self, spatialSubSet = None, updateTables=False):
+    def gatherMappedData(self, spatialSubSet = None, updateTables=False, onlyAggregations=False):
     
         # loading data if necessary
         if not hasattr(self, 'data'):
@@ -850,8 +850,11 @@ class IEA_World_Energy_Balance(BaseImportTool):
         excludedTables['empty'] = list()
         excludedTables['error'] = list()
         excludedTables['exists'] = list()
+
+        flow_map = self.mapping["FLOW"]
+        product_map = self.mapping["PRODUCT"]
         
-        for flow in self.mapping['FLOW'].index:
+        for flow in flow_map.index:
             mask = self.data['FLOW'] == flow
             tempDataMo = self.data.loc[mask]
 
@@ -859,24 +862,22 @@ class IEA_World_Energy_Balance(BaseImportTool):
                 self.mapping['FLOW'].loc[flow, ["mapping", "unit", "unitTo"]]
             )
 
-            product_map = {}
+            product_tables = {}
             
-            for product in self.mapping['PRODUCT'].index:
+            for product in product_map.index:
                 mask = tempDataMo['PRODUCT'] == product
-#                metaDict['scenario'] = scenario + '|' + model
                 tempDataMoSc = tempDataMo.loc[mask]
                 
-                product_name = self.mapping['PRODUCT'].mapping.loc[product]
+                product_name = product_map.loc[product, "mapping"]
                 metaDict = dict(
                     source=self.setup.SOURCE_ID,
-                    entity=f"{flow_name}|{product_name}",
+                    entity=flow_name,
+                    category=product_name if product_name != "Total" else "",
                     scenario="Historic",
-                    category="",
                     unit=unit,
                     unitTo=unitTo,
                 )
                 
-                print(metaDict)
                 metaDict = dt.core._update_meta(metaDict)
                 tableID = dt.core._createDatabaseID(metaDict)
                 
@@ -902,40 +903,55 @@ class IEA_World_Energy_Balance(BaseImportTool):
                 if 'unitTo' in metaDict:
                     dataTable = dataTable.convert(metaDict['unitTo'])
                 
-                product_map[product] = dataTable
+                product_tables[product] = dataTable
 
                 if not updateTables and dt.core.DB.tableExist(tableID):
                     excludedTables['exists'].append(tableID)
                     continue
 
-                tablesToCommit.append(dataTable)
+                if not onlyAggregations:
+                    tablesToCommit.append(dataTable)
 
-            aggregate = self.mapping["PRODUCT"].get("aggregate")
+            aggregate_col = next(
+                (col for col in product_map.columns if flow_name.startswith(col)),
+                "aggregate"
+            )
+            aggregate = product_map.get(aggregate_col)
+            removes = None
             if aggregate is not None:
                 for agg_name in aggregate.dropna().unique():
-                    components = aggregate.index[aggregate == agg_name]
+                    components = [
+                        c
+                        for c in aggregate.index[aggregate == agg_name]
+                        if c in product_tables
+                    ]
                     interpolated_tables = (
-                        product_map[c].interpolate()
-                        for c in components
-                        if c in product_map
+                        product_tables[c].interpolate() for c in components
                     )
-                    # dt.Datatable.add has not been mapped through the unit machinery,
-                    # so we get pd.DataFrames here
                     df = reduce(
                         lambda x, y: x.add(y, fill_value=0.),
                         interpolated_tables,
                         next(interpolated_tables)
                     )
+
+                    if agg_name == "__remove__":
+                        removes = df
+                        continue
+                    elif agg_name == "Total":
+                        if removes is not None:
+                            df = df.sub(removes, fill_value=0.)
+
                     meta = dict(
                         source=self.setup.SOURCE_ID,
-                        entity=f"{flow_name}|{agg_name}",
+                        entity=flow_name,
+                        category=agg_name if agg_name != "Total" else "",
                         scenario="Historic",
-                        category="",
-                        aggregation=", ".join(self.mapping["PRODUCT"].loc[components, "mapping"]),
+                        aggregation=", ".join(product_map.loc[components, "mapping"]),
                         unit=unit if pd.isna(unitTo) else unitTo,
                         unitTo=unitTo,
                     )
-                    dataTable = dt.Datatable(df, meta=dt.core._update_meta(meta))
+                    dataTable = dt.Datatable(pd.DataFrame(df), meta=dt.core._update_meta(meta))
+
                     tablesToCommit.append(dataTable)
 
         return tablesToCommit, excludedTables
