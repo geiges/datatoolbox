@@ -37,6 +37,7 @@ emission_entities = set([
 #%% Energy (production if not otherwise stated)
 energy_entities = set([
     'Cumulative Capacity', 
+    'Capacity Additions',
     'Capacity',
     'Capital Cost',
     'Carbon Sequestration',

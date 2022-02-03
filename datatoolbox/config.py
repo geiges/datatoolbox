@@ -90,7 +90,12 @@ else:
     # from .settings.personal import CRUNCHER, PATH_TO_DATASHELF, DB_READ_ONLY, DEBUG, AUTOLOAD_SOURCES
     
     #importng CRUNCHER, PATH_TO_DATASHELF, DB_READ_ONLY, DEBUG, AUTOLOAD_SOURCES
-    exec(open(os.path.join(CONFIG_DIR, 'personal.py')).read())
+    try:
+        config_file = os.path.join(CONFIG_DIR, 'personal.py')
+        exec(open(config_file).read())
+    except:
+        raise(Exception(f'Error in config file: {config_file}. Please correct'))
+        
     TEST_ENV = False
 
 

@@ -105,8 +105,8 @@ def _split_variable(metaDict):
         if config.DEBUG:
             print(f'Warning: Entity could not be derived from {metaDict["variable"]}')
             
-            # exit here
-            return metaDict
+        # exit here
+        return metaDict
         
         
     #derive or check category
