@@ -4387,13 +4387,13 @@ from tqdm import tqdm
 class IIASA(BaseImportTool):
     
     def __init__(self, 
-                 SOURCE_ID,
+                 source_ID,
                  iiasa_source=None,
                  data_file = None,
                  meta_file = None):
         self.setup = setupStruct()
             
-        self.setup.SOURCE_ID     = SOURCE_ID
+        self.setup.SOURCE_ID     = source_ID
 
         self.setup.DATA_FILE    = ''
         # self.setup.MAPPING_FILE = os.path.join(self.setup.SOURCE_PATH, 'mapping.xlsx')
@@ -4401,7 +4401,7 @@ class IIASA(BaseImportTool):
         self.setup.URL     = 'data.ene.iiasa.ac.at'
         
 
-        self.SOURCE_ID = SOURCE_ID
+        self.SOURCE_ID = source_ID
         
         if iiasa_source is not None:
             self.conn = pyam.iiasa.Connection(iiasa_source)
@@ -4415,16 +4415,15 @@ class IIASA(BaseImportTool):
             self.meta_file = meta_file
             self.meta = pd.DataFrame()
             self.api = False
-            self.mapping_key = SOURCE_ID
+            self.mapping_key = source_ID
         
         self.region_mapping = dict()
         
         
         self.region_mapping['iamc15'] =mapping.IPCC_SR15().region_mapping()
-        self.region_mapping['IPCC_SR15'] = self.region_mapping['iamc15']
+        self.region_mapping['IPCC_SR15'] = self.region_mapping['iamc15']  
         
-        
-        self.region_mapping['cdlinks'] =mapping.CD_LINKS().region_mapping()
+        self.region_mapping['CD_LINKS'] =mapping.CD_LINKS().region_mapping()
         
         self.region_mapping['engage'] =mapping.ENGAGE().region_mapping()
         
@@ -4464,7 +4463,7 @@ class IIASA(BaseImportTool):
             else:
                 models = self.data.model
             
-        for model in tqdm(models):
+        for model in tqdm(models,desc='Loop over models'):
             
             if self.api:
                 idf = self.conn.query(**iamc_filter,
@@ -4491,9 +4490,7 @@ class IIASA(BaseImportTool):
     def loadData(self):
         self.data =pyam.IamDataFrame(self.data_file)
         if self.meta_file is not None:
-            reader.data.load_meta(self.meta_file)
-            
-            
+            self.data.load_meta(self.meta_file)   
         
     def _read_idf_data(self, 
                        idf, 
@@ -5032,11 +5029,11 @@ if __name__ == '__main__':
     # reader = IIASA('NGFS_2021', 'ngfs_2')
     # reader = IIASA('CD_LINKS', 'cdlinks')
     # reader = IIASA('IPCC_AR5', data_file ='/media/sf_Documents/datashelf_v03/rawdata/AR5_database/ar5_public_version102_compare_compare_20150629-130000.csv')
-    # reader = IIASA('ADVANCE', data_file ='/media/sf_Documents/datashelf_v03/rawdata/ADVANCE_DB/ADVANCE_Synthesis_version101_compare_20190619-143200.csv')
+    reader = IIASA('ADVANCE', data_file ='/media/sf_Documents/datashelf_v03/rawdata/ADVANCE_DB/ADVANCE_Synthesis_version101_compare_20190619-143200.csv')
     # reader = IIASA('IPCC_SR15', 'iamc15')
-    reader = IIASA('IPCC_SR15', 
-                   data_file ='/media/sf_Documents/datashelf_v03/rawdata/IAMC15_2019b/iamc15_scenario_data_all_regions_r2.0.xlsx',
-                   meta_file ='/media/sf_Documents/datashelf_v03/rawdata/IAMC15_2019b/sr15_metadata_indicators_r2.0.xlsx')
+    # reader = IIASA('IPCC_SR15', 
+    #                data_file ='/media/sf_Documents/datashelf_v03/rawdata/IAMC15_2019b/iamc15_scenario_data_all_regions_r2.0.xlsx',
+    #                meta_file ='/media/sf_Documents/datashelf_v03/rawdata/IAMC15_2019b/sr15_metadata_indicators_r2.0.xlsx')
     # sdf
     """ 
     Process data:
@@ -5050,8 +5047,9 @@ if __name__ == '__main__':
     #                                                            'Secondary'
     #                                                            'GDP',
     #                                                            'Population']])
-    iamc_filter = {'variable' : [
-                            'Emissions**',
+    iamc_filter = {
+        # 'variable' : [
+                            # 'Emissions**',
                             # 'Primary**',
                             # 'Secondary**'
                             # 'GDP**',
@@ -5062,7 +5060,7 @@ if __name__ == '__main__':
                             # 'Carbon Sequestratio**',
                             # 'Capacity**',
                             # 'Cumulative Capacity**'
-                            ]
+                            # ]
                 }
     # models = ['AIM/Hub-India 2.2', 
     #           'AIM/Hub-Thailand 2.2', 

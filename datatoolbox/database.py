@@ -234,7 +234,6 @@ class Database():
         Input: tableID
         """
         self.inventory.drop(tableID, inplace=True)
-#        self.gitManager.updatedRepos.add('main')
     
     def findc(self, **kwargs):
         """
@@ -786,7 +785,7 @@ class Database():
             if not self.isSource(sourceID):
                 raise(BaseException('source  does not exist'))
         
-        for ID in IDList:
+        for ID in tqdm.tqdm(IDList,desc="Removing tables"):
             source = self.inventory.loc[ID, 'source']
             tablePath = self._getTableFilePath(ID)
 
@@ -1170,7 +1169,6 @@ class GitRepository_Manager:
         """
         if config.DEBUG:
             print('Removed file {} to repo: {}'.format(filePath,repoName))
-#        self[repoName].index.remove(filePath, working_tree=True)
         self[repoName].git.execute(["git", "rm", "-f", filePath]) #TODO Only works with -f forced, but why?
         self.updatedRepos.add(repoName)
     

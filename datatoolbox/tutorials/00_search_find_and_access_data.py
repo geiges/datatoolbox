@@ -94,3 +94,15 @@ res = dt.findp(entity='Emissions|CO2',
 print(res.source.unique())
 print(res.variable.unique())
 
+#%% conversions to other data structures
+
+# load as pyam dataframe
+idf = res.as_pyam()
+
+#load as xarray 
+xda = res.as_xarray()
+
+#both allow to use the native region defintions
+idf = res.as_pyam(native_regions=True)
+xda = res.as_xarray(native_regions=True)
+
