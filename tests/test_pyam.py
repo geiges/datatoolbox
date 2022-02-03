@@ -10,7 +10,9 @@ import datatoolbox as dt
 import numpy as np
 import pandas as pd
 import os
+# import pandas.testing as npt
 
+from util_for_testing import df
 
 dt.admin.switch_database_to_testing()
 
@@ -47,7 +49,15 @@ def test_to_pyam_interface():
         assert (table_in.index == table_out.index).all()
         assert (table_in.columns == table_out.columns).all()
 
+def test_lossless_conversion():
     
+    exp = df.copy().clean() # copy initial datatable
+    
+    idf = exp.to_pyam() # create IamDataFrame
+    
+    obs = dt.Datatable.from_pyam(idf)
+    
+    assert pd.testing.assert_frame_equal(obs,exp) is None
 
 if __name__ == '__main__':
     test_import()
