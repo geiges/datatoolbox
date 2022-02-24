@@ -1131,7 +1131,7 @@ def plot_query_as_graph(results, savefig_path=None):
 #                 figsize=[5,6],
                  savefig_path=savefig_path)
 
-def to_pyam(results, native_regions = False):
+def to_pyam(results, native_regions = False, disable_progress=None):
     """
     Load resuls as pyam IDateFrame.
     
@@ -1141,6 +1141,9 @@ def to_pyam(results, native_regions = False):
         Results from find.
     native_regions : bool, optional
         Load native region defintions if available. The default is False.
+    disable_progress : bool, optional
+        Disable displaying of progressbar. The default None hides the
+        progressbar on non-tty outputs.
 
     Returns
     -------
@@ -1148,7 +1151,9 @@ def to_pyam(results, native_regions = False):
         DESCRIPTION.
 
     """
-    return core.DB.getTables(results.index, native_regions).to_pyam()
+    return core.DB.getTables(
+        results.index, native_regions, disable_progress=disable_progress
+    ).to_pyam()
 
 def filterp(df, level=None, regex=False, **filters):
         """ 
