@@ -49,6 +49,7 @@ def main():
             "gitpython",
             "openscm_units",
             "pint",
+            "pint-xarray",
             "pycountry",
             "fuzzywuzzy",
             "tqdm",

@@ -24,6 +24,5 @@ dependencies:
 - pylint
 - pip
 - pip:
-  - pyam-iamc
   - hdx-python-country
   - -e .
