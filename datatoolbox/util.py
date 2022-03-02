@@ -8,6 +8,8 @@ Created on Wed May  8 11:25:15 2019
 
 import os
 import networkx as nx
+from functools import reduce
+from operator import and_
 
 import pandas as pd
 import numpy as np
@@ -1210,6 +1212,21 @@ def yearsColumnsOnly(index):
             except:
                 pass
     return newColumns
+
+def isin(df=None, **filters):
+    """Constructs a MultiIndex selector
+
+    Usage
+    -----
+    > df.loc[isin(region="World", gas=["CO2", "N2O"])]
+    or with explicit df to get boolean mask
+    > isin(df, region="World", gas=["CO2", "N2O"])
+    """
+    def tester(df):
+        tests = (df.index.isin(np.atleast_1d(v), level=k) for k, v in filters.items())
+        return reduce(and_, tests, next(tests))
+
+    return tester if df is None else tester(df)
 
 #%%    
 if __name__ == '__main__':
