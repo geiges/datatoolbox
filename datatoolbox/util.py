@@ -6,12 +6,14 @@ Created on Wed May  8 11:25:15 2019
 @author: Andreas Geiges
 """
 
-import os
+import os, sys
 import networkx as nx
 
 import pandas as pd
 import numpy as np
 from typing import Union, Iterable
+
+import logging
 
 import datatoolbox as dt
 from datatoolbox import mapping as mapp
@@ -26,6 +28,7 @@ import tqdm
 import deprecated as dp
 #from .tools import kaya_idendentiy_decomposition
 
+logger = logging.getLogger(__name__)
 
 try:
     from hdx.location.country import Country
@@ -1250,4 +1253,31 @@ if __name__ == '__main__':
 
     outputTables, success = forAll(calculateTotalBiomass, "scenario")
     
+
+def handle_exception(exc_type, exc_value, exc_traceback):
+    if issubclass(exc_type, KeyboardInterrupt):
+        sys.__excepthook__(exc_type, exc_value, exc_traceback)
+        return
+
+    logger.exception("Uncaught exception", exc_info=(exc_type, exc_value, exc_traceback))   
+
+def setup_logging(log_uncaught_exceptions=True, **kwargs):
+    from colorlog import ColoredFormatter
+
+    kwargs.setdefault("level", "INFO")
+
+    streamhandler = logging.StreamHandler()
+    streamhandler.setFormatter(
+        ColoredFormatter(
+            "%(name)-12s: %(log_color)s%(levelname)-8s%(reset)s %(message)s",
+            datefmt=None,
+            reset=True,
+        )
+    )
+
+    kwargs.setdefault("handlers", []).append(streamhandler)
     
+    if log_uncaught_exceptions:
+        sys.excepthook = handle_exception
+
+    logging.basicConfig(**kwargs)
