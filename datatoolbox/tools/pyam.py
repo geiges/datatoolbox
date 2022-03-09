@@ -29,7 +29,7 @@ def _pack_dimensions(index, **stacked_dims):
     )
 
 
-def idf_to_xarray(s, **stacked_dims):
+def idf_to_xarray(s, stacked_dims=None):
     """
     Convert multiindex series or pyam dataframe to xarray
     """
@@ -44,7 +44,7 @@ def idf_to_xarray(s, **stacked_dims):
         # data
         s = s._data
     
-    if not stacked_dims:
+    if stacked_dims is None:
         stacked_dims = dict(pathway=("model", "scenario"), varunit=("variable", "unit"))
 
     index, labels = _pack_dimensions(s.index, **stacked_dims)
@@ -82,7 +82,9 @@ def pd_long_to_xarray(s, **stacked_dims):
 # tbs.xda
 
 def compute_ghg_emissions(idf,
-                          variables = ['Emissions|CO2', 'Emissions|CH4', 'Emissions|N2O']):
+                          aggregated_variable = 'Emissions|Kyoto Gases',
+                          variables = ['Emissions|CO2', 'Emissions|CH4', 'Emissions|N2O','Emissions|F-gases'],
+                          append = True):
     
     org_timeseries = idf.timeseries()
     ghg_data = (idf.filter(variable=variables).
@@ -90,11 +92,14 @@ def compute_ghg_emissions(idf,
                 convert_unit('kt N2O/yr', 'Mt CO2-equiv/yr', factor =0.298).
                 convert_unit('Mt CO2/yr', 'Mt CO2-equiv/yr', factor =1)
         )
-    ghg_data.aggregate('Emissions|Kyoto Gases', components=variables,append=True)
-    ghg_timeseries = ghg_data.timeseries()
-    idx_to_add = ghg_timeseries.index.difference(org_timeseries.index)
-    return pyam.IamDataFrame(org_timeseries.append(ghg_timeseries.loc[idx_to_add,:]))
-
+    
+    if append:
+        ghg_data.aggregate(aggregated_variable, components=variables,append=True)
+        ghg_timeseries = ghg_data.timeseries()
+        idx_to_add = ghg_timeseries.index.difference(org_timeseries.index)
+        return pyam.IamDataFrame(org_timeseries.append(ghg_timeseries.loc[idx_to_add,:]))
+    else:
+        return ghg_data.aggregate(aggregated_variable, components=variables)
 def compute_ghg_excluding_landuse(idf):
     comp_data = (idf.filter(variable =['Emissions|Kyoto Gases', 'Emissions|CO2|Land Use']).
            convert_unit('Mt CO2/yr', 'Mt CO2eq/yr', factor =1).

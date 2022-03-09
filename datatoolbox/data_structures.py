@@ -1124,7 +1124,7 @@ class TableSet(dict):
             need_close = True
             
         
-        long, metaDict = self.to_compact_long_format(include_id)
+        long, metaDict = self.to_compact_long_format(include_id, meta_columns=meta_columns)
     
         if meta_columns is not None:
             for metaKey in meta_columns:
@@ -1269,9 +1269,11 @@ class TableSet(dict):
     
     
     def to_compact_long_format(self, 
-                                include_id= False):
+                                include_id= False,
+                                meta_columns=None):
         
-        meta_columns = ['region'] + self.get_all_meta_keys()
+        if meta_columns is None:
+            meta_columns = ['region'] + self.get_all_meta_keys()
         # meta_columns = ['region'] + config.INVENTORY_FIELDS
         if include_id:
             meta_columns.append('ID')
@@ -1890,7 +1892,8 @@ def read_compact_excel(file_name, sheet_name=None):
                 meta = { x: metaDict[x] for x in metaDict.keys() if x not in  ['meta_columns']}
                 
                 for meta_col in meta_columns:
-                    meta[meta_col] = line[meta_col]
+                    if meta_col in line.keys():
+                        meta[meta_col] = line[meta_col]
                 region = line.loc['region']
                 
                 if 'ID' in line.index:

@@ -3221,13 +3221,18 @@ class PRIMAP_HIST(BaseImportTool):
         return tablesToCommit, excludedTables
 
 class CRF_DATA(BaseImportTool):
-    def __init__(self, reportingYear):
+    def __init__(self, 
+                 reportingYear,
+                 raw_data_folder = None,):
 
         self.setup = setupStruct()
         self.year  = str(reportingYear)
         
+        if raw_data_folder is None:
+            raw_data_folder = os.path.join(config.PATH_TO_DATASHELF, 'rawdata')
+            
         self.setup.SOURCE_ID    = "UNFCCC_CRF_" + str(reportingYear)
-        self.setup.SOURCE_PATH  = os.path.join(config.PATH_TO_DATASHELF, 'rawdata/UNFCCC_CRF_' + str(reportingYear))
+        self.setup.SOURCE_PATH  = os.path.join(raw_data_folder, 'UNFCCC_CRF_' + str(reportingYear))
         self.setup.LICENCE = 'open access (UN)'
         self.setup.URL     = 'https://unfccc.int/process-and-meetings/transparency-and-reporting/reporting-and-review-under-the-convention/greenhouse-gas-inventories-annex-i-parties/national-inventory-submissions-' + str(reportingYear)
     
@@ -3329,7 +3334,7 @@ class CRF_DATA(BaseImportTool):
                             dataTables[variable].loc[coISO,year] = reader.gatherValue(self.mappingDict['gases'][gas] + self.mappingDict['sectors'][sector]) / 1000
                         except:
                             pass
-                
+            
         import copy
         for gas in self.mappingDict['gases']:  
             if   'Emissions|' + gas + '|LULUCF' in dataTables.keys():          
@@ -3340,10 +3345,12 @@ class CRF_DATA(BaseImportTool):
                 dataTables['Emissions|' + gas + '|IPC3'].meta = copy.copy(dataTables['Emissions|' + gas + '|IPC0'].meta)
                 dataTables['Emissions|' + gas + '|IPC3'].meta['category'] = "IPCM3"
         
+            
         #%%
         tablesToCommit = list()
         for key in dataTables.keys():
             dataTables[key] = dataTables[key].astype(float)
+            dataTables[key].generateTableID()
             tablesToCommit.append(dataTables[key])
         return tablesToCommit
             

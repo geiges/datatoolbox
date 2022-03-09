@@ -584,6 +584,8 @@ class Database():
         
         else:
             for dataTable in tqdm.tqdm(dataTables):
+                
+            
                 if config.DEBUG:
                     print(dataTable.ID)
                 # if cleanTables:
