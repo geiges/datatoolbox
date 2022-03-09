@@ -6,6 +6,7 @@ Created on Tue Apr  2 11:20:42 2019
 @author: andreas geiges
 """
 
+from collections import defaultdict
 import datatoolbox as dt
 from datatoolbox import config
 from datatoolbox.data_structures import Datatable
@@ -352,6 +353,304 @@ class EEA_DATA(BaseImportTool):
         
         #%%
 
+
+class IEA_GHG_FUEL_DETAILED(BaseImportTool):
+    """
+    IEA World fuel emissions detail version
+    """
+    def __init__(self, year):
+        self.setup = setupStruct()
+        self.setup.SOURCE_ID    = f"IEA_GHG_FUEL_DETAILED_{year}"
+        self.setup.SOURCE_PATH  = os.path.join(config.PATH_TO_DATASHELF, f'rawdata/IEA_GHG_FUEL_{year}')
+        self.setup.DATA_FILE    = os.path.join(self.setup.SOURCE_PATH, f'World_BigCO2.csv')
+        self.setup.MAPPING_FILE = os.path.join(self.setup.SOURCE_PATH, 'mapping_detailed.xlsx')
+        self.setup.LICENCE = 'restricted'
+        self.setup.URL     = 'https://www.iea.org/statistics/co2emissions/'
+
+        self.setup.INDEX_COLUMN_NAME = ['FLOW (kt of CO2)', 'PRODUCT']
+        self.setup.SPATIAL_COLUM_NAME = 'COUNTRY'
+        self.setup.COLUMNS_TO_DROP = [ 'PRODUCT','FLOW (kt of CO2)']
+
+        self.IEA_WEB_SOURCE = f"IEA_WEB_DETAILED_{year}"
+        
+        if not(os.path.exists(self.setup.MAPPING_FILE)):
+            self.createVariableMapping()
+        else:
+            self.mapping = self.loadVariableMapping()
+            self.spatialMapping = self.loadSpatialMapping()
+            
+        self.createSourceMeta()
+
+
+    def loadVariableMapping(self,):
+        mapping = dict()
+        
+        for variableName in self.setup.INDEX_COLUMN_NAME + ["COMPUTED"]:
+            mapping[variableName] = pd.read_excel(self.setup.MAPPING_FILE, sheet_name=variableName,index_col=0)
+            notNullIndex = mapping[variableName].index[~mapping[variableName].isna().mapping]
+            mapping[variableName] = mapping[variableName].loc[notNullIndex]
+        
+        return mapping
+
+    def loadSpatialMapping(self,):
+        return pd.read_excel(self.setup.MAPPING_FILE, sheet_name='spatial', index_col=0)
+    
+    def loadData(self):
+        cols = pd.read_csv(self.setup.DATA_FILE, encoding="ISO-8859-1", header=0, skiprows=1, nrows=0).columns
+        self.data = pd.read_csv(self.setup.DATA_FILE, encoding="ISO-8859-1", header=0, skiprows=[1], na_values=["x", "..", "c"])
+        self.data.columns = cols[:3].append(self.data.columns[3:])
+
+        
+    def createVariableMapping(self):        
+        
+        # loading data if necessary
+        if not hasattr(self, 'data'):        
+            self.loadData()
+        
+        
+        writer = pd.ExcelWriter(self.setup.MAPPING_FILE,
+                    engine='xlsxwriter',
+                    datetime_format='mmm d yyyy hh:mm:ss',
+                    date_format='mmmm dd yyyy')       
+        
+        for column in self.setup.INDEX_COLUMN_NAME:
+            #models
+            index = self.data.loc[:,column].unique()
+        
+            self.availableSeries = pd.DataFrame(index=index)
+            self.mapping = pd.DataFrame(index=index, columns = ['mapping'])
+
+            self.mapping.to_excel(writer, engine='openpyxl', sheet_name=column)
+
+        #spatial mapping
+        column = self.setup.SPATIAL_COLUM_NAME
+        
+        index = self.data.loc[:,column].unique()
+        
+        self.availableSeries = pd.DataFrame(index=index)
+        self.mapping = pd.DataFrame(index=index, columns = ['mapping'])
+        
+        for region in self.mapping.index:
+            coISO = dt.mapp.getSpatialID(region)
+            
+            if coISO is not None:
+                self.mapping.loc[region,'mapping'] = coISO
+        
+        self.mapping.to_excel(writer, engine='openpyxl', sheet_name='spatial')
+        
+        writer.close()
+    
+    @staticmethod
+    def interpolateAndSum(tables):
+        unit = tables[0].meta["unit"]
+        prepared_tables = (
+            t.interpolate().convert(unit) for t in tables
+        )
+        df = reduce(
+            lambda x, y: x.add(y, fill_value=0.),
+            prepared_tables,
+            next(prepared_tables)
+        )
+        df.meta["unit"] = unit
+        return df
+
+    def computeElectricityAndHeat(self, intermediateTables, addTable):
+        mapping = self.mapping["COMPUTED"]
+
+        entities = set()
+
+        product_flow = defaultdict(dict)
+        for table in intermediateTables:
+            entity = table.meta["entity"][1:]
+            product_flow[table.meta.get("category", "")][entity] = table
+            entities.add(entity)
+
+        # entities = set(entity for entity in entities if "MAIN" in entity)
+        
+        prefixed_entities = [f"{prefix}{entity}" for entity in entities for prefix in ["EL", "HE"]]
+        inv = dt.findp(source=self.IEA_WEB_SOURCE, entity=prefixed_entities).fillna({"category": ""})
+        print(
+            f"Computing electricity and heat shares for {', '.join(entities)} "
+            f"with {', '.join(inv.entity.unique())} from {self.IEA_WEB_SOURCE}"
+        )
+
+
+        def getDefaultTable(prefix, product, entity):
+            _inv = inv.loc[(inv.category == product) & (inv.entity == f"{prefix}{entity}")]
+            if _inv.empty:
+                return None
+            return dt.getTable(_inv.index.item())
+
+        def getElectricityHeatShare(product, entity):
+            el = getDefaultTable("EL", product, entity)
+            he = getDefaultTable("HE", product, entity)
+            if el is None and he is None:
+                return None, None
+            if el is None:
+                return None, 1
+            if he is None:
+                return 1, None
+
+            tot = el + he
+            elshare = (el / tot).where(tot > 0, 0).convert("")
+            heshare = (he / tot).where(tot > 0, 0).convert("")
+            return elshare, heshare
+        
+        for product, flows in product_flow.items():
+            electricity_list = []
+            heat_list = []
+
+            for entity, table in flows.items():
+                # compute electricity and heat shares
+                elshare, heshare = getElectricityHeatShare(product, entity)
+                if elshare is not None:
+                    electricity_list.append(elshare * table)
+                if heshare is not None:
+                    heat_list.append(heshare * table)
+            
+
+            if electricity_list:
+                electricity = sum(electricity_list)
+                unitTo = mapping.at["Electricity", "unitTo"]
+                addTable(
+                    electricity,
+                    entity=mapping.at["Electricity", "mapping"],
+                    category=product,
+                    unit=electricity.meta["unit"],
+                    unitTo=electricity.meta["unit"] if pd.isna(unitTo) else unitTo,
+                )
+
+            if heat_list:
+                heat = sum(heat_list)
+                unitTo = mapping.at["Heat", "unitTo"]
+                addTable(
+                    heat,
+                    entity=mapping.at["Heat", "mapping"],
+                    category=product,
+                    unit=heat.meta["unit"],
+                    unitTo=heat.meta["unit"] if pd.isna(unitTo) else unitTo,
+                )
+
+    def gatherMappedData(self, spatialSubSet = None, updateTables=False):
+    
+        # loading data if necessary
+        if not hasattr(self, 'data'):
+            self.loadData()    
+
+        intermediateTables = []
+        tablesToCommit  = []
+        excludedTables = dict(empty=[], error=[], exists=[])
+
+        def addTable(dataframe, entity, category, unit, unitTo, **additionalMeta):
+            metaDict = dict(
+                source=self.setup.SOURCE_ID,
+                entity=entity,
+                category=category if category != "Total" else "",
+                scenario="Historic",
+                unit=unit,
+                unitTo=unitTo,
+                **additionalMeta
+            )
+            
+            metaDict = dt.core._update_meta(metaDict)
+            tableID = dt.core._createDatabaseID(metaDict)
+
+            if dataframe.empty:
+                excludedTables['empty'].append(tableID)
+                return
+
+            dataTable = Datatable(pd.DataFrame(dataframe), meta=metaDict)
+            # possible required unit conversion
+            if 'unitTo' in metaDict:
+                dataTable = dataTable.convert(metaDict['unitTo'])
+            
+            if entity.startswith("_"):
+                intermediateTables.append(dataTable)
+            elif not updateTables and dt.core.DB.tableExist(tableID):
+                excludedTables['exists'].append(tableID)
+            else:
+                tablesToCommit.append(dataTable)
+            
+            return dataTable
+
+        flow_map = self.mapping["FLOW (kt of CO2)"]
+        product_map = self.mapping["PRODUCT"]
+        
+        for flow in flow_map.index:
+            mask = self.data['FLOW (kt of CO2)'] == flow
+            tempDataMo = self.data.loc[mask]
+
+            flow_name, unit, unitTo = (
+                flow_map.loc[flow, ["mapping", "unit", "unitTo"]]
+            )
+
+            product_tables = {}
+            
+            for product in product_map.index:
+                mask = tempDataMo['PRODUCT'] == product
+                tempDataMoSc = tempDataMo.loc[mask]
+                product_name = product_map.loc[product, "mapping"]
+
+                if tempDataMoSc.empty:
+                    addTable(
+                        tempDataMoSc,
+                        entity=flow_name,
+                        category=product_name,
+                        unit=unit,
+                        unitTo=unitTo
+                    )
+                    continue
+                
+                dataframe = tempDataMoSc.set_index(self.setup.SPATIAL_COLUM_NAME)
+                if spatialSubSet:
+                    spatIdx = dataframe[self.setup.SPATIAL_COLUM_NAME].isin(spatialSubSet)
+                    dataframe = tempDataMoSc.loc[spatIdx]
+                
+                dataframe = dataframe.drop(self.setup.COLUMNS_TO_DROP, axis=1)
+                dataframe = dataframe.dropna(axis=1, how='all').astype(float)
+    
+                validSpatialRegions = self.spatialMapping.index[~self.spatialMapping.mapping.isnull()]
+                dataframe = dataframe.loc[validSpatialRegions,:]
+                dataframe.index = self.spatialMapping.mapping[~self.spatialMapping.mapping.isnull()]
+                dataframe.columns = dataframe.columns.astype(int)
+
+                dataTable = addTable(
+                    dataframe,
+                    entity=flow_name,
+                    category=product_name,
+                    unit=unit,
+                    unitTo=unitTo
+                )
+
+                product_tables[product] = dataTable
+
+
+            aggregate_col = next(
+                (col for col in product_map.columns if flow_name.startswith(col)),
+                "aggregate"
+            )
+            aggregate = product_map.get(aggregate_col)
+            if aggregate is not None:
+                for agg_name in aggregate.dropna().unique():
+                    components = [
+                        c
+                        for c in aggregate.index[aggregate == agg_name]
+                        if c in product_tables
+                    ]
+                    df = self.interpolateAndSum([product_tables[c] for c in components])
+
+                    addTable(
+                        df,
+                        entity=flow_name,
+                        category=agg_name,
+                        aggregation=", ".join(product_map.loc[components, "mapping"]),
+                        unit=unit if pd.isna(unitTo) else unitTo,
+                        unitTo=unitTo,
+                    )
+        
+        self.computeElectricityAndHeat(intermediateTables, addTable)
+
+        return tablesToCommit, excludedTables
 class IEA_CO2_FUEL_DETAILED(BaseImportTool):
     """
     IEA World fuel emissions detail version
@@ -941,7 +1240,7 @@ class IEA_World_Energy_Balance(BaseImportTool):
                         if removes is not None:
                             df = df.sub(removes, fill_value=0.)
 
-                    meta = dict(
+                    metaDict = dict(
                         source=self.setup.SOURCE_ID,
                         entity=flow_name,
                         category=agg_name if agg_name != "Total" else "",
@@ -950,9 +1249,14 @@ class IEA_World_Energy_Balance(BaseImportTool):
                         unit=unit if pd.isna(unitTo) else unitTo,
                         unitTo=unitTo,
                     )
-                    dataTable = dt.Datatable(pd.DataFrame(df), meta=dt.core._update_meta(meta))
 
-                    tablesToCommit.append(dataTable)
+                    metaDict = dt.core._update_meta(metaDict)
+                    tableID = dt.core._createDatabaseID(metaDict)
+                    if not updateTables and dt.core.DB.tableExist(tableID):
+                        excludedTables['exists'].append(tableID)
+                    else:
+                        dataTable = dt.Datatable(pd.DataFrame(df), meta=metaDict)
+                        tablesToCommit.append(dataTable)
 
         return tablesToCommit, excludedTables
     

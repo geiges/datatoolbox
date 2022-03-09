@@ -415,7 +415,7 @@ class Database():
         
         raise(BaseException('Table {} not found'.format(ID)))
         
-    def getTables(self, iterIDs, native_regions=False):
+    def getTables(self, iterIDs, native_regions=False, disable_progress=None):
         """
         Method to return multiple datatables at once as a dictionary like 
         set fo tables.
@@ -426,15 +426,19 @@ class Database():
             List of IDs to load.
         native_regions : bool, optional
             Load native region defintions if available. The default is False.
+        disable_progress : bool, optional
+            Disable displaying of progressbar. The default None hides the
+            progressbar on non-tty outputs
 
         Returns
+        -------
         tables : TableSet
         """
         
         if config.logTables:
             IDs = list()
         res = TableSet()
-        for ID in tqdm.tqdm(iterIDs):
+        for ID in tqdm.tqdm(iterIDs, disable=disable_progress):
             table = self.getTable(ID,native_regions)
             if config.logTables:
                 IDs.append(ID)

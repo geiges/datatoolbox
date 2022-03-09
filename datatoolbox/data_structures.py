@@ -649,6 +649,8 @@ class Datatable(pd.DataFrame):
         datatable
 
         """
+        kwargs.setdefault("sort", True)
+
         if isinstance(other,Datatable):
             
             if other.meta['entity'] != self.meta['entity']:
@@ -658,7 +660,7 @@ class Datatable(pd.DataFrame):
             if other.meta['unit'] != self.meta['unit']:
                 other = other.convert(self.meta['unit'])
         
-        out =  super(Datatable, self).append(other, **kwargs)
+        out =  pd.concat([self, other], **kwargs)
         
         # only copy required keys
         out.meta = {key: value for key, value in self.meta.items() if key in config.REQUIRED_META_FIELDS}
@@ -1728,8 +1730,8 @@ def read_csv(fileName, native_regions=False):
         line = fid.readline()
         if line == config.DATA_DECLARATION:
             break
-        dataTuple = line.replace('\n','').split(',')
-        meta[dataTuple[0]] = _try_number_format(dataTuple[1].strip())
+        key, val = line.replace('\n','').split(',', maxsplit=1)
+        meta[key] = _try_number_format(val.strip())
         if "unit" not in meta.keys():
             meta["unit"] = ""
     

@@ -6,6 +6,7 @@ openscm-units
 pint>=0.11
 pycountry
 fuzzywuzzy
+pint-xarray
 tqdm
 matplotlib
 openpyxl
