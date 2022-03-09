@@ -54,6 +54,8 @@ def main():
             "fuzzywuzzy",
             "tqdm",
             "pyam-iamc",
+            "networkx",
+            "pint_xarray",
             "openpyxl",
             "xarray",
             "deprecated",],
