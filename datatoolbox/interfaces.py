@@ -11,6 +11,7 @@ from . import config
 import os
 import pandas as pd
 from . import core
+from .util import isin
 
 class _MAGGIC6():
     def read_MAGICC6_ScenFile(fileName, **kwargs):
@@ -445,48 +446,37 @@ class IAMC_PYAM():
         """
         
         timeseries = idf.timeseries()
-        time_colunms = timeseries.columns
-        timeseries = timeseries.reset_index()
-        timeseries.loc[:,'pathway'] = timeseries[['scenario', 'model']].apply(lambda x: '|'.join(x), axis=1)
-        timeseries.loc[:,'entity'] = None
-        timeseries.loc[:,'category'] = None
-        
-        meta_columns = set(timeseries.columns).difference(time_colunms)
+        meta_columns = set(timeseries.index.names).difference({"region"})
         
         datatables = TableSet()
-        for variable in timeseries.variable.unique():
-            
-            #index selection boolean
-            var_mask = timeseries.loc[:,'variable'] == variable
-            ind = timeseries.index[var_mask]
-            
-            entity, category = self._split_variable(variable)
-            
-            timeseries.loc[ind,'entity'] = entity
-            timeseries.loc[ind,'category'] = category
-            
-            
-            for pathway in timeseries.pathway.unique():
-                path_mask = timeseries.loc[:,'pathway'] == pathway
-                
-                ind = timeseries.index[var_mask & path_mask]
-                
-                # create meta dictionary
-                metaDict = {metaKey: timeseries.loc[ind[0], metaKey] for metaKey in meta_columns}
-                del metaDict['region']
-                
-                #ToDo genralize
-                if ('source' in idf.meta.columns) and (len(idf.meta.source.unique()) ==1):
-                    metaDict['source'] = list(idf.meta.source.unique())[0]
-                # create datatable
-                table = Datatable(timeseries.loc[ind, 
-                                                 list(time_colunms) + ['region']].set_index('region'),
-                                                 meta = metaDict)
-                
+        for model, scenario in idf.index:
+            pathway = f"{scenario}|{model}"
+            extra_meta = idf.meta.loc[model, scenario].to_dict()
+
+            for variable in idf.variable:
+                data = timeseries.loc[isin(model=model, scenario=scenario, variable=variable)]
+                if data.empty:
+                    continue
+
+                entity, category = self._split_variable(variable)
+                meta = {
+                    "pathway": pathway,
+                    "entity": entity,
+                    "category": category,
+                    **extra_meta,
+                    **{
+                        k: v
+                        for k, v in zip(data.index.names, data.index[0])
+                        if k in meta_columns
+                    }
+                }
+                table = Datatable(data.droplevel(list(meta_columns)), meta=meta)
+
                 try:
                     tableKey = table.generateTableID()
                 except:
                     tableKey =  '__'.join([variable, pathway])
+
                 datatables[tableKey] = table.clean()
         
         return datatables
