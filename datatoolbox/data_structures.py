@@ -1726,8 +1726,8 @@ def read_csv(fileName, native_regions=False):
         line = fid.readline()
         if line == config.DATA_DECLARATION:
             break
-        dataTuple = line.replace('\n','').split(',')
-        meta[dataTuple[0]] = _try_number_format(dataTuple[1].strip())
+        key, val = line.replace('\n','').split(',', maxsplit=1)
+        meta[key] = _try_number_format(val.strip())
         if "unit" not in meta.keys():
             meta["unit"] = ""
     
