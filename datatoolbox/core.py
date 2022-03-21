@@ -182,7 +182,7 @@ def _validate_unit(table):
         return False
 
 def generate_table_file_name(ID):
-    #ID_for_filename = _fix_filename(ID) 
+    ID_for_filename = _fix_filename(ID) 
     ID_for_filename = ID.replace('|','-').replace('/','-')
     return ID_for_filename + '.csv'
 
@@ -190,7 +190,7 @@ def _createDatabaseID(metaDict):
     ID =config.ID_SEPARATOR.join(
         [metaDict[key] for key in config.ID_FIELDS]
         )
-    ID = _fix_filename(ID)
+    # ID = _fix_filename(ID)
     return ID
 
 def csv_writer(filename, 
