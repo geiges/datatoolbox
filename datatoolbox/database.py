@@ -442,6 +442,13 @@ class Database():
         if config.logTables:
             core.LOG['tableIDs'].extend(IDs)
         return res
+    
+    def getTablesAvailable(self):
+        """
+        Return a locally stored pandas dataframe of tables
+        on datashelf
+        """
+        return pd.read_csv(os.path.join(config.MODULE_DATA_PATH, 'datashelf_contents.csv'))
   
     def startLogTables(self):
         """
@@ -718,6 +725,54 @@ class Database():
             #change inventory
             self.inventory.rename(index = {oldID: newID}, inplace = True)
         self.add_to_inventory(newDataTable)
+
+    def updateTablesAvailable(self,private_access_token):
+        """
+        Private
+
+        Method to update module data folder with the latest 
+        datashelf contents on Gitlab
+
+        Requirements:
+        
+            - private_access_token: generated on Gitlab
+
+        """
+
+        try:
+            import gitlab
+            AVAILABLE_GL = True
+        except:
+            AVAILABLE_GL = False
+        
+        if not AVAILABLE_GL:
+            print('python-gitlab not available: Use "sudo pip install --upgrade python-gitlab" to install')
+        else:
+            gl = gitlab.Gitlab('https://gitlab.com/',private_token=private_access_token)
+            # init dataframe
+            tables = pd.DataFrame()
+            print('fetching datashelf contents...')
+            for unique_id in gl.groups.list():
+                group_id = unique_id.id
+                group = gl.groups.get(group_id, lazy=True)
+                #get all projects
+                projects = group.projects.list(include_subgroups=True, all=True)
+                #get all project ids
+                for project in projects:
+                    if 'datashelf' in project.path_with_namespace and 'minmial_datashelf' not in project.path_with_namespace:
+                        name_to_append = project.path_with_namespace.replace('climateanalytics/','')
+                        name_to_append = name_to_append.replace('datashelf/','')
+                        # make df
+                        df = pd.DataFrame({'table' : [project.name],
+                                        'last_update' : [pd.to_datetime(project.last_activity_at).normalize()],
+                                        'description' : [project.description],
+                                        'fetched' : [pd.to_datetime('today').normalize()]})
+                        
+                        # concat
+                        tables = pd.concat([tables,df])
+            # overwrite table in module data
+            tables.to_csv(os.path.join(config.MODULE_DATA_PATH, 'datashelf_contents.csv'),index=False)
+            print('done')
 
 
     def validate_ID(self, ID, print_statement=True):

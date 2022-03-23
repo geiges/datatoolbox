@@ -92,18 +92,20 @@ if db_connected:
     commitTable  = core.DB.commitTable
     commitTables = core.DB.commitTables
     
-    updateTable  = core.DB.updateTable
-    updateTables = core.DB.updateTables
+    updateTable             = core.DB.updateTable
+    updateTables            = core.DB.updateTables
+    updateTablesAvailable   = core.DB.updateTablesAvailable
     
-    removeTable  = core.DB.removeTable
+    removeTable   = core.DB.removeTable
     removeTables  = core.DB.removeTables
     
-    find         = _deprecated.deprecated(core.DB.findc, version='0.4.7', reason="Will be removed, please use finc instead")
-    findc        = core.DB.findc
-    findp        = core.DB.findp
-    findExact    = core.DB.findExact
-    getTable     = core.DB.getTable
-    getTables    = core.DB.getTables
+    find                = _deprecated.deprecated(core.DB.findc, version='0.4.7', reason="Will be removed, please use finc instead")
+    findc               = core.DB.findc
+    findp               = core.DB.findp
+    findExact           = core.DB.findExact
+    getTable            = core.DB.getTable
+    getTables           = core.DB.getTables
+    getTablesAvailable  = core.DB.getTablesAvailable
     
     isAvailable  = core.DB._tableExists
 

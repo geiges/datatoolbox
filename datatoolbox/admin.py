@@ -198,18 +198,20 @@ def _re_link_functions(dt):
     dt.commitTable = dt.core.DB.commitTable
     dt.commitTables = dt.core.DB.commitTables
     
-    dt.updateTable  = dt.core.DB.updateTable
-    dt.updateTables  = dt.core.DB.updateTables
-    
+    dt.updateTable              = dt.core.DB.updateTable
+    dt.updateTables             = dt.core.DB.updateTables
+    dt.updateTablesAvailable    = dt.core.DB.updateTablesAvailable
+
     dt.removeTable = dt.core.DB.removeTable
     dt.removeTables = dt.core.DB.removeTables
     
-    dt.findc        = dt.core.DB.findc
-    dt.findp        = dt.core.DB.findp
-    dt.find         = dt.core.DB.findc
-    dt.findExact    = dt.core.DB.findExact
-    dt.getTable     = dt.core.DB.getTable
-    dt.getTables    = dt.core.DB.getTables
+    dt.findc            = dt.core.DB.findc
+    dt.findp            = dt.core.DB.findp
+    dt.find             = dt.core.DB.findc
+    dt.findExact        = dt.core.DB.findExact
+    dt.getTable         = dt.core.DB.getTable
+    dt.getTables        = dt.core.DB.getTables
+    getTablesAvailable  = core.DB.getTablesAvailable
     
     dt.isAvailable  = dt.core.DB._tableExists
     dt.validate_ID  = dt.core.DB.validate_ID
