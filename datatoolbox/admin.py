@@ -201,7 +201,7 @@ def _re_link_functions(dt):
     dt.updateTable              = dt.core.DB.updateTable
     dt.updateTables             = dt.core.DB.updateTables
     dt.updateTablesAvailable    = dt.core.DB.updateTablesAvailable
-
+    
     dt.removeTable = dt.core.DB.removeTable
     dt.removeTables = dt.core.DB.removeTables
     
