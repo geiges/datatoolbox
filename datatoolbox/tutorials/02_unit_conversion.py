@@ -10,7 +10,6 @@ TUTORIAL:
 import datatoolbox as dt
 import pandas as pd
 import matplotlib.pyplot as plt
-
 #%% simple conversion factory
 
 # conversion form kt oil equivalent to Exajoule

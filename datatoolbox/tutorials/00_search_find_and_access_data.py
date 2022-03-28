@@ -27,29 +27,29 @@ please import the data.
 """
 
 # if 'PRIMAP'
-dt.import_new_source_from_remote('PRIMAP_2019')
-
-#%% Inventory
-"""
-The inventory is a pandas dataframe containing all available tables, each in a row.
-The index has the tableIDs and comes with the following colums : 
-['variable', 'entity', 'category', 'pathway', 'scenario', 'model', 'source', 'source_name', 'source_year', 'unit']
-
-All coulumns can be used for the later search requests.
-"""
-dt.inventory().head()
-
-
-#%% Seach using patterns - findp
-"""
-Defauls is a shell style type of search suitable to be used for categories.
-"""
-
-dt.findp(source = 'PRIMAP_2019')
-
-# One star (*) is giving all results for only the following level (speparated by "|") 
-dt.findp(variable='Emissions|*',
-         source = 'PRIMAP_2019') # "Emissions|KYOTOGHG_AR4|Marine" will be excluded
+    dt.import_new_source_from_remote('PRIMAP_2019')
+    
+    #%% Inventory
+    """
+    The inventory is a pandas dataframe containing all available tables, each in a row.
+    The index has the tableIDs and comes with the following colums : 
+    ['variable', 'entity', 'category', 'pathway', 'scenario', 'model', 'source', 'source_name', 'source_year', 'unit']
+    
+    All coulumns can be used for the later search requests.
+    """
+    dt.inventory().head()
+    
+    
+    #%% Seach using patterns - findp
+    """
+    Defauls is a shell style type of search suitable to be used for categories.
+    """
+    
+    dt.findp(source = 'PRIMAP_2019')
+    
+    # One star (*) is giving all results for only the following level (speparated by "|") 
+    dt.findp(variable='Emissions|*',
+             source = 'PRIMAP_2019') # "Emissions|KYOTOGHG_AR4|Marine" will be excluded
 
 # Two stars (**) allows for any patter for the complete rest of the string
 dt.findp(variable='Emissions|**',
