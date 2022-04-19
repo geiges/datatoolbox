@@ -22,6 +22,8 @@ USD_2010 = [dollar_currency_2010] = USD2010
 USD_2011 = [dollar_currency_2011] = USD2011
 USD_2016 = [dollar_currency_2016] = USD2016
 USD_2018 = [dollar_currency_2018] = USD2018
+USD_2019 = [dollar_currency_2019] = USD2019
+USD_2020 = [dollar_currency_2020] = USD2020
 
 billion_USD = 1e9 * USD
 billion_USD_2005 = 1e9 * USD_ppp_2005

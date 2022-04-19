@@ -113,7 +113,8 @@ class BaseImportTool():
 
     def update_database(self, 
                tableList, 
-               updateContent=False):   
+               updateContent=False,
+               clean_Tables = True):   
         # tableList = self.gatherMappedData(updateTables=updateContent)
         # dt.commitTables(tableList, f'update {self.__class__.__name__} data', self.meta, update=updateContent)
         self.createSourceMeta()
@@ -358,10 +359,15 @@ class IEA_GHG_FUEL_DETAILED(BaseImportTool):
     """
     IEA World fuel emissions detail version
     """
-    def __init__(self, year):
+    def __init__(self, 
+                 year,
+                 raw_data_folder = None,):
+        
+        if raw_data_folder is None:
+            raw_data_folder = os.path.join(config.PATH_TO_DATASHELF, 'rawdata')
         self.setup = setupStruct()
         self.setup.SOURCE_ID    = f"IEA_GHG_FUEL_DETAILED_{year}"
-        self.setup.SOURCE_PATH  = os.path.join(config.PATH_TO_DATASHELF, f'rawdata/IEA_GHG_FUEL_{year}')
+        self.setup.SOURCE_PATH  = os.path.join(raw_data_folder, f'IEA_GHG_FUEL_{year}')
         self.setup.DATA_FILE    = os.path.join(self.setup.SOURCE_PATH, f'World_BigCO2.csv')
         self.setup.MAPPING_FILE = os.path.join(self.setup.SOURCE_PATH, 'mapping_detailed.xlsx')
         self.setup.LICENCE = 'restricted'
@@ -3335,7 +3341,7 @@ class IMAGE15_2020(BaseImportTool):
             tablesToCommit.append(dataTable)
         
         return tablesToCommit, excludedTables
-    
+
 class PRIMAP_HIST(BaseImportTool):
     
     def __init__(self, version="v2.2_19-Jan-2021", year=2021):
@@ -4709,6 +4715,7 @@ class PIK_NDC(BaseImportTool):
     
         return [pledge_high, pledge_low], None
 #%%
+
 import pyam    
 from tqdm import tqdm 
 class IIASA(BaseImportTool):
@@ -4756,6 +4763,8 @@ class IIASA(BaseImportTool):
         
         self.region_mapping['IPCC_AR5'] = mapping.IPCC_AR5().region_mapping()
         
+        self.region_mapping['IPCC_AR6'] = mapping.IPCC_AR6().region_mapping()
+        
         self.region_mapping['ngfs_2'] = mapping.NGFS().region_mapping()
         
         self.region_mapping['ADVANCE'] = mapping.ADVANCE().region_mapping()
@@ -4798,7 +4807,7 @@ class IIASA(BaseImportTool):
             else:
                 idf = self.data.filter(**iamc_filter,
                                        model=model)
-                
+            self.idf = idf
             if len(idf) ==0:
                 continue
             
@@ -4814,10 +4823,35 @@ class IIASA(BaseImportTool):
         
         return tables, tables_excluded
 
-    def loadData(self):
-        self.data =pyam.IamDataFrame(self.data_file)
-        if self.meta_file is not None:
-            self.data.load_meta(self.meta_file)   
+    def _read_data(self, data_file, meta_file= None, **filters):
+        print(f'reading in:  {data_file}')
+        data =pyam.IamDataFrame(dt.tools.pyam.read_partial(data_file, **filters))
+        if meta_file is not None:
+            data.load_meta(meta_file) 
+            
+        return data
+        
+    def loadData(self,  **filters):
+        
+            
+        # self.data = pd.read_csv(self.data_file)
+        if isinstance(self.data_file, list) and isinstance(self.data_file, list):
+            # multiple files
+            data_list = list()
+            for data_file, meta_file in zip(self.data_file, self.meta_file):
+                
+                data_list.append(self._read_data(data_file, meta_file, **filters))
+
+            self.data =  pyam.concat(data_list)
+            self.meta = self.data.meta
+            del data_list
+            # del data
+            
+        else:
+            #single file
+            self.data = self._read_data(self.data_file, self.meta_file, **filters) 
+        #setting meta
+        self.meta = self.data.meta
         
     def _read_idf_data(self, 
                        idf, 
