@@ -39,6 +39,7 @@ energy_entities = set([
     'Cumulative Capacity', 
     'Capacity Additions',
     'Capacity',
+    'Capacity|Electricity|Storage Capacity',
     'Capital Cost',
     'Carbon Sequestration',
     'Primary Energy',           # PE

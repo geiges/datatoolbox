@@ -97,11 +97,19 @@ class Document():
     def add_table(self, 
                   pandas_table, 
                   heading, 
-                  float_format = '{:2.1f}'):
+                  float_format = '{:2.1f}',
+                  ignore_index = False,
+                  style = 'Light List Accent 1'):
         
+        if ignore_index:
+            offset = 0
+        else:
+            offset = 1
         self.add_paragraph('')
-        n_col = len(pandas_table.columns)+1
+        n_col = len(pandas_table.columns)+offset
         table = self.doc.add_table(1, n_col)
+        # table.allow_autofit = False
+        # table.autofit = False
         cells = table.rows[0].cells
         a, b = cells[0], cells[-1]
         a.merge(b)
@@ -110,7 +118,7 @@ class Document():
         # populate header row --------
         heading_cells = table.add_row().cells
         for i, col in enumerate(pandas_table.columns):
-            heading_cells[i+1].text = str(col)
+             heading_cells[i+offset].text = str(col)
         # heading_cells[1].0text = 'Oil'
         # heading_cells[2].text = 'Gas'
         # heading_cells[3].text = 'Nuclear'
@@ -121,10 +129,14 @@ class Document():
             for i, col in enumerate(pandas_table.columns):
                 value = pandas_table.loc[ind, col]
                 if isinstance(value, float):
-                    cells[i+1].text = float_format.format(value)
+                    cells[i+offset].text = float_format.format(value)
                 else:
-                    cells[i+1].text = str(value)
-        table.style = 'Light Grid Accent 1'
+                    cells[i+offset].text = str(value)
+        # for cell in table.columns[0].cells:
+        #     cell.width = Inches(0.5)
+        # table.columns[0].width = Inches(1.0)
+        # table.allow_autofit = False
+        table.style = style
         return table
     
     def add_to_paragraph(self, 

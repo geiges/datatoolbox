@@ -26,6 +26,8 @@ CONFIG_DIR = user_data_dir(appname, appauthor)
 #os.makedirs(CONFIG_DIR, exist_ok = True)
 #%% general setup
 
+DATATABLE_COLUMN_NAME = 'time'
+DATATABLE_INDEX_NAME  = 'region'
 
 REQUIRED_META_FIELDS = {'entity',
                         'scenario',

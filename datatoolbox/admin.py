@@ -8,6 +8,8 @@ Created on Fri May 15 12:01:06 2020
 import os
 import pandas as pd
 import platform
+import git
+import os
 OS = platform.system()
 #from . import config
 #from datatoolbox import config
@@ -38,6 +40,31 @@ def create_empty_datashelf(pathToDataself,
                            config.SOURCE_META_FIELDS,
                            config.INVENTORY_FIELDS,
                            force_new=force_new)
+
+def fix_inconsistent_source(sourceID, 
+                            fix_what):
+    from . import config 
+    git_manager = dt.database.GitRepository_Manager(config,debugmode=True)
+    if fix_what == 'sources.csv':
+        main   = git_manager.repositories['main'] = git.Repo(git_manager.PATH_TO_DATASHELF)
+        
+        source = git.Repo(os.path.join(git_manager.PATH_TO_DATASHELF,  'database', sourceID))
+        
+        source_hash = source.head.object.hexsha
+        
+        sources_csv_path = os.path.join(git_manager.PATH_TO_DATASHELF, 'sources.csv')
+        sources_df = pd.read_csv(sources_csv_path, index_col =0)
+        
+        print (f'Overwriting has {sources_df.loc[sourceID, "git_commit_hash"]} -> {source_hash}')
+        sources_df.loc[sourceID, 'git_commit_hash'] = source_hash
+        sources_df.to_csv(sources_csv_path)
+    
+        main.index.add(sources_csv_path)
+        main.index.commit(f'Fixed source {sourceID}' + " by " + config.CRUNCHER)
+    elif fix_what == 'source_revision':
+        pass
+    
+    
     
 def _create_empty_datashelf(pathToDataself, 
                            MODULE_PATH,

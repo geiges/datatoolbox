@@ -22,7 +22,8 @@ tt = time.time()
 #%% Pint unit handling
 gases = {"CO2eq":"carbon_dioxide_equivalent",
          "CO2e" : "CO2eq",
-         "NO2" : "NO2"}
+         "NO2" : "NO2",
+         'PM25' : 'PM25'}
 
 from openscm_units import unit_registry as ur
 
@@ -74,7 +75,14 @@ LOG['tableIDs'] = list()
 
 ur.add_context(c)
 
-
+def is_known_entity(variable):
+    entity_matches = list()
+    for entity in naming_convention.entities:
+        if variable.startswith(entity):
+            return True
+    
+    return False
+    
 def _split_variable(metaDict):
     """
     Split variable into a known entity (see naming_converntion.py) and a 

@@ -63,8 +63,8 @@ class Datatable(pd.DataFrame):
         if config.AVAILABLE_XARRAY:
             self.to_xarray = self._to_xarray
             
-        self.columns.name = 'time'
-        self.index.name   = 'region'
+        self.columns.name = config.DATATABLE_COLUMN_NAME
+        self.index.name   = config.DATATABLE_INDEX_NAME
         
         # print(self.meta)
         if ('_timeformat' in self.meta.keys()) and (self.meta['_timeformat'] != '%Y'):
@@ -868,6 +868,7 @@ class TableSet(dict):
             except:
 #                print('Could not generate ID, key used instead')
                 datatable.ID = key
+        self.inventory.loc[datatable.ID] = None
         self.inventory.loc[datatable.ID, "key"] = key
         self.inventory.loc[datatable.ID, config.INVENTORY_FIELDS] = [datatable.meta.get(x,None) for x in config.INVENTORY_FIELDS]
     
@@ -1109,7 +1110,7 @@ class TableSet(dict):
         
         
     
-        #%%
+    #%%
         
     def to_compact_excel(self,
                          writer,
@@ -1730,7 +1731,10 @@ def read_csv(fileName, native_regions=False):
         line = fid.readline()
         if line == config.DATA_DECLARATION:
             break
-        key, val = line.replace('\n','').split(',', maxsplit=1)
+        try:
+            key, val = line.replace('\n','').split(',', maxsplit=1)
+        except:
+            continue
         meta[key] = _try_number_format(val.strip())
         if "unit" not in meta.keys():
             meta["unit"] = ""
@@ -1949,7 +1953,128 @@ class MetaData(dict):
         super(MetaData, self).__setitem__('pathway', '|'.join([self[key] for key in ['scenario', 'model'] if key in self.keys()]))
         super(MetaData, self).__setitem__('source', '_'.join([self[key] for key in ['institution', 'year'] if key in self.keys()]))
         
+#%% Test     
+def _add_required_meta(data, meta, stacked_dims):
+    
+    for key in stacked_dims.keys():
         
+        dims_to_add = list()
+        for dim in stacked_dims[key]:
+            if dim in data.index.names:
+                continue
+            else:
+                if dim in meta.columns:
+                    dims_to_add.append(dim)
+        data = data.join(meta.loc[:, dims_to_add])
+        idx_names = set(data.index.names).union(dims_to_add)
+        print(dims_to_add)
+        print(idx_names)
+        data = data.reset_index().set_index(list(idx_names))
+        return data
+    
+def _add_meta(data, meta, stacked_dims):
+    
+    data = data.join(meta)
+    # data['meta'] = range(len(data.index))
+    stacked_dims.update({'meta' : list(meta.columns)}) 
+    idx_names = set(data.index.names).union(list(meta.columns))
+    data = data.reset_index().set_index(list(idx_names))
+    return data, stacked_dims            
+
+def _pack_dimensions(index, **stacked_dims):
+    packed_labels = {}
+    packed_values = {}
+    drop_levels = []
+    
+    for dim, levels in stacked_dims.items():
+        labels = pd.MultiIndex.from_arrays([index.get_level_values(l) for l in levels])
+        packed_labels[dim] = labels_u = labels.unique()
+        packed_values[dim] = pd.Index(labels_u.get_indexer(labels), name=dim)
+        drop_levels.extend(levels)
+
+    return (
+        pd.MultiIndex.from_arrays(
+            [index.get_level_values(l) for l in index.names.difference(drop_levels)] +
+            list(packed_values.values())
+        ),
+        packed_labels
+    )
+
+# def _pack_dimensions(index, 
+#                      meta = None, 
+#                      **stacked_dims):
+#     packed_labels = {}
+#     packed_values = {}
+#     drop_levels = []
+    
+#     for dim, levels in stacked_dims.items():
+#         labels = pd.MultiIndex.from_arrays([index.get_level_values(l) for l in levels])
+#         packed_labels[dim] = labels_u = labels.unique()
+#         packed_values[dim] = pd.Index(labels_u.get_indexer(labels), name=dim)
+#         drop_levels.extend(levels)
+
+#     #meta 
+#     if meta is not None:
+#         for st_dim in stacked_dims.keys():
+#             if st_dim in meta.columns:
+#                 meta = meta.copy().drop(st_dim,axis= 1)
+#         labels = pd.MultiIndex.from_arrays([index.get_level_values(l) for l in meta.index.names])
+#         labels_u = labels.unique()
+#         packed_values['meta'] = pd.Index(labels_u.get_indexer(labels), name='meta')
+#         packed_labels['meta'] = pd.MultiIndex.from_arrays(meta.loc[labels_u,:].values.T, names = meta.columns)
+    
+    
+#     return (
+#         pd.MultiIndex.from_arrays(
+#             [index.get_level_values(l) for l in index.names.difference(drop_levels)] +
+#             list(packed_values.values())
+#         ),
+#         packed_labels
+#     )
+
+import xarray as xr
+class DataSet(xr.Dataset):
+    
+    @classmethod
+    def from_wide_dataframe(cls, 
+                            data,
+                            meta = None,
+                            stacked_dims = {'pathway' : ("model", "scenario")}):
+        to_merge = list()
+        for (variable, unit), df_ in data.groupby(['variable', 'unit']):
+            #print(df_)
+            
+            index = df_.index
+            df_ = df_.reset_index(['variable', 'unit'], drop = True)
+            index, dims = _pack_dimensions(df_.index, **stacked_dims)
+            da = (xr.DataArray(df_.set_axis(index)
+                  .rename_axis(columns="year"))
+                  .unstack("dim_0")
+                  .pint.quantify(unit)
+                  .assign_coords(dims)
+                  )
+            to_merge.append(xr.Dataset({variable : da}))
+        self = xr.merge(to_merge)
+        return self
+
+        
+    @classmethod
+    def from_pyam(cls, 
+                  data,
+                  meta_dims =None,
+                  stacked_dims = {'pathway' : ("model", "scenario")}):
+        
+        if meta_dims is not None:
+            meta = data.meta.loc[:,meta_dims]
+            data, stacked_dims = _add_meta(data, meta, stacked_dims)
+        else:
+            meta = None
+        data = data.timeseries()
+        #data = _add_required_meta(data, meta, stacked_dims)
+        
+        return cls.from_wide_dataframe(data, meta, stacked_dims)
+        
+    
 if __name__ == '__main__':
     meta = MetaData()
     meta['entity'] = 'Emissions|CO2'
