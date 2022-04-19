@@ -8,8 +8,58 @@ Created on Fri Nov 12 09:14:25 2021
 import pyam
 import pandas as pd
 import xarray as xr
+import regex
+from .. import util
 
-def _pack_dimensions(index, **stacked_dims):
+def _filter(data, level=None, regex=False, **filters):
+    # filter by columns and list of values
+    keep = True
+
+    for field, pattern in filters.items():
+        # treat `col=None` as no filter applied
+        if pattern is None:
+            continue
+
+        if field not in data:
+            raise ValueError(f'filter by `{field}` not supported')
+
+        keep &= util.pattern_match(
+            data[field], pattern, regex=regex
+        )
+
+    if level is not None:
+        keep &= data['variable'].str.count(r"\|") == level
+
+    table = pd.DataFrame(
+        data if keep is True else data.loc[keep]
+    )
+    return table
+
+def read_partial(filename, **filters):
+    """
+    Reads a pyam csv and returns a subset based on the filters given.
+
+    Parameters
+    ----------
+    file : TYPE
+        DESCRIPTION.
+    filters : TYPE
+        DESCRIPTION.
+
+    Returns
+    -------
+    pyam.IamDataframe
+
+    """
+    df = pd.read_csv(filename)
+    df = _filter(df, **filters)
+    idf = pyam.IamDataFrame(df)
+    
+    return idf
+
+def _pack_dimensions(index, 
+                     meta = None,
+                     **stacked_dims):
     packed_labels = {}
     packed_values = {}
     drop_levels = []
@@ -20,6 +70,14 @@ def _pack_dimensions(index, **stacked_dims):
         packed_values[dim] = pd.Index(labels_u.get_indexer(labels), name=dim)
         drop_levels.extend(levels)
 
+    #meta 
+    if meta is not None:
+        labels = pd.MultiIndex.from_arrays([index.get_level_values(l) for l in meta.index.names])
+        labels_u = labels.unique()
+        packed_values['meta'] = pd.Index(labels_u.get_indexer(labels), name='meta')
+        packed_labels['meta'] = pd.MultiIndex.from_arrays(meta.loc[labels_u,:].values.T, names = meta.columns)
+    
+    
     return (
         pd.MultiIndex.from_arrays(
             [index.get_level_values(l) for l in index.names.difference(drop_levels)] +
@@ -48,7 +106,8 @@ def idf_to_xarray(s, stacked_dims=None):
         stacked_dims = dict(pathway=("model", "scenario"), varunit=("variable", "unit"))
 
     index, labels = _pack_dimensions(s.index, **stacked_dims)
-    
+    print(index)
+    print(labels)
     return xr.DataArray.from_series(s.set_axis(index)).assign_coords(labels).assign_attrs({'iamc_meta' : x_meta})
 
 def pd_long_to_xarray(s, **stacked_dims):

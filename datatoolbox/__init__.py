@@ -69,6 +69,7 @@ from . import interfaces
 from . import util as util
 from . import admin as admin
 from . import templates
+from . import converters
 # from . import utilities as _util 
 
 from . import data_readers

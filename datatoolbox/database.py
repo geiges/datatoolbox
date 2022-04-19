@@ -368,6 +368,7 @@ class Database():
             # load table from database
             
             filePath = self._getTableFilePath(ID)
+            
             table = read_csv(filePath,native_regions)
             table = table[table.index.notnull()]
             return table
@@ -1071,7 +1072,9 @@ class GitRepository_Manager:
     """
     # Management of git repositories for fast access
     """
-    def __init__(self, config):
+    def __init__(self, 
+                 config,
+                 debugmode = False):
         self.PATH_TO_DATASHELF = config.PATH_TO_DATASHELF
         self.sources = pd.read_csv(config.SOURCE_FILE, index_col='SOURCE_ID')
         
@@ -1079,14 +1082,17 @@ class GitRepository_Manager:
         self.updatedRepos = set()
         self.validatedRepos = set()
         self.filesToAdd   = defaultdict(list)
-
-        for sourceID in self.sources.index:
-            repoPath = os.path.join(self.PATH_TO_DATASHELF,  'database', sourceID)
-            self.repositories[sourceID] = git.Repo(repoPath)
-            self.verifyGitHash(sourceID)
         
-        self.repositories['main'] = git.Repo(self.PATH_TO_DATASHELF)
-        self._validateRepository('main')
+        if not debugmode:
+            for sourceID in self.sources.index:
+                repoPath = os.path.join(self.PATH_TO_DATASHELF,  'database', sourceID)
+                self.repositories[sourceID] = git.Repo(repoPath)
+                self.verifyGitHash(sourceID)
+            
+            self.repositories['main'] = git.Repo(self.PATH_TO_DATASHELF)
+            self._validateRepository('main')
+        else:
+            print('Git manager initialized in debugmode')
 
     def __getitem__(self, sourceID):
         """ 
