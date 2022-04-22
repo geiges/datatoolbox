@@ -46,6 +46,7 @@ def main():
         "install_requires": [
             "appdirs",
             "pandas",
+            "regex"
             "gitpython",
             "openscm_units",
             "pint",

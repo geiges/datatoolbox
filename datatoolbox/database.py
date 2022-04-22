@@ -1155,6 +1155,7 @@ class GitRepository_Manager:
 
         self.commit('added source: ' + repoID)
 
+
     def gitAddFile(self, repoName, filePath):
         """
         Addes a new file to a repository

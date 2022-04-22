@@ -2,6 +2,7 @@ name: datatoolbox
 dependencies:
 - appdirs
 - pandas>=1.1
+- regex
 - numpy
 - gitpython
 - openscm-units
