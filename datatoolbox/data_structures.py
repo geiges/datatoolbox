@@ -1742,7 +1742,7 @@ def read_csv(fileName, native_regions=False):
     if 'timeformat' in meta.keys():
          meta['_timeformat'] = meta['timeformat']
          del meta['timeformat']
-    #print(meta) 
+    print(meta) 
     
     df = pd.read_csv(fid)
     if 'standard_region' not in df.columns:
@@ -1757,7 +1757,7 @@ def read_csv(fileName, native_regions=False):
                 # df = df.drop('standard_region',axis=1)
         else:
             df = df.set_index(['standard_region', 'region'])
-            df = df.drop('region',axis=1)
+            # df = df.drop('region',axis=1)
     fid.close()
     df = Datatable(df, meta=meta)
     
