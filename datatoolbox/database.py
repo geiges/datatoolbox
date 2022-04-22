@@ -593,8 +593,8 @@ class Database():
             
                 if config.DEBUG:
                     print(dataTable.ID)
-                # if cleanTables:
-                #    dataTable = util.cleanDataTable(dataTable)
+                if cleanTables:
+                    dataTable = util.cleanDataTable(dataTable)
                 
                 if dataTable.isnull().all().all():
                     print('ommiting empty table: ' + dataTable.ID)
@@ -1041,6 +1041,7 @@ class Database():
     
     def query_to_long_table(self, 
                             query, 
+                            native_regions=False,
                             meta_list = ['variable', 'region','scenario', 'model', 'unit']):
     
     
@@ -1049,6 +1050,12 @@ class Database():
         for table in tables:
             if table.empty:
                 continue
+            
+            if native_regions:
+                table = table.reset_index('standard_region',drop=True)
+            else:
+                table = table.reset_index('region',drop=True)
+                
             inp_dict = dict()    
             for metaKey in meta_list:
                 if metaKey == 'region':

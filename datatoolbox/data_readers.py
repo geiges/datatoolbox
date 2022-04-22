@@ -127,7 +127,7 @@ class BaseImportTool():
             print('No mapping file saved')    
         
         dt.commitTables(tableList, 
-                        f'update {self.__class__.__name__} data at {dt.getDateString} by {dt.config.CRUNCHER}', 
+                        f'update {self.__class__.__name__} data at {dt.getDateString()} by {dt.config.CRUNCHER}', 
                         sourceMetaDict = self.meta, 
                         update=updateContent,
                         cleanTables  = True)

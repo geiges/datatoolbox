@@ -51,7 +51,7 @@ import os
 import deprecated as _deprecated
 from . import config
 from . import core
-from .data_structures import Datatable, TableSet, read_csv, read_excel
+from .data_structures import Datatable, TableSet, DataSet, read_csv, read_excel
 
 try:
     from . import database

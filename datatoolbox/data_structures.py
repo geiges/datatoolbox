@@ -1395,13 +1395,21 @@ class TableSet(dict):
         return [ self[key] for key in self.keys()]
     
         
-    def to_LongTable(self, meta_list = ['variable', 'region','scenario', 'model', 'unit']):
+    def to_LongTable(self, 
+                     native_regions=False,
+                     meta_list = ['variable', 'region','scenario', 'model', 'unit']):
         tables = []
 
         for variable, df in self.items():
             if df.empty:
                 continue
             inp_dict = dict()    
+            
+            if native_regions:
+                df = df.reset_index('standard_region',drop=True)
+            else:
+                df = df.reset_index('region',drop=True)
+                
             for metaKey in meta_list:
                 if metaKey == 'region':
                     inp_dict[metaKey] = df.index
@@ -1429,6 +1437,13 @@ class TableSet(dict):
         import pyam
         long_table = self.to_LongTable()
         long_table.index.name = None
+        
+        # make sure that region does not contain any nan values
+        na_mask = long_table['region'].isnull()
+        if config.DEBUG and (sum(na_mask) >0 ):
+            print(f'Removing {sum(na_mask)} nan items in region index')
+        long_table = long_table[~na_mask]
+        
         idf = pyam.IamDataFrame(pd.DataFrame(long_table))
 
         meta = pd.DataFrame([df.meta for df in self.values()])
@@ -1742,7 +1757,7 @@ def read_csv(fileName, native_regions=False):
     if 'timeformat' in meta.keys():
          meta['_timeformat'] = meta['timeformat']
          del meta['timeformat']
-    print(meta) 
+    # print(meta) 
     
     df = pd.read_csv(fid)
     if 'standard_region' not in df.columns:
@@ -2059,6 +2074,7 @@ class DataSet(xr.Dataset):
         self = xr.merge(to_merge)
         return self
 
+
         
     @classmethod
     def from_pyam(cls, 
@@ -2076,6 +2092,15 @@ class DataSet(xr.Dataset):
         
         return cls.from_wide_dataframe(data, meta, stacked_dims)
         
+    @classmethod
+    def from_query(cls,
+                   query,
+                   stacked_dims = {'pathway' : ("model", "scenario")}):
+        
+        data = query.as_wide_dataframe().set_index(['model', 'scenario', 'region', 'variable', 'unit'])
+        
+        return cls.from_wide_dataframe(data, meta = None, stacked_dims = stacked_dims)
+    
     
 if __name__ == '__main__':
     meta = MetaData()
