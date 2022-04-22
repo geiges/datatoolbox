@@ -370,7 +370,7 @@ class Database():
             filePath = self._getTableFilePath(ID)
             
             table = read_csv(filePath,native_regions)
-            table = table[table.index.notnull()]
+            #table = table[table.index.notnull()]
             return table
         
         elif os.path.exists('data'):
@@ -379,7 +379,7 @@ class Database():
             
             if os.path.exists(filePath):
                table = read_csv(filePath,native_regions)
-               table = table[table.index.notnull()]
+               #table = table[table.index.notnull()]
                return table
             
                 
