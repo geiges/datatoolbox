@@ -1298,3 +1298,8 @@ def setup_logging(log_uncaught_exceptions=True, **kwargs):
         sys.excepthook = handle_exception
 
     logging.basicConfig(**kwargs)
+    
+    def add_parent_to_syspath():
+        
+        if '..' not in sys.path:
+            sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))

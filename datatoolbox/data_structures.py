@@ -1750,26 +1750,28 @@ def read_csv(fileName, native_regions=False):
         df = df.set_index(df.columns[0])
     else:
         # new datatable
-        if native_regions :
+        if native_regions:
             
-            df = df.set_index('region')
-            if 'standard_region' in df.columns:
-                df = df.drop('standard_region',axis=1)
+            df = df.set_index(['region', 'standard_region'])
+            # if :
+                # df = df.drop('standard_region',axis=1)
         else:
-            df = df.set_index('standard_region')
+            df = df.set_index(['standard_region', 'region'])
             df = df.drop('region',axis=1)
     fid.close()
     df = Datatable(df, meta=meta)
+    
     if ('_timeformat' in meta.keys()) and (meta['_timeformat'] != '%Y'):
         df.columns_to_datetime()
     else:
         df.columns = df.columns.astype(int)
-    dupl_mask = df.index.duplicated()
     
+    
+    dupl_mask = df.index.duplicated()
     #removing duplicated entries that might results in different native and standart region definitions
     if  sum(dupl_mask) > 0:
         if config.DEBUG:
-            print('Removing duplicated entry')
+            print(f'Removing duplicated {sum(dupl_mask)} entry(ies)')
         df = df.iloc[~dupl_mask,:]
     
     return df#.drop_duplicates()
