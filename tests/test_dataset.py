@@ -15,11 +15,13 @@ dt.admin.switch_database_to_testing()
 
 def test_dataset_from_query():
     
-    res = dt.findp() # find all
+    res = dt.findp(variable = ['Numbers|One',
+                               'Numbers|Fives']) # find all
     ds = dt.DataSet.from_query(res)
 
 def test_sel_methods():
-    res = dt.findp() # find all
+    res = dt.findp(variable = ['Numbers|One',
+                               'Numbers|Fives']) # find all
     ds = dt.DataSet.from_query(res)
     
     sub = ds.sel(scenario='Historic')
@@ -32,7 +34,8 @@ def test_sel_methods():
     assert dict(sub.dims) == {'region': 4, 'pathway': 1}
 
 def test_unit_conversion():
-    res = dt.findp() # find all
+    res = dt.findp(variable = ['Numbers|One',
+                               'Numbers|Fives']) # find all
     ds = dt.DataSet.from_query(res)
     mm_data = ds['Numbers|Fives'].pint.to('mm')
     
@@ -43,3 +46,8 @@ def test_unit_conversion():
     test_array = test_array.pint.to('kt CO2/ d')
 
     assert (test_array.values == 13.689253935660503).all()
+
+if __name__ =='__main__':
+    test_dataset_from_query()
+    test_sel_methods()
+    test_unit_conversion()
