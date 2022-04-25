@@ -1405,10 +1405,11 @@ class TableSet(dict):
                 continue
             inp_dict = dict()    
             
-            if native_regions:
-                df = df.reset_index('standard_region',drop=True)
-            else:
-                df = df.reset_index('region',drop=True)
+            if isinstance(df.index, pd.MultiIndex):
+                if native_regions:
+                    df = df.reset_index('standard_region',drop=True)
+                else:
+                    df = df.reset_index('region',drop=True)
                 
             for metaKey in meta_list:
                 if metaKey == 'region':
