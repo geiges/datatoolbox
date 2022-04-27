@@ -86,6 +86,8 @@ def _pack_dimensions(index,
         packed_labels
     )
 
+def get_pathway_from_multiindex(index):
+    return list(index.get_level_values('scenario') + '|' + index.get_level_values('model'))
 
 def idf_to_xarray(s, stacked_dims=None):
     """

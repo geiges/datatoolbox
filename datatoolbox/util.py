@@ -173,7 +173,8 @@ def cleanDataTable(dataTable):
     #         ", ".join(invalidSpatialIDs)
     #     )
     #     dataTable = dataTable.loc[dataTable.index.difference(invalidSpatialIDs)]
-    
+    if 'standard_region' in dataTable.columns:
+        dataTable = dataTable.reset_index('region').set_index(['region', 'standard_region'])
     dataTable = dataTable.dropna(how="all", axis=1).dropna(how="all", axis=0).astype(float)
 
     # clean meta data
