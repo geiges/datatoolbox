@@ -1042,7 +1042,7 @@ class Database():
     def query_to_long_table(self, 
                             query, 
                             native_regions=False,
-                            meta_list = ['variable', 'region','scenario', 'model', 'unit']):
+                            meta_list = ['variable', 'region','scenario', 'model', 'source', 'unit']):
     
     
         tables = [self.getTable(x) for x in query.index]

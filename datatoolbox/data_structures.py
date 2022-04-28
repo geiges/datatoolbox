@@ -2052,6 +2052,10 @@ def _pack_dimensions(index, **stacked_dims):
 
 import xarray as xr
 class DataSet(xr.Dataset):
+    """
+    Very simple class to allow initialization of xarray datasets from pyam, wide pandas dataframes 
+    and datatoolbox queries.
+    """
     
     @classmethod
     def from_wide_dataframe(cls, 
@@ -2074,9 +2078,7 @@ class DataSet(xr.Dataset):
             to_merge.append(xr.Dataset({variable : da}))
         self = xr.merge(to_merge)
         return self
-
-
-        
+      
     @classmethod
     def from_pyam(cls, 
                   data,
@@ -2097,8 +2099,8 @@ class DataSet(xr.Dataset):
     def from_query(cls,
                    query,
                    stacked_dims = {'pathway' : ("model", "scenario")}):
-        
-        data = query.as_wide_dataframe().set_index(['model', 'scenario', 'region', 'variable', 'unit'])
+        dimensions = ['model', 'scenario', 'region', 'variable', 'source', 'unit']
+        data = query.as_wide_dataframe(meta_list = dimensions).set_index(dimensions)
         
         return cls.from_wide_dataframe(data, meta = None, stacked_dims = stacked_dims)
     

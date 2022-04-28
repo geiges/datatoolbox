@@ -15,23 +15,23 @@ dt.admin.switch_database_to_testing()
 
 def test_dataset_from_query():
     
-    res = dt.findp(variable = ['Numbers|One',
+    res = dt.findp(variable = ['Numbers|Ones',
                                'Numbers|Fives']) # find all
     ds = dt.DataSet.from_query(res)
 
 def test_sel_methods():
-    res = dt.findp(variable = ['Numbers|One',
+    res = dt.findp(variable = ['Numbers|Ones',
                                'Numbers|Fives']) # find all
     ds = dt.DataSet.from_query(res)
     
     sub = ds.sel(scenario='Historic')
-    assert dict(sub.dims) =={'year': 5, 'region': 4, 'model': 1}
+    assert dict(sub.dims) =={'year': 5, 'region': 4,'source': 1, 'model': 1}
     
     sub = ds.sel(region=0)
-    assert dict(sub.dims) == {'year': 5, 'pathway': 1}
+    assert dict(sub.dims) == {'year': 5, 'source': 1,'pathway': 1}
     
     sub = ds.sel(year=2012)
-    assert dict(sub.dims) == {'region': 4, 'pathway': 1}
+    assert dict(sub.dims) == {'region': 4, 'source': 1,'pathway': 1}
 
 def test_unit_conversion():
     res = dt.findp(variable = ['Numbers|One',
