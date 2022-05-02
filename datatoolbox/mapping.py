@@ -714,10 +714,19 @@ class IPCC_AR6(object):
          'Vietnam\xa0': None,
         'R5ASIA' : 'R5ASIA', 
         'R5LAM' : 'R5LAM', 
-        'R5MAF' : 'R5OECD', 
+        'R5MAF' : 'R5MAF', 
         'R5OECD90+EU' : 'R5OECD', 
-        'R5REF' : 'R5REF'
-        }
+        'R5REF' : 'R5REF',
+        'R10AFRICA': 'R10AFRICA',
+         'R10CHINA+': 'R10CHINA+',
+         'R10EUROPE': 'R10EUROPE',
+         'R10INDIA+': 'R10INDIA+',
+         'R10LATIN_AM': 'R10LATIN_AM',
+         'R10MIDDLE_EAST': 'R10MIDDLE_EAST',
+         'R10NORTH_AM': 'R10NORTH_AM',
+         'R10PAC_OECD': 'R10PAC_OECD',
+         'R10REF_ECON': 'R10REF_ECON',
+         'R10REST_ASIA': 'R10REST_ASIA'}
         
         
         mapping = pd.DataFrame(mapping.items(), columns = ['native', 'standard'])

@@ -677,6 +677,8 @@ class Database():
         message        : str 
                          Commit message to describle the added data
         """ 
+        
+        
         sourcesToUpdate = list()
         for tableID in oldTableIDs:
             sourceID = self._getSourceFromID(tableID)
@@ -689,7 +691,7 @@ class Database():
                 raise(BaseException('source  does not exist'))
         
         # loop over tables
-        for oldTableID, newDataTable in tqdm.tqdm(zip(oldTableIDs, newDataTables)):
+        for oldTableID, newDataTable in tqdm.tqdm(zip(oldTableIDs, newDataTables), desc= 'Updating tables'):
             
             if oldTableID in self.inventory.index:
                 self._updateTable(oldTableID, newDataTable)

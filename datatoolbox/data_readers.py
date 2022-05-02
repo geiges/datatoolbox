@@ -114,6 +114,7 @@ class BaseImportTool():
     def update_database(self, 
                tableList, 
                updateContent=False,
+               append_data = False,
                clean_Tables = True):   
         # tableList = self.gatherMappedData(updateTables=updateContent)
         # dt.commitTables(tableList, f'update {self.__class__.__name__} data', self.meta, update=updateContent)
@@ -129,8 +130,9 @@ class BaseImportTool():
         dt.commitTables(tableList, 
                         f'update {self.__class__.__name__} data at {dt.getDateString()} by {dt.config.CRUNCHER}', 
                         sourceMetaDict = self.meta, 
-                        update=updateContent,
-                        cleanTables  = True)
+                        update         = updateContent,
+                        append_data    = append_data,
+                        cleanTables    = True)
 
 #%% 
 
