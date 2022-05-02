@@ -78,8 +78,7 @@ def unique(table, field=None):
         print(unique_data)
         
         
-
-    #%%
+#%%
     
         
 class Database():

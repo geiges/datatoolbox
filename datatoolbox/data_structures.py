@@ -1773,7 +1773,8 @@ def read_csv(fileName, native_regions=False):
                 # df = df.drop('standard_region',axis=1)
         else:
             df = df.set_index(['standard_region', 'region'])
-            # df = df.drop('region',axis=1)
+            df = df.reset_index('region', drop = True)
+            df = df[~df.index.isnull()]
     fid.close()
     df = Datatable(df, meta=meta)
     
