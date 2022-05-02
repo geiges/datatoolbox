@@ -4861,12 +4861,13 @@ class IIASA(BaseImportTool):
                        tables, 
                        tables_excluded):
         
+
         wdf = idf.timeseries()
         for scenario in wdf.index.get_level_values(1).unique():
-            sub_scenario = wdf.loc[slice(None), scenario, slice(None),slice(None)]
+            sub_scenario = wdf.loc[slice(None), [scenario], slice(None),slice(None)]
             
             for var in sub_scenario.index.get_level_values(3).unique():
-                subset = sub_scenario.loc[slice(None), slice(None), slice(None),var].reset_index().set_index('region')
+                subset = sub_scenario.loc[slice(None), slice(None), slice(None), [var]].reset_index().set_index('region')
                 
                 time_cols = dt.util.yearsColumnsOnly(subset.columns)
                 meta_cols = subset.columns.difference(time_cols)
