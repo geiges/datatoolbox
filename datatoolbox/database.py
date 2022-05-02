@@ -452,7 +452,7 @@ class Database():
         Return a locally stored pandas dataframe of tables
         on datashelf
         """
-        return pd.read_csv(os.path.join(config.PATH_TO_DATASHELF, 'datashelf_contents.csv'))
+        return pd.read_csv(os.path.join(config.MODULE_DATA_PATH, 'datashelf_contents.csv'))
   
     def startLogTables(self):
         """
@@ -772,7 +772,7 @@ class Database():
         tables['last_update'] = tables['last_update'].dt.strftime('%d-%m-%Y')
         #tables['fetched']     = tables['fetched'].dt.strftime('%d-%m-%Y')
         # overwrite table in module data
-        tables.to_csv(os.path.join(config.PATH_TO_DATASHELF, 'datashelf_contents.csv'),index=False)
+        tables.to_csv(os.path.join(config.MODULE_DATA_PATH, 'datashelf_contents.csv'),index=False)
         print('done')
 
 
