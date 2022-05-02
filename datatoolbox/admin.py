@@ -238,7 +238,7 @@ def _re_link_functions(dt):
     dt.findExact        = dt.core.DB.findExact
     dt.getTable         = dt.core.DB.getTable
     dt.getTables        = dt.core.DB.getTables
-    getTablesAvailable  = core.DB.getTablesAvailable
+    dt.getTablesAvailable  = dt.core.DB.getTablesAvailable
     
     dt.isAvailable  = dt.core.DB._tableExists
     dt.validate_ID  = dt.core.DB.validate_ID
