@@ -446,6 +446,13 @@ class Database():
         if config.logTables:
             core.LOG['tableIDs'].extend(IDs)
         return res
+    
+    def getTablesAvailable(self):
+        """
+        Return a locally stored pandas dataframe of tables
+        on datashelf
+        """
+        return pd.read_csv(os.path.join(config.MODULE_DATA_PATH, 'datashelf_contents.csv'))
   
     def startLogTables(self):
         """
@@ -726,6 +733,47 @@ class Database():
             #change inventory
             self.inventory.rename(index = {oldID: newID}, inplace = True)
         self.add_to_inventory(newDataTable)
+
+
+    def updateTablesAvailable(self,private_access_token):
+        """
+        Method to update module data folder with the latest 
+        datashelf contents on Gitlab
+
+        Requirements:
+        
+            - private_access_token: generated on Gitlab
+
+        """
+
+        try:
+            import gitlab
+        except ImportError:
+            print('python-gitlab not available: Install with mamba or conda')
+            raise
+
+        gl = gitlab.Gitlab(private_token=private_access_token)
+        # define group 
+        group = gl.groups.get("climateanalytics/datashelf")
+        projects = group.projects.list(include_subgroups=True, all=True)
+        print('fetching datashelf contents...')
+        # init list
+        rows = []
+        for project in projects:
+            # append
+            rows.append({'table'          : project.name, 
+                         'last_update'    : pd.to_datetime(project.last_activity_at),
+                         'description'    : project.description,
+                         #'fetched'        : pd.to_datetime('today')
+                         })
+        # make df
+        tables = pd.DataFrame(rows)
+        # change datetime
+        tables['last_update'] = tables['last_update'].dt.strftime('%d-%m-%Y')
+        #tables['fetched']     = tables['fetched'].dt.strftime('%d-%m-%Y')
+        # overwrite table in module data
+        tables.to_csv(os.path.join(config.MODULE_DATA_PATH, 'datashelf_contents.csv'),index=False)
+        print('done')
 
 
     def validate_ID(self, ID, print_statement=True):
