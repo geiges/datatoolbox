@@ -41,8 +41,46 @@ def create_empty_datashelf(pathToDataself,
                            config.INVENTORY_FIELDS,
                            force_new=force_new)
 
+def fix_uncommited_changes_in_source(sourceID):
+    """
+    Fix source when uncommited changes prevend the normal use of datatoolbox database.
+    All uncommited local changes will be removed using "git reset --hard"
+
+    Parameters
+    ----------
+    sourceID : str
+        Source to be fixed.
+
+    Returns
+    -------
+    None.
+
+    """
+    from . import config 
+    git_manager = dt.database.GitRepository_Manager(config,debugmode=True)
+    repo = git_manager.get_source_repo_failsave(sourceID)
+    repo.git.reset('--hard','origin/master')
+    
 def fix_inconsistent_source(sourceID, 
                             fix_what):
+    """
+    Fix inconsistent source if the datatoolbox sources csv does indicated a different
+    git hash than the actual source after e.g. an manual commit.
+
+    Parameters
+    ----------
+    sourceID : str
+        Source to be fixed after a manual chagne
+    fix_what : str
+        What to fix - options are currently only "sources.csv".
+
+    Returns
+    -------
+    None.
+
+    """
+    
+    
     from . import config 
     git_manager = dt.database.GitRepository_Manager(config,debugmode=True)
     if fix_what == 'sources.csv':

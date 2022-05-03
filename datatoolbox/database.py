@@ -1149,7 +1149,15 @@ class GitRepository_Manager:
             self._validateRepository('main')
         else:
             print('Git manager initialized in debugmode')
-
+            
+    def get_source_repo_failsave(self, sourceID):
+        """
+        Retrieve `sourceID` from repositories dictionary without checks
+        """
+        repoPath = os.path.join(self.PATH_TO_DATASHELF,  'database', sourceID)
+        repo = git.Repo(repoPath)
+        return repo
+    
     def __getitem__(self, sourceID):
         """ 
         Retrieve `sourceID` from repositories dictionary and ensure cleanliness
