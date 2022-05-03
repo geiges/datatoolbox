@@ -99,6 +99,7 @@ class Document():
                   heading, 
                   float_format = '{:2.1f}',
                   ignore_index = False,
+                  ignore_colums = False,
                   style = 'Light List Accent 1'):
         
         if ignore_index:
@@ -116,9 +117,10 @@ class Document():
         cells[0].text = heading
         
         # populate header row --------
-        heading_cells = table.add_row().cells
-        for i, col in enumerate(pandas_table.columns):
-             heading_cells[i+offset].text = str(col)
+        if not ignore_colums:
+            heading_cells = table.add_row().cells
+            for i, col in enumerate(pandas_table.columns):
+                 heading_cells[i+offset].text = str(col)
         # heading_cells[1].0text = 'Oil'
         # heading_cells[2].text = 'Gas'
         # heading_cells[3].text = 'Nuclear'
