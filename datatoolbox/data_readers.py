@@ -115,6 +115,7 @@ class BaseImportTool():
                tableList, 
                updateContent=False,
                append_data = False,
+               overwrite = False,
                clean_Tables = True):   
         # tableList = self.gatherMappedData(updateTables=updateContent)
         # dt.commitTables(tableList, f'update {self.__class__.__name__} data', self.meta, update=updateContent)
@@ -132,6 +133,7 @@ class BaseImportTool():
                         sourceMetaDict = self.meta, 
                         update         = updateContent,
                         append_data    = append_data,
+                        overwrite      = overwrite, 
                         cleanTables    = True)
 
 #%% 
