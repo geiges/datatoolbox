@@ -102,7 +102,19 @@ def fix_inconsistent_source(sourceID,
     elif fix_what == 'source_revision':
         pass
     
+def get_source_log(sourceID = 'main',n =5 ):
     
+    git_manager = dt.database.GitRepository_Manager(dt.config,debugmode=True)
+    repo   = git.Repo(os.path.join(git_manager.PATH_TO_DATASHELF,  'database', sourceID))
+    # repo = git.Repo("/home/user/.emacs.d")
+    commits = list(repo.iter_commits("master", max_count=n))
+    print (f'============= Log of {sourceID} =============')
+    for i in range(n):
+        comm = commits[i]
+        print(comm.committed_datetime.strftime('"%d-%m-%Y %H:%M') + ' - ' + comm.message + ' - \t Hash: ' + comm.hexsha)
+    print (f'============= End log =============')
+    
+# def 
     
 def _create_empty_datashelf(pathToDataself, 
                            MODULE_PATH,
