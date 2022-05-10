@@ -728,7 +728,8 @@ class IPCC_AR6(object):
          'R10NORTH_AM': 'R10NORTH_AM',
          'R10PAC_OECD': 'R10PAC_OECD',
          'R10REF_ECON': 'R10REF_ECON',
-         'R10REST_ASIA': 'R10REST_ASIA'}
+         'R10REST_ASIA': 'R10REST_ASIA',
+         'R10ROWO': 'R10ROWO'}
         
         
         mapping = pd.DataFrame(mapping.items(), columns = ['native', 'standard'])
