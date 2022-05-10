@@ -718,6 +718,7 @@ class IPCC_AR6(object):
         'R5OECD90+EU' : 'R5OECD', 
         'R5REF' : 'R5REF',
         'R5ROWO' : 'R5ROWO',
+        'R10ROWO' : 'R10ROWO',
         'R10AFRICA': 'R10AFRICA',
          'R10CHINA+': 'R10CHINA+',
          'R10EUROPE': 'R10EUROPE',
