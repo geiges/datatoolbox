@@ -830,7 +830,7 @@ class Database():
         for tableID in IDList:
             filePath = core.DB._getTableFilePath(tableID)
             if os.path.exists(filePath):
-                files_on_disk.append(IDList)
+                files_on_disk.append(tableID)
         
         files = ['tables/' + core.generate_table_file_name(x) for x in files_on_disk]
         
