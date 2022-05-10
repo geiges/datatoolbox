@@ -283,6 +283,16 @@ def _xDataSet_to_wide_dataframe(xds):
         merge_list.append(wdf)
     return pd.concat(merge_list)
 
+def _xDataArray_to_wide_df(xarr):
+    df = xarr.to_dataframe()
+    level = list(df.index.names).index('year')
+    wdf = df.unstack(level=level)
+    wdf['variable'] = xarr.name
+    wdf['unit']  = str(xarr.pint.units)
+    wdf.set_index('variable', append=True, inplace=True)
+    wdf.set_index('unit', append=True, inplace=True)
+    wdf.columns = wdf.columns.droplevel(0)
+    return wdf
 
 def to_pyam(data):
     """
@@ -301,6 +311,10 @@ def to_pyam(data):
     """
     if isinstance(data ,xr.Dataset):
         wdf = _xDataSet_to_wide_dataframe(data)
+        return pyam.IamDataFrame(wdf)
+    
+    if isinstance(data, xr.DataArray):
+        wdf = _xDataArray_to_wide_df(data)
         return pyam.IamDataFrame(wdf)
     
     else:
