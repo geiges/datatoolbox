@@ -612,13 +612,13 @@ class Database():
                     self._addTable(dataTable)
                     self.add_to_inventory(dataTable)
                 elif overwrite:
-                    oldTable = self.getTable(dataTable.ID)
+                    oldTable = self.getTable(dataTable.ID, native_regions=True)
                     mergedTable = dataTable.combine_first(oldTable)
                     mergedTable = Datatable(mergedTable, meta = dataTable.meta)
                     self._addTable(mergedTable)
                 elif append_data:
                     # append data to table
-                    oldTable = self.getTable(dataTable.ID)
+                    oldTable = self.getTable(dataTable.ID, native_regions=True)
                     mergedTable = oldTable.combine_first(dataTable)
                     mergedTable = Datatable(mergedTable, meta = dataTable.meta)
                     self._addTable(mergedTable)
@@ -821,6 +821,25 @@ class Database():
 
         return all(valid)
 
+    def removeTables_of_source(self, sourceID, IDList):
+        
+        if not self.isSource(sourceID):
+            raise(BaseException('source  does not exist'))
+            
+        files_on_disk = list()
+        for tableID in IDList:
+            filePath = core.DB._getTableFilePath(tableID)
+            if os.path.exists(filePath):
+                files_on_disk.append(IDList)
+        
+        files = ['tables/' + core.generate_table_file_name(x) for x in files_on_disk]
+        
+        self.gitManager.gitRemoveFiles(sourceID,files)
+        
+        self.remove_from_inventory(IDList)
+        
+        self._gitCommit(f'{len(IDList)} tables of {sourceID} removed')
+        
     def removeTables(self, IDList):
         """
         Method to remnove tables from the database
@@ -842,11 +861,12 @@ class Database():
                 raise(BaseException('source  does not exist'))
         
         for ID in tqdm.tqdm(IDList,desc="Removing tables"):
+
             source = self.inventory.loc[ID, 'source']
             tablePath = self._getTableFilePath(ID)
-
-            self.remove_from_inventory(ID)
             self.gitManager.gitRemoveFile(source, tablePath)
+            
+        self.remove_from_inventory(IDList)
 
         self._gitCommit('Tables removed')
         
@@ -1028,7 +1048,8 @@ class Database():
         for setup in ins.getSetups():
             dataTable = self.getTable(setup['dataID'])
             ins._writeData(setup, dataTable)
-
+            
+    
     #database mangement
     
     def _checkTablesOnDisk(self):
@@ -1233,6 +1254,18 @@ class GitRepository_Manager:
             print('Added file {} to repo: {}'.format(filePath,repoName))
         
         self.filesToAdd[repoName].append(str(filePath))
+        self.updatedRepos.add(repoName)
+        
+    def gitRemoveFiles(self, repoName, filePaths):
+        """
+        Removes mutiple file from the git repository
+        
+        Input
+        -----
+        repoName : str 
+        filePath : str of the relative file path
+        """
+        self[repoName].index.remove(filePaths, working_tree=True)
         self.updatedRepos.add(repoName)
         
     def gitRemoveFile(self, repoName, filePath):
