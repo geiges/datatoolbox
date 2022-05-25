@@ -78,6 +78,7 @@ def open_word_file(file_name):
     import datatoolbox as dt
     dt.util.open_file(file_name)
     
+
 class Document():
     
     
@@ -86,6 +87,8 @@ class Document():
         self.doc = docx.Document()
         # return self.doc
 
+    def add_page_break(self,):
+        self.doc.add_page_break()
 
     def add_heading(self, string, level):
         self.doc.add_heading(string,level=level)
@@ -227,7 +230,7 @@ class Document():
                         height, 
                         )
         
-        plt.close()
+        #plt.close()
          
         os.remove(path)
         

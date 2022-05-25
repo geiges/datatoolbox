@@ -164,7 +164,8 @@ class Database():
         inventoryDf.to_csv(filePath)
         git.Repo.init(pathToDataself)
     
-    
+
+        
     def _validateRepository(self, repoID='main'):
         """
         Private
@@ -612,10 +613,7 @@ class Database():
                     self._addTable(dataTable)
                     self.add_to_inventory(dataTable)
                 elif overwrite:
-                    oldTable = self.getTable(dataTable.ID, native_regions=True)
-                    mergedTable = dataTable.combine_first(oldTable)
-                    mergedTable = Datatable(mergedTable, meta = dataTable.meta)
-                    self._addTable(mergedTable)
+                    self._addTable(dataTable)
                 elif append_data:
                     # append data to table
                     oldTable = self.getTable(dataTable.ID, native_regions=True)
@@ -1052,8 +1050,14 @@ class Database():
     
     #database mangement
     
-    def _checkTablesOnDisk(self):
+    def _checkTablesOnDisk(self, sourceID=None):
         notExistingTables = list()
+        
+        if sourceID is None:
+            table_list = self.inventory.index
+        else:
+            table_list = self.inventory.index[self.inventory.source == sourceID]
+        
         for tableID in self.inventory.index:
             filePath = self._getTableFilePath(tableID)
             if not os.path.exists(filePath):

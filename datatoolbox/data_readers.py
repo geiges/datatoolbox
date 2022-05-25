@@ -136,20 +136,22 @@ class BaseImportTool():
                         overwrite      = overwrite, 
                         cleanTables    = True)
 
-#%% 
 
 class WDI(BaseImportTool):
     
-    def __init__(self):
+    def __init__(self, year, data_path=None):
 
         self.setup = setupStruct()
         
-        self.setup.SOURCE_ID    = "WDI_2020b"
+        if data_path is None:
+            data_path = os.path.join(config.PATH_TO_DATASHELF, 'raw_data')
+        
+        self.setup.SOURCE_ID    = f"WDI_{year}"
         self.setup.SOURCE_NAME    = "WDI"
-        self.setup.SOURCE_YEAR    = "2020b"
-        self.setup.SOURCE_PATH  = os.path.join(config.PATH_TO_DATASHELF, 'rawdata', self.setup.SOURCE_ID)
+        self.setup.SOURCE_YEAR    = f"{year}"
+        self.setup.SOURCE_PATH  = os.path.join(data_path)
         self.setup.DATA_FILE    = 'WDIData.csv'
-        self.setup.MAPPING_FILE = os.path.join(self.setup.SOURCE_PATH, 'mapping.xlsx')
+        self.setup.MAPPING_FILE = os.path.join(data_path, 'mapping.xlsx')
         self.setup.LICENCE = 'CC BY-4.0'
         self.setup.URL     = 'https://datacatalog.worldbank.org/dataset/world-development-indicators'
 
@@ -190,7 +192,7 @@ class WDI(BaseImportTool):
         fullFilePath = os.path.join(self.setup.SOURCE_PATH, self.setup.DATA_FILE)
         self.data = pd.read_csv(fullFilePath, index_col = self.setup.INDEX_COLUMN_NAME, header =0) 
     
-    def gatherMappedData(self, spatialSubSet = None, updateTables = False):
+    def gatherMappedData(self, spatialSubSet = None):
         
         # loading data if necessary
         if not hasattr(self, 'data'):
@@ -205,7 +207,7 @@ class WDI(BaseImportTool):
             
             # print(metaDf[config.REQUIRED_META_FIELDS].isnull().all() == False)
             #print(metaData[self.setup.INDEX_COLUMN_NAME])
-            
+            metaDf['timeformat'] ='Y'
             metaDf['source_name'] = self.setup.SOURCE_NAME
             metaDf['source_year'] = self.setup.SOURCE_YEAR
             metaDict = {key : metaDf[key] for key in config.REQUIRED_META_FIELDS.union({'category', 'unitTo'})}
@@ -218,12 +220,6 @@ class WDI(BaseImportTool):
 
             if pd.isnull(metaDict['category']):
                 metaDict['category'] = ''
-#            if pd.isnull(metaDict['model']):
-#                metaDict['model'] = ''
-            if not updateTables:
-                #print(metaDict)
-                if dt.core.DB.tableExist(dt.core._createDatabaseID(metaDict)):
-                    continue
                         
             dataframe = self.data.loc[seriesIdx]
             
@@ -238,7 +234,7 @@ class WDI(BaseImportTool):
             
             dataTable.loc['EU28',:] = dataTable.loc['EUU',:]
             
-            if not pd.isna(metaDict['unitTo']):
+            if 'unitTo' in metaDict.keys() and (not pd.isna(metaDict['unitTo'])):
                 dataTable = dataTable.convert(metaDict['unitTo'])
                 
             tablesToCommit.append(dataTable)
@@ -260,7 +256,7 @@ class EEA_DATA(BaseImportTool):
     
     def gatherMappedData(self):
         
-        #%%
+
         tables = list()
        
         fullFilePath = os.path.join(self.setup.SOURCE_PATH, self.setup.DATA_FILE)
@@ -356,7 +352,6 @@ class EEA_DATA(BaseImportTool):
         
         return tables, None
         
-        #%%
 
 
 class IEA_GHG_FUEL_DETAILED(BaseImportTool):
@@ -886,7 +881,6 @@ class IEA_FUEL(BaseImportTool):
                     datetime_format='mmm d yyyy hh:mm:ss',
                     date_format='mmmm dd yyyy')                
                 
-        #%%
         
         if not hasattr(self, 'data'):
 #            self.data = pd.read_csv(self.setup.DATA_FILE, encoding='utf8', engine='python', index_col = None, header =0, na_values='..')
@@ -895,7 +889,7 @@ class IEA_FUEL(BaseImportTool):
             
         index = self.data['combined'].unique()
 
-        #%%
+
         # spatial mapping
         self.spatialMapping = dict()
         spatialIDList = self.data[self.setup.SPATIAL_COLUM_NAME].unique()
@@ -916,7 +910,7 @@ class IEA_FUEL(BaseImportTool):
             dataFrame.loc[key] = item
         dataFrame.to_excel(writer, sheet_name=SPATIAL_MAPPING_SHEET)
         
-        #%%
+
         self.availableSeries = pd.DataFrame(index=index)
         self.mapping = pd.DataFrame(index=index, columns = MAPPING_COLUMNS)
         self.mapping = pd.concat([self.mapping, self.availableSeries], axis=1)
@@ -1583,7 +1577,7 @@ class AR5_DATABASE(BaseImportTool):
 
         return tablesToCommit, excludedTables
 
-#ä%%
+
 class IAMC15_2019(BaseImportTool):
     
     def __init__(self):
@@ -1702,7 +1696,7 @@ class IAMC15_2019(BaseImportTool):
         self.metaDataDf = self.metaDataDf.set_index(self.metaDataDf['combined'])
         
     def gatherMappedData(self, spatialSubSet = None, updateTables=False):
- #%%   
+ 
         import tqdm
         # loading data if necessary
         if not hasattr(self, 'data'):
@@ -2795,7 +2789,7 @@ class PRIMAP_DOWNSCALE(BaseImportTool):
         excludedTables['empty'] = list()
         excludedTables['erro'] = list()
         excludedTables['exists'] = list()
-        #%%
+
 #        datafilter = list()
 #        datafilter.append(self.data)
 #        filterList = list(self.entryMapping.keys())
@@ -2883,7 +2877,7 @@ class PRIMAP_DOWNSCALE(BaseImportTool):
             filteredData = process_and_filter(self, datafilter, filterList,tableList, metaDict)
 #            adsfr
             tablesToCommit.extend(filteredData)
-            #%%
+
         return tablesToCommit, excludedTables
     
 class AIM15_2020(BaseImportTool):
@@ -3377,7 +3371,7 @@ class PRIMAP_HIST(BaseImportTool):
             self.mapping = pd.read_excel(self.setup.MAPPING_FILE, sheet_name=VAR_MAPPING_SHEET, index_col=0)
     
     def pre_process_input_file(self):
-        #%%
+        
         data = self.data.copy()
         
         data = data.rename(columns={'category (IPCC2006_PRIMAP)': 'category',
@@ -3391,7 +3385,7 @@ class PRIMAP_HIST(BaseImportTool):
         data.country = data.country.replace('EU27BX', 'EU27')
         
         self.data = data
-        #%%
+        
         
     
     def createVariableMapping(self):
@@ -3400,7 +3394,7 @@ class PRIMAP_HIST(BaseImportTool):
                     datetime_format='mmm d yyyy hh:mm:ss',
                     date_format='mmmm dd yyyy')                
 
-        #%%
+        
         
         if not hasattr(self, 'data'):
             self.loadData()
@@ -3592,7 +3586,7 @@ class CRF_DATA(BaseImportTool):
     def prepareFolders(self):
         import zipfile
         import os
-        #%%
+        
         folder = self.setup.SOURCE_PATH
         fileList = os.listdir(folder)
         fileList = [file for file in fileList if '.zip' in file]
@@ -3607,7 +3601,7 @@ class CRF_DATA(BaseImportTool):
                 print('failed: {}'.format(file))
     
     def gatherMappedData(self):
-        #%%
+        
         dataTables = dict()
         countryList = list()
         folderList = [ name for name in os.listdir(self.setup.SOURCE_PATH) if os.path.isdir(os.path.join(self.setup.SOURCE_PATH, name)) ]
@@ -3660,7 +3654,7 @@ class CRF_DATA(BaseImportTool):
                 dataTables['Emissions|' + gas + '|IPC3'].meta['category'] = "IPCM3"
         
             
-        #%%
+        
         tablesToCommit = list()
         for key in dataTables.keys():
             dataTables[key] = dataTables[key].astype(float)
@@ -3714,7 +3708,7 @@ class SDG_DATA_2019(BaseImportTool):
                     datetime_format='mmm d yyyy hh:mm:ss',
                     date_format='mmmm dd yyyy')                
 
-        #%%
+        
         
         if not hasattr(self, 'data'):
 #            self.data = pd.read_csv(self.setup.DATA_FILE, encoding='utf8', engine='python', index_col = None, header =0, na_values='..')
@@ -3880,7 +3874,7 @@ class HOESLY2018(BaseImportTool):
 
 
     def gatherMappedData(self, spatialSubSet = None, updateTables=False):
-        #%%
+        
         import tqdm
         # loading data if necessary
         if not hasattr(self, 'data'):
@@ -4007,7 +4001,7 @@ class VANMARLE2017(BaseImportTool):
 
 
     def gatherMappedData(self, spatialSubSet = None, updateTables=False):
-        #%%
+        
         import tqdm
         # loading data if necessary
         if not hasattr(self, 'data'):
@@ -4157,10 +4151,14 @@ class FAO(BaseImportTool):
     """
     FAO data import tool
     """
-    def __init__(self, year=2019):
+    def __init__(self, year=2019, data_path = None):
+        
+        if data_path is None:
+            data_path = os.path.join(config.PATH_TO_DATASHELF, 'rawdata')
+                         
         self.setup = setupStruct()
         self.setup.SOURCE_ID    = "FAO_" + str(year)
-        self.setup.SOURCE_PATH  = os.path.join(config.PATH_TO_DATASHELF, 'rawdata/FAO_' + str(year) )
+        self.setup.SOURCE_PATH  = os.path.join(data_path, 'FAO_' + str(year) )
         self.setup.DATA_FILE    = {'Emissions_Land_Use_' : os.path.join(self.setup.SOURCE_PATH, 'Emissions_Land_Use_Land_Use_Total_E_All_Data.csv'),
                                    'Emissions_Agriculture_' : os.path.join(self.setup.SOURCE_PATH, 'Emissions_Agriculture_Agriculture_total_E_All_Data.csv'),
                                    'Environment_Emissions_by_Sector_' : os.path.join(self.setup.SOURCE_PATH, 'Environment_Emissions_by_Sector_E_All_Data.csv'),
@@ -4282,7 +4280,7 @@ class FAO(BaseImportTool):
 
 
     def gatherMappedData(self, spatialSubSet = None, updateTables=False):
-        #%%
+        
         import tqdm
         # loading data if necessary
         if not hasattr(self, 'data'):
@@ -4376,7 +4374,7 @@ class WEO(BaseImportTool):
 
     def gatherMappedData(self, spatialSubSet = None):
         
-#%%
+
         tablesToCommit  = dt.TableSet()
         setup = dict()
         setup['filePath']  = self.setup.SOURCE_PATH 
@@ -4550,7 +4548,7 @@ class ENERDATA(BaseImportTool):
                 self.timeColumns.append(col)
 #        self.data.loc[:,'model'] = ''
     def createVariableMapping(self):        
-        #%%
+        
         # loading data if necessary
         if not hasattr(self, 'data'):        
             self.loadData()
@@ -4607,10 +4605,10 @@ class ENERDATA(BaseImportTool):
         
         self.mapping.to_excel(writer, engine='openpyxl', sheet_name='region_mapping')
         writer.close()
-        #%%
+        
 
     def gatherMappedData(self, spatialSubSet = None, updateTables=False):
-        #%%
+        
         import tqdm
         # loading data if necessary
         if not hasattr(self, 'data'):
@@ -4718,7 +4716,6 @@ class PIK_NDC(BaseImportTool):
         
     
         return [pledge_high, pledge_low], None
-#%%
 
 import pyam    
 from tqdm import tqdm 
@@ -4905,7 +4902,7 @@ class IIASA(BaseImportTool):
          
 
                     
-#%%
+
 class CAT_Paris_Sector_Rollout(BaseImportTool):
    
     def __init__(self):
@@ -5009,7 +5006,7 @@ class CAT_Paris_Sector_Rollout(BaseImportTool):
 
 
     def gatherMappedData(self, spatialSubSet = None, updateTables=False):
-        #%%
+        
         import tqdm
         # loading data if necessary
         if not hasattr(self, 'data'):
@@ -5297,10 +5294,10 @@ def HDI_import(year=2020):
 
 def UN_WPP_2019_import():
     sourceMeta = {'SOURCE_ID': 'UN_WPP2019',
-                          'collected_by' : 'AG',
-                          'date': dt.core.getDateString(),
-                          'source_url' : 'https://population.un.org/wpp/Download/Standard/Population/',
-                          'licence': 'open source' }
+             'collected_by' : 'AG',
+             'date': dt.core.getDateString(),
+             'source_url' : 'https://population.un.org/wpp/Download/Standard/Population/',
+             'licence': 'open source' }
         
     mappingDict = {int(x) : y for x,y  in zip(dt.mapp.countries.codes.numISO, dt.mapp.countries.codes.index) if not(pd.np.isnan(x))}
     mappingDict[900] = 'World'
