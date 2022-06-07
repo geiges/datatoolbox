@@ -4197,7 +4197,7 @@ class FAO(BaseImportTool):
             
             file = self.setup.DATA_FILE[fileKey]
             print(file)
-            temp = pd.read_csv(file,  engine='python',  index_col = None, header =0)
+            temp = pd.read_csv(file,  engine='python',  index_col = None, header =0,encoding = "ISO-8859-1")
             temp.Element = temp.Element.apply(lambda x: fileKey + x )
             if i == 0:
                 self.data = temp
@@ -4279,7 +4279,7 @@ class FAO(BaseImportTool):
         writer.close()
 
 
-    def gatherMappedData(self, spatialSubSet = None, updateTables=False):
+    def gatherMappedData(self, spatialSubSet = None):
         
         import tqdm
         # loading data if necessary
@@ -4328,13 +4328,8 @@ class FAO(BaseImportTool):
                         table = table.convert(self.mapping['unitTo'][variable])
                     
                     tableID = dt.core._createDatabaseID(table.meta)
-                    if not updateTables:
-                        if dt.core.DB.tableExist(tableID):
-                            excludedTables['exists'].append(tableID)
-                        else:
-                            tablesToCommit.append(table)
-                    else:
-                        tablesToCommit.append(table)
+                    tablesToCommit.append(table)
+                    
         return tablesToCommit, excludedTables  
 
 class WEO(BaseImportTool):
@@ -4497,18 +4492,20 @@ class WEO(BaseImportTool):
         return tablesList, []
 
 class ENERDATA(BaseImportTool):
-    def __init__(self, year = 2019):
+    def __init__(self, year = 2019, 
+                 data_path = None,
+                 filename = None):
+        
+        if data_path is None:
+            data_path = os.path.join(config.PATH_TO_DATASHELF, 'rawdata')
+            
+        if filename is None:
+            filename = f'enerdata_{year}.xlsx'
         self.setup = setupStruct()
         self.setup.SOURCE_ID    = "ENERDATA_" + str(year)
-        self.setup.SOURCE_PATH  = os.path.join(config.PATH_TO_DATASHELF,'rawdata', self.setup.SOURCE_ID)
-        if year == 2019:
-            self.setup.DATA_FILE    = os.path.join(self.setup.SOURCE_PATH, 'enerdata_2019_G2G.xlsx')
-        elif year == 2020:
-            self.setup.DATA_FILE    = os.path.join(self.setup.SOURCE_PATH, 'export_enerdata_1137124_050510.xlsx')
-            self.setup.DATA_FILE    = os.path.join(self.setup.SOURCE_PATH, 'export_enerdata_1137124_113516.xlsx')
-        elif year == 2021:
-            self.setup.DATA_FILE    = os.path.join(self.setup.SOURCE_PATH, 'export_enerdata_1137124_094807.xlsx')
-            self.setup.DATA_FILE    = os.path.join(self.setup.SOURCE_PATH, 'export_enerdata_2021_07_09.xlsx')
+        self.setup.SOURCE_PATH  = os.path.join(data_path, self.setup.SOURCE_ID)
+
+        self.setup.DATA_FILE    = os.path.join(self.setup.SOURCE_PATH, filename)
         self.setup.MAPPING_FILE =  os.path.join(self.setup.SOURCE_PATH,'mapping_' + str(year) + '.xlsx')
         self.setup.LICENCE = ' Restricted use in the Climate Transparency Report project only'
         self.setup.URL     = 'https://www.enerdata.net/user/?destination=services.html'
@@ -4607,7 +4604,7 @@ class ENERDATA(BaseImportTool):
         writer.close()
         
 
-    def gatherMappedData(self, spatialSubSet = None, updateTables=False):
+    def gatherMappedData(self, spatialSubSet = None):
         
         import tqdm
         # loading data if necessary
@@ -4622,16 +4619,7 @@ class ENERDATA(BaseImportTool):
         excludedTables['error'] = list()
         excludedTables['exists'] = list()
         
-        
-#        for model in ['']:
-#            tempMo = self.data
-#            
-##            tempMo = self.data.loc[self.data.model == model]
-#            for scenario in self.mapping['scenario'].keys():
-#                tempMoSc = tempMo.loc[tempMo.scenario == scenario]
-##                for variable in self.mapping['variable'].keys():
-##                    tempMoScVa = tempMoSc.loc[self.data.variable == variable]    
-                
+
         for variable in list(self.mapping['entity'].keys()):
 #            metaDf = self.mapping.loc[variable]
             tempMoScVar =  self.data.loc[self.data.entity == variable]
@@ -4655,13 +4643,8 @@ class ENERDATA(BaseImportTool):
                 print('conversion to : ' +str(self.mapping['unitTo'][variable]))
                 table = table.convert(self.mapping['unitTo'][variable])
             tableID = dt.core._createDatabaseID(table.meta)
-            if not updateTables:
-                if dt.core.DB.tableExist(tableID):
-                    excludedTables['exists'].append(tableID)
-                else:
-                    tablesToCommit.append(table)
-            else:
-                tablesToCommit.append(table)
+            tablesToCommit.append(table)
+
         return tablesToCommit, excludedTables  
    
 class PIK_NDC(BaseImportTool):
