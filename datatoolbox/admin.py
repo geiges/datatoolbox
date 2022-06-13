@@ -41,6 +41,29 @@ def create_empty_datashelf(pathToDataself,
                            config.INVENTORY_FIELDS,
                            force_new=force_new)
 
+def compare_source_inventory_to_main(sourceID):
+    git_manager = dt.database.GitRepository_Manager(dt.config,debugmode=True)
+    inventory_csv_path = os.path.join(git_manager.PATH_TO_DATASHELF, 'inventory.csv')
+    inventory = pd.read_csv(inventory_csv_path, index_col = 0)
+      
+    source_inventory_path = os.path.join(git_manager.PATH_TO_DATASHELF,  'database', sourceID, 'source_inventory.csv')
+    source_inventory = pd.read_csv(source_inventory_path, index_col = 0)
+    
+    main_tables = inventory.index[inventory.source == sourceID]
+    missing_tables_in_source = main_tables.difference(source_inventory.index)
+    missing_tables_in_main = source_inventory.index.difference(main_tables)        
+    if len(missing_tables_in_source) >0:
+        print(f'{len(missing_tables_in_source)} are missing in source inventory')
+
+    
+    if len(missing_tables_in_main) >0:
+        print(f'{len(missing_tables_in_main)} are missing in main inventory')
+        
+    if (len(missing_tables_in_main) == 0) and (len(missing_tables_in_source) == 0):
+        print('Both inventories are equivalent')
+        
+    return missing_tables_in_source, missing_tables_in_main
+
 def fix_uncommited_changes_in_source(sourceID):
     """
     Fix source when uncommited changes prevend the normal use of datatoolbox database.
@@ -60,9 +83,11 @@ def fix_uncommited_changes_in_source(sourceID):
     git_manager = dt.database.GitRepository_Manager(config,debugmode=True)
     repo = git_manager.get_source_repo_failsave(sourceID)
     repo.git.reset('--hard','origin/master')
+    print('All done')
     
 def fix_inconsistent_source(sourceID, 
-                            fix_what):
+                            fix_what,
+                            source_hash = None):
     """
     Fix inconsistent source if the datatoolbox sources csv does indicated a different
     git hash than the actual source after e.g. an manual commit.
@@ -83,29 +108,70 @@ def fix_inconsistent_source(sourceID,
     
     from . import config 
     git_manager = dt.database.GitRepository_Manager(config,debugmode=True)
-    if fix_what == 'sources.csv':
+    if fix_what == 'sources':
         main   = git_manager.repositories['main'] = git.Repo(git_manager.PATH_TO_DATASHELF)
         
         source = git.Repo(os.path.join(git_manager.PATH_TO_DATASHELF,  'database', sourceID))
         
         source_hash = source.head.object.hexsha
         
-        sources_csv_path = os.path.join(git_manager.PATH_TO_DATASHELF, 'sources.csv')
-        sources_df = pd.read_csv(sources_csv_path, index_col =0)
-        
-        print (f'Overwriting has {sources_df.loc[sourceID, "git_commit_hash"]} -> {source_hash}')
-        sources_df.loc[sourceID, 'git_commit_hash'] = source_hash
-        sources_df.to_csv(sources_csv_path)
-    
-        main.index.add(sources_csv_path)
-        main.index.commit(f'Fixed source {sourceID}' + " by " + config.CRUNCHER)
+       
     elif fix_what == 'source_revision':
-        pass
+        main   = git_manager.repositories['main'] = git.Repo(git_manager.PATH_TO_DATASHELF)
+        
+        source_repo = git.Repo(os.path.join(git_manager.PATH_TO_DATASHELF,  'database', sourceID))
+        source_repo.git.execute(["git", "reset", "--hard", source_hash])
+        source_hash = source_repo.head.object.hexsha
+        
+        inventory_csv_path = os.path.join(git_manager.PATH_TO_DATASHELF, 'inventory.csv')
+        inventory = pd.read_csv(inventory_csv_path, index_col = 0)
+        
+        ix_to_remove = inventory.index[inventory.source == sourceID]
+        inventory = inventory.drop(ix_to_remove)
+        
+        source_inventory_path = os.path.join(git_manager.PATH_TO_DATASHELF,  'database', sourceID, 'source_inventory.csv')
+        source_inventory = pd.read_csv(source_inventory_path, index_col = 0)
+        
+       
+        inventory = pd.concat([inventory, source_inventory])
+        inventory.to_csv(inventory_csv_path)
+        main.index.add(inventory_csv_path)
+        
+    sources_csv_path = os.path.join(git_manager.PATH_TO_DATASHELF, 'sources.csv')
+    
+    sources_df = pd.read_csv(sources_csv_path, index_col =0)
+    
+    print (f'Overwriting has {sources_df.loc[sourceID, "git_commit_hash"]} -> {source_hash}')
+    sources_df.loc[sourceID, 'git_commit_hash'] = source_hash
+    sources_df.to_csv(sources_csv_path)
+
+    main.index.add(sources_csv_path)
+    main.index.commit(f'Fixed source {sourceID}' + " by " + config.CRUNCHER)
+    
+    
     
 def get_source_log(sourceID = 'main',n =5 ):
-    
+    """
+    Returns last log history of a source
+
+    Parameters
+    ----------
+    sourceID : TYPE, optional
+        DESCRIPTION. The default is 'main'.
+    n : TYPE, optional
+        DESCRIPTION. The default is 5.
+
+    Returns
+    -------
+    None.
+
+    """
     git_manager = dt.database.GitRepository_Manager(dt.config,debugmode=True)
-    repo   = git.Repo(os.path.join(git_manager.PATH_TO_DATASHELF,  'database', sourceID))
+    
+    if sourceID == 'main':
+        repo   = git.Repo(git_manager.PATH_TO_DATASHELF)
+    else:
+        repo   = git.Repo(os.path.join(git_manager.PATH_TO_DATASHELF,  'database', sourceID))
     # repo = git.Repo("/home/user/.emacs.d")
     commits = list(repo.iter_commits("master", max_count=n))
     print (f'============= Log of {sourceID} =============')
