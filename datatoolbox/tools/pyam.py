@@ -8,7 +8,6 @@ Created on Fri Nov 12 09:14:25 2021
 import pyam
 import pandas as pd
 import xarray as xr
-import regex
 from .. import util
 
 def _filter(data, level=None, regex=False, **filters):

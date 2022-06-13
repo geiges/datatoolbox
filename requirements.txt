@@ -1,7 +1,6 @@
 appdirs
 pandas>=1.1.0
 numpy
-regex
 gitpython
 openscm-units
 pint>=0.11
