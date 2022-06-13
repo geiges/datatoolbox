@@ -133,36 +133,28 @@ class Database():
         Method to create the required files for an empty csv-based data base. 
         (Equivalent to the fucntions in admin.py)
         """
-        from pathlib import Path
-        import os
-        import shutil
-        path = Path(pathToDataself)
-        path.mkdir(parents=True,exist_ok=True)
+        datashelf = Path(pathToDataself)
+        datashelf.mkdir(parents=True, exist_ok=True)
         
         # add subfolders database
-        Path(os.path.join(pathToDataself, 'database')).mkdir(exist_ok=True)
-        Path(os.path.join(pathToDataself, 'mappings')).mkdir(exist_ok=True)
-        Path(os.path.join(pathToDataself, 'rawdata')).mkdir(exist_ok=True)
+        (datashelf / 'database').mkdir(exist_ok=True)
+        (datashelf / 'mappings').mkdir(exist_ok=True)
+        (datashelf / 'rawdata').mkdir(exist_ok=True)
         
         #create mappings
-        os.makedirs(os.path.join(pathToDataself, 'mappings'),exist_ok=True)
-        shutil.copyfile(os.path.join(modulePath, 'data/regions.csv'),
-                        os.path.join(pathToDataself, 'mappings/regions.csv'))
-        shutil.copyfile(os.path.join(modulePath, 'data/continent.csv'),
-                        os.path.join(pathToDataself, 'mappings/continent.csv'))
-        shutil.copyfile(os.path.join(modulePath, 'data/country_codes.csv'),
-                        os.path.join(pathToDataself, 'mappings/country_codes.csv'))    
+        modulePath = Path(modulePath)
+
+        for fn in ("regions.csv", "continent.csv", "country_codes.csv"):
+            shutil.copyfile(modulePath / 'data' / fn, datashelf / 'mappings' / fn)
         
         # created sources.csv that contains the indivitual information for each source
         sourcesDf = pd.DataFrame(columns = config.SOURCE_META_FIELDS)
-        filePath= os.path.join(pathToDataself, 'sources.csv')
-        sourcesDf.to_csv(filePath)
+        sourcesDf.to_csv(datashelf / "sources.csv")
         
         # creates inventory.csv that contains all data tables from all sources
         inventoryDf = pd.DataFrame(columns = config.INVENTORY_FIELDS)
-        filePath= os.path.join(pathToDataself, 'inventory.csv')
-        inventoryDf.to_csv(filePath)
-        git.Repo.init(pathToDataself)
+        inventoryDf.to_csv(datashelf / "inventory.csv")
+        git.Repo.init(datashelf)
     
 
         
@@ -335,7 +327,7 @@ class Database():
         """
         source = self.inventory.loc[ID].source
         fileName = core.generate_table_file_name(ID)
-        return os.path.join(config.PATH_TO_DATASHELF, 'database/', source, 'tables', fileName)
+        return os.path.join(config.PATH_TO_DATASHELF, 'database', source, 'tables', fileName)
 
     # def _getTableFileName(self, ID):
     #     """
