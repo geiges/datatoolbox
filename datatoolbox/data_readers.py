@@ -4212,6 +4212,8 @@ class FAO(BaseImportTool):
         self.data.loc[:,'entity'] = self.data.Element + '_' + self.data.Item
         self.data.loc[:,'scenario'] = 'Historic'
         self.data.loc[:,'model'] = ''
+        index_keep = self.data.index[self.data['Source']=='FAO TIER 1']
+        self.data = self.data.loc[index_keep]
         
         newColumns = ['region', 'entity','scenario', 'model', 'Unit']
         self.timeColumns = list()
