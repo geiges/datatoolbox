@@ -401,24 +401,26 @@ class ENGAGE(object):
     def region_mapping(self, 
                         org = 'native', 
                         dest='standard'):
-        mapping = {
-            'Asia (R5)':  'R5_ASIA',
-            'China (R10)': 'R10_China',
-            'European Union and Western Europe (R10)' : 'R10_EUROPE',
-            'Latin America (R10)' : 'R10_LAM',
-            'Latin America (R5)' : 'R5_LAM',
-            'Middle East & Africa (R5)' : 'R5_MAF',
-            'Middle East (R10)' : 'R10_MIDEAST',
-            'North America (R10)' : 'R10_NAMERICA',
-            'OECD & EU (R5)' : 'R10_EU_OECD',
-            'Other (R10)' : 'R10_OTHER',
+        mapping = {          
+            'China (R10)': 'R10CHINA+',
+            'European Union and Western Europe (R10)' : 'R10EUROPE',
+            'Latin America (R10)' : 'R10LATIN_AM',
+            'Middle East (R10)' : 'R10MIDDLE_EAST',
+            'North America (R10)' : 'R10NORTH_AM',
+            'Other (R10)' : 'R10ROWO',
             'Other (R5)' :'R5_OTHER',
-            'Other Asian countries (R10)' : 'R10_ASIA',
-            'Pacific OECD (R10)' : 'R10_PACIFIC_OECD',
-            'Reforming Economies (R10)': 'R10_REF',
-            'Reforming Economies (R5)' : 'R5_REF',
-            'South Asia (R10)' : 'R10_SOUTH_ASIA',
-            'Sub-Saharan Africa (R10)' : 'R10_SUB_AFIRICA',
+            'Other Asian countries (R10)' : 'R10REST_ASIA',
+            'Pacific OECD (R10)' : 'R10PAC_OECD',
+            'Reforming Economies (R10)': 'R10REF_ECON',
+            'South Asia (R10)' : 'R10INDIA+',
+            'Sub-Saharan Africa (R10)' : 'R10AFRICA',
+
+            'Asia (R5)':  'R5ASIA',
+            'Reforming Economies (R5)' : 'R5REF',  
+            'Middle East & Africa (R5)' : 'R5MAF',          
+            'Latin America (R5)' : 'R5LAM',
+            'OECD & EU (R5)' : 'R5OECD',
+            
             'World' : 'World'}
         mapping = pd.DataFrame(mapping.items(), columns = ['native', 'standard'])
         return mapping.set_index(org).to_dict()[dest]
