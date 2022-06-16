@@ -207,7 +207,7 @@ class WDI(BaseImportTool):
             
             # print(metaDf[config.REQUIRED_META_FIELDS].isnull().all() == False)
             #print(metaData[self.setup.INDEX_COLUMN_NAME])
-            metaDf['timeformat'] ='Y'
+            metaDf['timeformat'] ='%Y'
             metaDf['source_name'] = self.setup.SOURCE_NAME
             metaDf['source_year'] = self.setup.SOURCE_YEAR
             metaDict = {key : metaDf[key] for key in config.REQUIRED_META_FIELDS.union({'category', 'unitTo'})}
@@ -4165,10 +4165,10 @@ class FAO(BaseImportTool):
                                    'Environment_Emissions_intensities_' : os.path.join(self.setup.SOURCE_PATH, 'Environment_Emissions_intensities_E_All_Data.csv'),
                                    'Environment_LandCover_' : os.path.join(self.setup.SOURCE_PATH, 'Environment_LandCover_E_All_Data.csv'),
                                    'Environment_LandUse_'   : os.path.join(self.setup.SOURCE_PATH, 'Environment_LandUse_E_All_Data.csv'),
-                                   'Inputs_LandUse_'        : os.path.join(self.setup.SOURCE_PATH, 'Inputs_LandUse_E_All_Data.csv')
-                                   }
+                                   'Inputs_LandUse_'        : os.path.join(self.setup.SOURCE_PATH, 'Inputs_LandUse_E_All_Data.csv'),
+                                   'Emissions_Total'        : os.path.join(self.setup.SOURCE_PATH, 'Emissions_Totals_E_All_Data.csv')}
 
-        self.setup.MAPPING_FILE = os.path.join(self.setup.SOURCE_PATH, 'mapping.xlsx')
+        self.setup.MAPPING_FILE = os.path.join(self.setup.SOURCE_PATH, 'mapping_2022.xlsx')
         self.setup.LICENCE = 'Food and Agriculture Organization of the United Nations (FAO)'
         self.setup.URL     = 'http://www.fao.org/faostat/en/#data/GL'
 #        self.setup.MODEL_COLUMN_NAME = 'model'
@@ -4197,9 +4197,11 @@ class FAO(BaseImportTool):
             
             file = self.setup.DATA_FILE[fileKey]
             print(file)
+            if not os.path.exists(file):
+                continue
             temp = pd.read_csv(file,  engine='python',  index_col = None, header =0,encoding = "ISO-8859-1")
             temp.Element = temp.Element.apply(lambda x: fileKey + x )
-            if i == 0:
+            if not hasattr(self, 'data'):
                 self.data = temp
             else:
                 self.data = self.data.append(temp)
@@ -4237,7 +4239,7 @@ class FAO(BaseImportTool):
         
         #variables
         #index = self.data[self.setup.VARIABLE_COLUMN_NAME].unique()
-        self.availableSeries = self.data.drop_duplicates('variable').set_index( self.setup.VARIABLE_COLUMN_NAME)['Unit']
+        self.availableSeries = self.data.drop_duplicates('entity').set_index( self.setup.VARIABLE_COLUMN_NAME)['Unit']
         self.mapping = pd.DataFrame(index=self.availableSeries.index, columns =  [ self.setup.VARIABLE_COLUMN_NAME])
         self.mapping = pd.concat([self.mapping, self.availableSeries], axis=1)
         self.mapping = self.mapping.sort_index()
@@ -4619,6 +4621,11 @@ class ENERDATA(BaseImportTool):
         excludedTables['error'] = list()
         excludedTables['exists'] = list()
         
+        #fix double entries for power generation wind
+        wind_mask = self.data.entity == 'eeopd'
+        Mtoe_mask = self.data.Unit == 'Mtoe'        
+        mask = wind_mask & Mtoe_mask
+        self.data = self.data.drop(self.data.index[mask])
 
         for variable in list(self.mapping['entity'].keys()):
 #            metaDf = self.mapping.loc[variable]
@@ -4632,7 +4639,8 @@ class ENERDATA(BaseImportTool):
                                              'category':self.mapping['category'][variable],
                                              'scenario' : 'Historic',
                                              'source' : self.setup.SOURCE_ID,
-                                             'unit' : self.mapping['unit'][variable]})
+                                             'unit' : self.mapping['unit'][variable],
+                                             'original code' : variable})
             table.index = tempMoScVar.region
 #                    table.meta['category'] = ""
 #                    table.meta['source'] = 
