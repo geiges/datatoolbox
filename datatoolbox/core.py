@@ -44,13 +44,11 @@ except pint.errors.DefinitionSyntaxError:
     
 import pint
 
-#%% optional support xarray
-
-if config.AVAILABLE_XARRAY:
-    from .tools import xarray as _xr
-    to_XDataSet = _xr.to_XDataSet
-    to_XDataArray = _xr.to_XDataArray
-    
+# 
+#     from .tools import xarray as _xr
+#     to_XDataSet = _xr.to_XDataSet
+#     to_XDataArray = _xr.to_XDataArray
+if config.AVAILABLE_XARRAY:   
     import pint_xarray
     pint_xarray.accessors.setup_registry(ur)
     pint_xarray.unit_registry = ur

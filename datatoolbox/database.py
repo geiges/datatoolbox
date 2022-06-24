@@ -102,7 +102,7 @@ class Database():
         
         self.gitManager = GitRepository_Manager(config)
         self.INVENTORY_PATH = os.path.join(self.path, 'inventory.csv')
-        self.inventory = pd.read_csv(self.INVENTORY_PATH, index_col=0, dtype={'source_year': str})
+        self.inventory = pd.read_csv(self.INVENTORY_PATH, index_col=0, dtype={'source_year': str},low_memory=False)
         self.sources   = self.gitManager.sources
         
         #self.gitManager._validateRepository('main')

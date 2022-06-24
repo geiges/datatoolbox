@@ -71,6 +71,8 @@ from . import admin as admin
 from . import templates
 from . import converters
 # from . import utilities as _util 
+#%% optional support xarray
+
 
 from . import data_readers
 

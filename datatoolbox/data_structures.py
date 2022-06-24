@@ -20,6 +20,7 @@ from . import config
 import traceback
 from . import util
 import os
+from . import tools
        
 class Datatable(pd.DataFrame):
     """
@@ -66,8 +67,9 @@ class Datatable(pd.DataFrame):
         self.columns.name = config.DATATABLE_COLUMN_NAME
         self.index.name   = config.DATATABLE_INDEX_NAME
         
-        # print(self.meta)
-        if ('_timeformat' in self.meta.keys()) and (self.meta['_timeformat'] != '%Y'):
+        #print(self.meta)
+        if ('_timeformat' in self.meta.keys()) and (self.meta['_timeformat'] != '%Y'
+                                                    and self.meta['_timeformat'] != 'Y'):
             self.columns_to_datetime()
 
         self.attrs = self.meta
@@ -1360,7 +1362,7 @@ class TableSet(dict):
         
         if not config.AVAILABLE_XARRAY:
             raise(BaseException('module xarray not available'))
-        return core.to_XDataArray(self, dimensions)
+        return tools.xarray.to_XDataArray(self, dimensions)
        
     def to_xset(self, dimensions = ['region', 'time']):
         """
@@ -1380,7 +1382,7 @@ class TableSet(dict):
         dimensions = ['region', 'time']
         if not config.AVAILABLE_XARRAY:
             raise(BaseException('module xarray not available'))
-        return core.to_XDataSet(self, dimensions)
+        return tools.xarray.to_XDataSet(self, dimensions)
     
     def to_list(self):
         """
@@ -1758,6 +1760,8 @@ def read_csv(fileName, native_regions=False):
     if 'timeformat' in meta.keys():
          meta['_timeformat'] = meta['timeformat']
          del meta['timeformat']
+    # if meta['_timeformat'] == 'Y':
+    #     meta['_timeformat'] = '%Y'
     # print(meta) 
     
     df = pd.read_csv(fid)
@@ -1778,7 +1782,8 @@ def read_csv(fileName, native_regions=False):
     fid.close()
     df = Datatable(df, meta=meta)
     
-    if ('_timeformat' in meta.keys()) and (meta['_timeformat'] != '%Y'):
+    if ('_timeformat' in meta.keys()) and (meta['_timeformat'] != '%Y'
+                                           and meta['_timeformat'] != 'Y'):
         df.columns_to_datetime()
     else:
         df.columns = df.columns.astype(int)
@@ -2057,6 +2062,15 @@ class DataSet(xr.Dataset):
     Very simple class to allow initialization of xarray datasets from pyam, wide pandas dataframes 
     and datatoolbox queries.
     """
+    __slots__ = (
+        '_attrs',
+         '_cache',
+         '_coord_names',
+         '_dims',
+         '_encoding',
+         '_close',
+         '_indexes',
+         '_variables')
     
     @classmethod
     def from_wide_dataframe(cls, 

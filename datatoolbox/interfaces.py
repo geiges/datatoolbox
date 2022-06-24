@@ -361,9 +361,11 @@ class Excel():
         elif config.OS == 'Darwin':
             os.system('open -a "Microsoft Excel" ' + filePath )
 
+# if config.AVAILABLE_XARRAY:
+from datatoolbox.tools import xarray as _xr
 class _Xarray():
 
-    to_Xarray = core.to_XDataArray
+    to_Xarray = _xr.to_XDataArray
         
  
 #%%    

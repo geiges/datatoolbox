@@ -6,7 +6,7 @@ Created on Tue Dec 22 09:34:50 2020
 @author: ageiges
 """
 import numpy as np
-from ..util import identifyCountry
+# from ..util import identifyCountry
 from .. import mapping as mapp
 
 def addCountryNames(table, as_index=False):
@@ -23,6 +23,7 @@ def addCountryNames(table, as_index=False):
     return table
 
 def convertIndexToISO(table, iso_type='alpha3'):
+    from datatoolbox.util import identifyCountry
     """
     Convert index of a dataframe into iso codes.
 

@@ -780,7 +780,7 @@ class IEA_CO2_FUEL_DETAILED(BaseImportTool):
                 for key in [ 'unit', 'unitTo']:
                     metaDict[key] = self.mapping['FLOW (kt of CO2)'].loc[flow,key]
                 
-                print(metaDict)
+                #print(metaDict)
                 tableID = dt.core._createDatabaseID(dt.core._update_meta(metaDict))
                 #print(tableID)
                 if not updateTables:
