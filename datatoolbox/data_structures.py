@@ -870,9 +870,9 @@ class TableSet(dict):
             except:
 #                print('Could not generate ID, key used instead')
                 datatable.ID = key
-        self.inventory.loc[datatable.ID] = None
-        self.inventory.loc[datatable.ID, "key"] = key
-        self.inventory.loc[datatable.ID, config.INVENTORY_FIELDS] = [datatable.meta.get(x,None) for x in config.INVENTORY_FIELDS]
+
+        data = [key] + [datatable.meta.get(x, None) for x in config.INVENTORY_FIELDS]
+        self.inventory.loc[datatable.ID] = data
     
         
         
