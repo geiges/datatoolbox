@@ -390,14 +390,23 @@ def to_tableset(data, additional_meta = dict()):
     
     elif isinstance(data, pyam.IamDataFrame):
         
-        wdf = idf.timeseries().reset_index()
+        wdf = data.timeseries().reset_index()
         idx_cols = ['variable','model', 'scenario', 'unit']
         wdf = wdf.set_index(idx_cols)
-        tables = dt.Tableset()
+        tables = dt.TableSet()
         for idx, df in tqdm(wdf.groupby(idx_cols)):
             meta = {key: value for key, value in zip(idx_cols, idx)}
             meta = dt.core._split_variable(meta)
             meta.update(additional_meta)
+            
+            year_columns = dt.util.yearsColumnsOnly(df.columns)
+            remaining_cols = df.columns.difference(set(year_columns + ['region']))
+            for col in remaining_cols:
+                 if len(df[col].unique()) ==1 and(isinstance(df.loc[df.index[0], col], (str, float, int))):
+                     meta[col] = df.loc[df.index[0], col]
+                 else:
+                     print(f'Warning addition column information in {col} will be dropped')
+            df = df.drop(remaining_cols,axis=1)
             try:
                 dt.core.ur(meta['unit'])
             except:
@@ -406,7 +415,7 @@ def to_tableset(data, additional_meta = dict()):
             table = dt.Datatable(df.set_index('region'), meta = meta).clean()
             tables.add(table)
     
-    
+        return tables
     else:
         raise(Exception(f'{type(data)} is not implemented'))
        
@@ -431,7 +440,9 @@ def to_xdataset(data,
     
      if isinstance(data, pyam.IamDataFrame):
         
-         ds = dt.data_structures.DataSet(data)
+         ds = dt.data_structures.DataSet.from_pyam(data,
+                                                   dimensions,
+                                                   stacked_dims)
     
      return ds
         
