@@ -149,9 +149,9 @@ def compute_ghg_emissions(idf,
     
     org_timeseries = idf.timeseries()
     ghg_data = (idf.filter(variable=variables).
-                convert_unit('Mt CH4/yr', 'Mt CO2-equiv/yr', factor =25).
-                convert_unit('kt N2O/yr', 'Mt CO2-equiv/yr', factor =0.298).
-                convert_unit('Mt CO2/yr', 'Mt CO2-equiv/yr', factor =1)
+                convert_unit('Mt CH4/yr', 'Mt CO2-equiv/yr', context = 'AR4GWP100').
+                convert_unit('kt N2O/yr', 'Mt CO2-equiv/yr', context = 'AR4GWP100').
+                convert_unit('Mt CO2/yr', 'Mt CO2-equiv/yr', context = 'AR4GWP100')
         )
     
     if append:
