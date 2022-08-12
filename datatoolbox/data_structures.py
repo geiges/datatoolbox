@@ -315,7 +315,6 @@ class Datatable(pd.DataFrame):
             reduced_data.loc[coISO, idx_min] = self.loc[coISO,idx_min]
             reduced_data.loc[coISO, idx_max] = self.loc[coISO,idx_max]
             
-            #%%
         return reduced_data
     
     def to_excel(self, fileName = None, sheetName = "Sheet0", writer = None, append=False):
@@ -2102,11 +2101,11 @@ class DataSet(xr.Dataset):
         
         if meta_dims is not None:
             meta = data.meta.loc[:,meta_dims]
-            data, stacked_dims = _add_meta(data, meta, stacked_dims)
+            # data, stacked_dims = _add_meta(data, meta, stacked_dims)
         else:
             meta = None
-        data = data.timeseries()
-        #data = _add_required_meta(data, meta, stacked_dims)
+        data = data.timeseries().reset_index()
+        data = _add_required_meta(data, meta, stacked_dims)
         
         return cls.from_wide_dataframe(data, meta, stacked_dims)
         

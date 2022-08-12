@@ -68,7 +68,7 @@ def get_dimensions(table_iterable, dimensions):
     return dims
 
 
-#%%
+
     
 def to_XDataSet(tableSet, dimensions=['region', 'time']):
     """
@@ -101,7 +101,7 @@ def to_XDataSet(tableSet, dimensions=['region', 'time']):
     return dSet
     
 def to_XDataArray(tableSet, dimensions = ['region', 'time', 'pathway']):
-    #%%
+
 #    dimensions = ['region', 'time', 'scenario', 'model']
     
 #    metaDict = dict()
@@ -211,7 +211,7 @@ def _to_xarray(tables, dimensions, stacked_dims):
     xData = xData.pint.quantify(metaCollection['unit']).assign_coords(labels)
     xData.attrs = metaCollection
     
-    #%%
+
     return xData
 
 def key_set_to_xdataset(dict_of_data,

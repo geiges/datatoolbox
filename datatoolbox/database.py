@@ -1119,16 +1119,16 @@ class Database():
                             meta_list = ['variable', 'region','scenario', 'model', 'source', 'unit']):
     
     
-        tables = [self.getTable(x) for x in query.index]
+        tables = [self.getTable(x, native_regions = native_regions) for x in query.index]
         final_tables = list()
         for table in tables:
             if table.empty:
                 continue
             
-            if native_regions:
-                table = table.reset_index('standard_region',drop=True)
-            else:
-                table = table.reset_index('region',drop=True)
+            # if native_regions:
+            #     table = table.reset_index('standard_region',drop=True)
+            # else:
+            #     table = table.reset_index('region',drop=True)
                 
             inp_dict = dict()    
             for metaKey in meta_list:
@@ -1147,6 +1147,7 @@ class Database():
         id_cols = pd.Index(meta_list)
         long_df = long_df[list(id_cols) + list( long_df.columns.difference(id_cols))]
         long_df = pd.DataFrame(long_df)
+        long_df = long_df.set_index(list(id_cols))
         return long_df       
 #%%
 class GitRepository_Manager:

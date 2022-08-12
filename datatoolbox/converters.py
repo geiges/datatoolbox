@@ -10,7 +10,7 @@ import pandas as pd
 import xarray as xr
 import pyam
 from tqdm import tqdm
-from . import config
+from datatoolbox import config
 from time import time
 import datatoolbox as dt
 # %% private functions
@@ -285,7 +285,11 @@ def _xDataSet_to_wide_dataframe(xds):
 
 def _xDataArray_to_wide_df(xarr):
     df = xarr.to_dataframe()
-    level = list(df.index.names).index('year')
+    #find name of time column
+    for time_col in    ['time', 'year']:
+        if time_col in df.index.names:
+            break
+    level = list(df.index.names).index(time_col)
     wdf = df.unstack(level=level)
     wdf['variable'] = xarr.name
     wdf['unit']  = str(xarr.pint.units)
@@ -313,10 +317,21 @@ def to_pyam(data):
         wdf = _xDataSet_to_wide_dataframe(data)
         return pyam.IamDataFrame(wdf)
     
-    if isinstance(data, xr.DataArray):
+    elif isinstance(data, xr.DataArray):
         wdf = _xDataArray_to_wide_df(data)
         return pyam.IamDataFrame(wdf)
     
+    elif isinstance(data, dt.TableSet):
+        xds = _key_set_to_xdataset(data)
+        wdf = _xDataSet_to_wide_dataframe(xds)
+        
+        #ugly fix #TODO
+        if 'region' not in wdf.index.names:
+            if None in wdf.index.names:
+                new_names = [x if x is not None else 'region' for x in wdf.index.names ]
+                wdf.index = wdf.index.set_names(new_names)
+        return pyam.IamDataFrame(wdf)
+        
     else:
         raise(Exception(f'{type(data)} is not implemented'))
         
@@ -428,6 +443,7 @@ def to_xdataset(data,
     
      if isinstance(data, pd.DataFrame):
          # wide dataframe
+         data = data.reset_index()
          for dim in dimensions:
              if dim not in data.columns:
                  print(f'Dimension {dim} not found in index names')
@@ -440,10 +456,11 @@ def to_xdataset(data,
     
      if isinstance(data, pyam.IamDataFrame):
         
-         ds = dt.data_structures.DataSet.from_pyam(data,
-                                                   dimensions,
-                                                   stacked_dims)
-    
+         # ds = dt.data_structures.DataSet.from_pyam(data,
+         #                                           dimensions,
+         #                                           stacked_dims)
+         wdf = data.timeseries()
+         ds  = to_xdataset(wdf)
      return ds
         
  
