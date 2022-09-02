@@ -4770,7 +4770,8 @@ class IIASA(BaseImportTool):
             .replace('kt CF4-equiv/y', 'kt CF4eq/y')
             .replace('kt HFC134a-equiv/yr', 'kt HFC134aeq/yr')
             .replace('Index (2005 = 1)', 'dimensionless') # ?? TODO
-            .replace('US$2005', 'USD2005'))
+            .replace('US$2005', 'USD2005')
+            .replace('kt HFC43-10/yr', 'kt HFC43_10/yr'))
         return meta   
          
     def gatherMappedData(self,

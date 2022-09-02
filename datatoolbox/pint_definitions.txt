@@ -78,6 +78,7 @@ m3  = m * m * m
 CH4eq = [CH4 equivalent]
 CF4eq = [CF4 equivalent]
 HFC134aeq = [HFC134a equivalent]
+HFC43_10 = [HFC43_10]
 # relative
 #percent = 100 * dimensionless
 #none = dimensionless
