@@ -144,23 +144,34 @@ def pd_long_to_xarray(s, **stacked_dims):
 
 def compute_ghg_emissions(idf,
                           aggregated_variable = 'Emissions|Kyoto Gases',
-                          variables = ['Emissions|CO2', 'Emissions|CH4', 'Emissions|N2O','Emissions|F-gases'],
+                          variables = ['Emissions|CO2', 'Emissions|CH4', 'Emissions|N2O','Emissions|F-Gases'],
+                          context= 'AR4GWP100',
                           append = True):
     
+    # make sure all variables exist in data
+    for variable in variables:
+        assert variable in idf.variable
+    
+    #Check that for each variable, there is no missing value somewhere
+    if idf.filter(variable = variables).timeseries().isnull().sum().sum() != 0 :
+        
+        missing_val = pd.DataFrame(idf.filter(variable = variables).timeseries().isna().sum(axis=1))
+        print(list(missing_val.loc[missing_val[0]==1].reset_index()['model'] + missing_val.loc[missing_val[0]==1].reset_index()['scenario'] + missing_val.loc[missing_val[0]==1].reset_index()['variable']))
+    
     org_timeseries = idf.timeseries()
-    ghg_data = (idf.filter(variable=variables).
-                convert_unit('Mt CH4/yr', 'Mt CO2-equiv/yr', context = 'AR4GWP100').
-                convert_unit('kt N2O/yr', 'Mt CO2-equiv/yr', context = 'AR4GWP100').
-                convert_unit('Mt CO2/yr', 'Mt CO2-equiv/yr', context = 'AR4GWP100')
-        )
+    for unit in idf.unit:
+        idf = idf.filter(variable=variables).convert_unit(unit, 'Mt CO2eq/yr', context = context)
+               
+        
     
     if append:
-        ghg_data.aggregate(aggregated_variable, components=variables,append=True)
-        ghg_timeseries = ghg_data.timeseries()
+        idf.aggregate(aggregated_variable, components=variables,append=True)
+        ghg_timeseries = idf.timeseries()
         idx_to_add = ghg_timeseries.index.difference(org_timeseries.index)
         return pyam.IamDataFrame(org_timeseries.append(ghg_timeseries.loc[idx_to_add,:]))
     else:
-        return ghg_data.aggregate(aggregated_variable, components=variables)
+        return idf.aggregate(aggregated_variable, components=variables)
+    
 def compute_ghg_excluding_landuse(idf):
     comp_data = (idf.filter(variable =['Emissions|Kyoto Gases', 'Emissions|CO2|Land Use']).
            convert_unit('Mt CO2/yr', 'Mt CO2eq/yr', factor =1).
