@@ -1111,7 +1111,7 @@ class TableSet(dict):
         
         
     
-    #%%
+
         
     def to_compact_excel(self,
                          writer,
@@ -1325,7 +1325,7 @@ class TableSet(dict):
         None.
 
         """
-        #%%
+
 
         long, metaDict = self._compact_to_long_format()
         
@@ -1333,7 +1333,7 @@ class TableSet(dict):
                         long,
                         metaDict,
                         index=None)
-    #%%           
+        
     def to_xarray(self, dimensions=None):
         """
         Convert tableset to and xarray with the given dimenions.
@@ -1975,6 +1975,7 @@ class MetaData(dict):
         super(MetaData, self).__setitem__('variable', '|'.join([self[key] for key in ['entity', 'category'] if key in self.keys()]))
         super(MetaData, self).__setitem__('pathway', '|'.join([self[key] for key in ['scenario', 'model'] if key in self.keys()]))
         super(MetaData, self).__setitem__('source', '_'.join([self[key] for key in ['institution', 'year'] if key in self.keys()]))
+   
         
 #%% Test     
 def _add_required_meta(data, meta, stacked_dims):
@@ -2104,8 +2105,9 @@ class DataSet(xr.Dataset):
             # data, stacked_dims = _add_meta(data, meta, stacked_dims)
         else:
             meta = None
-        data = data.timeseries().reset_index()
-        data = _add_required_meta(data, meta, stacked_dims)
+        data = data.timeseries()
+        if meta_dims is not None:
+            data = _add_required_meta(data, meta, stacked_dims)
         
         return cls.from_wide_dataframe(data, meta, stacked_dims)
         

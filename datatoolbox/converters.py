@@ -209,7 +209,6 @@ def _key_set_to_xdataset(dict_of_data,
     matches : xarray.Dataset + pint quantification
     """    
     
-    dim_to_sort = 'variable'
     sort_dict = dict()
     for key, table in dict_of_data.items():
         
@@ -321,7 +320,7 @@ def to_pyam(data):
         wdf = _xDataArray_to_wide_df(data)
         return pyam.IamDataFrame(wdf)
     
-    elif isinstance(data, dt.TableSet):
+    elif isinstance(data, (dict, dt.TableSet)):
         xds = _key_set_to_xdataset(data)
         wdf = _xDataSet_to_wide_dataframe(xds)
         
