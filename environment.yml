@@ -24,6 +24,7 @@ dependencies:
 - black
 - pylint
 - pip
+- xlsxwriter
 - pip:
   - hdx-python-country
   - -e .
