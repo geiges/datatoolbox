@@ -1135,11 +1135,7 @@ class Database():
                 raise AssertionError(f"meta of {table.ID} does not contain {exc.args[0]}")
         long_df = pd.concat(final_tables, ignore_index=True, sort=False)
         
-        # move id columns to the front
-        id_cols = pd.Index(meta_list)
-        long_df = long_df[list(id_cols) + list( long_df.columns.difference(id_cols))]
-        long_df = pd.DataFrame(long_df)
-        long_df = long_df.set_index(list(id_cols))
+        long_df = long_df.set_index(meta_list)
         return long_df       
 #%%
 class GitRepository_Manager:

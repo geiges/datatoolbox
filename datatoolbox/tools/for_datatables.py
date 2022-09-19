@@ -59,7 +59,7 @@ def aggregate_region(table, mapping, skipna=False):
         missingCountryDict[region] = list(missingCountries)
         availableCountries = set(mapping[region]).intersection(table.index)
         if len(availableCountries) >0:
-            table.loc[region,:] = table.loc[availableCountries,:].sum(axis=0, skipna=skipna)
+            table.loc[region,:] = table.loc[list(availableCountries),:].sum(axis=0, skipna=skipna)
 
     return table, missingCountryDict
 

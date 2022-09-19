@@ -2116,7 +2116,7 @@ class DataSet(xr.Dataset):
                    query,
                    stacked_dims = {'pathway' : ("model", "scenario")}):
         dimensions = ['model', 'scenario', 'region', 'variable', 'source', 'unit']
-        data = query.as_wide_dataframe(meta_list = dimensions).set_index(dimensions)
+        data = query.as_wide_dataframe(meta_list = dimensions)
         
         return cls.from_wide_dataframe(data, meta = None, stacked_dims = stacked_dims)
     
