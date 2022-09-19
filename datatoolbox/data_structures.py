@@ -1737,7 +1737,7 @@ def read_csv(fileName, native_regions=False):
 
     """
     
-    fid = open(fileName,'r', encoding='utf-8')
+    fid = open(fileName,'r', encoding='UTF-8')
     
     assert (fid.readline()) == config.META_DECLARATION
     #print(nMetaData)
