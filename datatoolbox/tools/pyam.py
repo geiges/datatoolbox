@@ -9,6 +9,7 @@ import pyam
 import pandas as pd
 import xarray as xr
 from .. import util
+import tqdm
 
 def _filter(data, level=None, regex=False, **filters):
     # filter by columns and list of values
@@ -50,9 +51,15 @@ def read_partial(filename, **filters):
     pyam.IamDataframe
 
     """
-    df = pd.read_csv(filename)
-    df = _filter(df, **filters)
-    idf = pyam.IamDataFrame(df)
+    dfs = list()
+    for df in tqdm.tqdm(pd.read_csv(filename, chunksize=100000)):
+        
+        df_filtered = _filter(df, **filters)
+        
+        dfs.append(df_filtered)
+    
+    df_full = pd.concat(dfs)
+    idf = pyam.IamDataFrame(df_full)
     
     return idf
 
