@@ -86,6 +86,7 @@ from .tools import matplotlib as plt
 from .tools import xarray as xr
 from .tools import excel as xls
 
+isin = tools.pandas.isin
 # unit conversion package
 unitReg = core.ur
 
