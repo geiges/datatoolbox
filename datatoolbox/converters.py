@@ -13,6 +13,7 @@ from tqdm import tqdm
 from datatoolbox import config
 from time import time
 import datatoolbox as dt
+
 # %% private functions
 def _get_dimension_indices(table, dimensions):
     
@@ -263,7 +264,7 @@ def to_dataset(data_dict,
     
     pass
 
-#%%
+
 def _xDataSet_to_wide_dataframe(xds):
     merge_list = list()
     dims = list(xds.coords)
@@ -428,13 +429,82 @@ def to_tableset(data, additional_meta = dict()):
                 continue
             table = dt.Datatable(df.set_index('region'), meta = meta).clean()
             tables.add(table)
-    
+            
         return tables
     else:
         raise(Exception(f'{type(data)} is not implemented'))
        
-     
-       
+def _get_stacked_levels(index, st_dim, sub_dims):
+    df = index.to_frame()
+    # for st_dim, sub_dims in stacked_dims.items():
+    df[st_dim] = df.loc[:,sub_dims].agg('__'.join, axis=1)
+    df  = df.set_index([st_dim] + list(sub_dims))
+    return df.index.codes[0],df.index.levels[0]
+
+def idf_to_xdset(idf, stacked_dims = {'pathway': ('model', 'scenario')}):
+    
+    df_ = idf._data.unstack(level=['variable', 'unit'])
+    # df_.drop([])
+    coords_flatten = []
+    coords_flatten = sum( [list(x) for x in stacked_dims.values()],[])
+    coords = {x: sorted(list(df_.index.get_level_values(level=x))) for x in coords_flatten}
+    coords['pathway'] = list(range(len(df_.index)))
+    sub_labels = list()
+    labels = dict()
+    
+    new_index_names = set(df_.index.names)
+    cols_to_drop = list()
+    for st_dim, sub_dims in stacked_dims.items():
+        coords[st_dim] = range(len(df_.index))
+        sub_labels = list()
+        new_index_names = new_index_names.difference(sub_dims).union([st_dim])
+        cols_to_drop.extend(sub_dims)
+        # codes, levels = _get_stacked_levels(df_.index, st_dim, sub_dims)
+        index, labels = _pack_dimensions(df_.index, **stacked_dims)
+        
+        for i, name  in enumerate(index.names):
+            if name == st_dim:
+                break
+    
+        df_[st_dim] = index.codes[i]
+        for i_dim, sub_dim in enumerate(sub_dims):
+            
+            sub_labels.append(pd.Index(coords[sub_dim], name=sub_dim))
+        # labels[st_dim]  = levels
+        # del coords[sub_dims]
+    df_ = df_.reset_index().set_index(list(new_index_names))
+    df_ = df_.drop(cols_to_drop, axis = 1)
+    ds = xr.Dataset.from_dataframe(df_)
+    
+    # ds = dt.DataSet.from_pyam(idf_dt)
+    xds = list()
+    
+
+    def adapt_units(unit):
+        unit = (unit
+            .replace('ktU', 'kt U')
+            .replace('Mt CO2-equiv/yr', 'Mt CO2eq/yr')
+            .replace('kt CF4-equiv/y', 'kt CF4eq/y')
+            .replace('kt HFC134a-equiv/yr', 'kt HFC134aeq/yr')
+            .replace('Index (2005 = 1)', 'dimensionless') # ?? TODO
+            .replace('US$', 'USD')
+            .replace('kt HFC43-10/yr', 'kt HFC43_10/yr')
+            .replace('m2', 'm**2'))
+        return unit
+        
+    for variable, unit in ds.keys():
+        xData = ds[variable, unit]
+        xData = xData.pint.quantify(adapt_units(unit))
+        xData.name = variable
+        xds.append(xData)
+    ds = xr.merge(xds)
+    sub_dims = ['model', 'scenario']
+    # sub_lables = [pd.Index(pd.Index(ds[coord]), name=coord) for coord in sub_dims]
+    # labels = {'pathway' : pd.MultiIndex.from_arrays(sub_labels, names = sub_dims)}
+    ds = ds.assign_coords(labels)    
+                          
+    return ds
+
 def to_xdataset(data, 
                 dimensions = ['model', 'scenario', 'region', 'time'],
                 stacked_dims = {'pathway': ('model', 'scenario')}):
@@ -452,18 +522,35 @@ def to_xdataset(data,
          data = to_tableset(data)
          
          ds = _key_set_to_xdataset(data)
-    
-     if isinstance(data, pyam.IamDataFrame):
+         return ds
+     elif isinstance(data, dt.TableSet):
+         ds = _key_set_to_xdataset(data)
+         return ds 
+     elif isinstance(data, pyam.IamDataFrame):
         
          # ds = dt.data_structures.DataSet.from_pyam(data,
          #                                           dimensions,
          #                                           stacked_dims)
-         wdf = data.timeseries()
-         ds  = to_xdataset(wdf)
-     return ds
+         # wdf = data.timeseries()
+         # ds  = to_xdataset(wdf)
+         ds = idf_to_xdset(data, stacked_dims)
+         return ds
+     
+     else:
+         raise(Exception(f'Data type {type(data)} conversion not implemented'))
         
  
-    #%%
+#%%
+# idf = dt.findp(source='IPCC_AR6', variable = 'Secondary Energy|Heat|Geothermal').as_pyam()
+# #%%
+# tt = time()
+# ds1 = idf_to_xdset(idf, stacked_dims={'pathway': ('model', 'scenario')})
+# print(time()-tt)
+
+# tt = time()
+# ds2 = to_xdataset(idf, stacked_dims={'pathway': ('model', 'scenario')})
+# print(time()-tt)
+    
     
     #%%
 if __name__ == '__main__':

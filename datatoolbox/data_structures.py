@@ -7,7 +7,6 @@ based data sets.
 Datatables are based on pandas dataframes and enfore regions as index
 and years as columns. It uses meta data and provides full unit handling
 by any computations using datatables.
-
 """
 
 import pandas as pd
