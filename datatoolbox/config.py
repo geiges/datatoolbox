@@ -169,6 +169,14 @@ logTables = False
 
 DATASHELF_REMOTE  = 'git@gitlab.com:climateanalytics/datashelf/'
 DATASHELF_REMOTE_HTTPS = 'https://gitlab.com/climateanalytics/datashelf/'
+
+
+def get_personal():
+    personal_path = os.path.join(CONFIG_DIR, 'personal.py')
+    import sys
+    sys.path.append(personal_path)
+    import personal
+    return personal
 #### FUNCTION TESTS ########
 if __name__ == '__main__':
     pass

@@ -7,7 +7,7 @@ Created on Wed Feb 17 11:07:40 2021
 """
 import os
 import shutil
-
+import config
 
 #%% patch 0.5
 
@@ -85,7 +85,7 @@ def patch_050_source_tracking(personal):
     fout.write(outLine)
     fout.close()
     
-    personal.last_checked_remote = None
+    config.last_checked_remote = None
     
     #%% adapt dataself
     # datashelf_path = personal.PATH_TO_DATASHELF
