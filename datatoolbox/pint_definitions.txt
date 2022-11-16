@@ -68,16 +68,16 @@ tkm = tonnes *km
 
 # energy related
 oe = 41.868 * 1e6 * J / kg = oil_equivalent
-kg oil_equivalent =  41.868 *1e6* J
+#kg oil_equivalent =  41.868 *1e6* J
 
 km3 = km * km * km
 m3  = m * m * m
  
 #NF3 = NF3
 #NO2 = 265 * CO2eq
-CH4eq = [CH4 equivalent]
-CF4eq = [CF4 equivalent]
-HFC134aeq = [HFC134a equivalent]
+CH4eq = [CH4_equivalent]
+CF4eq = [CF4_equivalent]
+HFC134aeq = [HFC134a_equivalent]
 HFC43_10 = [HFC43_10]
 # relative
 #percent = 100 * dimensionless

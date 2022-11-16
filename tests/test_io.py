@@ -45,7 +45,7 @@ def test_datatable_excel_io():
         exp = df
         npt.assert_array_almost_equal(obs, exp, decimal = 6)
         
-        # os.remove(filePath)
+        os.remove(filePath)
 
 if __name__== '__main__':
     test_datatable__csv_io()
