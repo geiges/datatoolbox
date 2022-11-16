@@ -21,31 +21,16 @@ Authors: Andreas Geiges
 from .version import version as __version__
 
 
-# %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+#%% PATCHES
+
 try:
-    # Version 0.4.5 patch of personal config
     from .settings import personal
-    if not hasattr(personal, 'AUTOLOAD_SOURCES'):
-        
-        from .patches import patch_045_update_personal_config
-        
-        personal = patch_045_update_personal_config(personal)
-        
-    # Version path 0.4.7
-    
-    
+    if not hasattr(personal, 'last_checked_remote'):
+        from .patches import patch_050_source_tracking
+        personal = patch_050_source_tracking(personal)
 except:
-    pass
-
-try:
-    from .patches import patch_047_move_config_file
-    patch_047_move_config_file()
-except:
-    pass
+    raise(Exception('failed to apply 0.5 version patch'))
 # %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-    
-
-
 
 import os
 import deprecated as _deprecated

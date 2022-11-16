@@ -10,3 +10,4 @@ PATH_TO_DATASHELF = r'/PPP/PPP'
 DB_READ_ONLY = True
 DEBUG = False
 AUTOLOAD_SOURCES = True
+last_checked_remote = None
