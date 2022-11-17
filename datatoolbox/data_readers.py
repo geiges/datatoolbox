@@ -5499,6 +5499,7 @@ class IIASA(BaseImportTool):
         self.region_mapping['IPCC_AR5'] = mapping.IPCC_AR5().region_mapping()
 
         self.region_mapping['IPCC_AR6'] = mapping.IPCC_AR6().region_mapping()
+        self.region_mapping['IPCC_AR6_raw'] = mapping.IPCC_AR6().region_mapping()
 
         self.region_mapping['ngfs_2'] = mapping.NGFS().region_mapping()
 
@@ -5512,7 +5513,7 @@ class IIASA(BaseImportTool):
             .replace('kt CF4-equiv/y', 'kt CF4eq/y')
             .replace('kt HFC134a-equiv/yr', 'kt HFC134aeq/yr')
             .replace('Index (2005 = 1)', 'dimensionless')  # ?? TODO
-            .replace('US$2005', 'USD2005')
+            .replace('US$', 'USD')
             .replace('kt HFC43-10/yr', 'kt HFC43_10/yr')
         )
         return meta
@@ -5526,27 +5527,45 @@ class IIASA(BaseImportTool):
             if not self.api:
                 # load data
                 self.loadData()
-
-        if models is None:
-
-            if self.api:
-                models = self.meta.index.get_level_values(0).unique()
-            else:
-                models = self.data.model
-
-        for model in tqdm(models, desc='Loop over models'):
-
-            if self.api:
-                idf = self.conn.query(**iamc_filter, model=model)
-            else:
-                idf = self.data.filter(**iamc_filter, model=model)
-            self.idf = idf
-            if len(idf) == 0:
-                continue
-
-            tables, tables_excluded = self._read_idf_data(
-                idf, model, tables, tables_excluded
-            )
+        
+        if 'model' not in iamc_filter.keys():
+            
+            
+            if models is None:
+    
+                if self.api:
+                    models = self.meta.index.get_level_values(0).unique()
+                else:
+                    models = self.data.model
+    
+            for model in tqdm(models, desc='Loop over models'):
+    
+                if self.api:
+                    idf = self.conn.query(**iamc_filter, model=model)
+                else:
+                    idf = self.data.filter(**iamc_filter, model=model)
+                self.idf = idf
+                if len(idf) == 0:
+                    continue
+    
+                tables, tables_excluded = self._read_idf_data(
+                    idf, model, tables, tables_excluded
+                )
+        else:
+           if self.api:
+               idf = self.conn.query(**iamc_filter)
+           else:
+               idf = self.data.filter(**iamc_filter)
+           self.idf = idf
+           
+   
+           for model in idf.model: 
+               idf_sel = idf.filter(model=model)
+               if len(idf_sel) == 0:
+                   continue
+               tables, tables_excluded = self._read_idf_data(
+                   idf_sel, model, tables, tables_excluded)
+                
 
         return tables, tables_excluded
 
