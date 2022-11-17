@@ -390,6 +390,8 @@ class Database:
                     continue
                 remote_tag = remote_sources_df.loc[sourceID, 'tag']
                 local_tag = self.sources.loc[sourceID, 'tag']
+                if not isinstance(local_tag, str):
+                    continue
 
                 if float(remote_tag[1:]) > float(local_tag[1:]):
                     sources_with_update.loc[sourceID] = local_tag, remote_tag
@@ -1352,6 +1354,20 @@ class GitRepository_Manager:
         with open(filepath, 'w') as f:
             f.write(core.getTimeString())
 
+    def _update_local_sources_tag(self, repoName):
+        repo = self.repositories[repoName]
+        # repo.index.add(self.filesToAdd[repoID])
+        # commit = repo.index.commit(message + " by " + config.CRUNCHER)
+        # self.sources.loc[repoID, 'git_commit_hash'] = commit.hexsha
+        tag = self.get_tag_of_source(repoName)
+        self.sources.loc[repoName, 'tag'] = tag
+        # del self.filesToAdd[repoID]
+    
+        # commit main repository
+        # self.sources.to_csv(config.SOURCE_FILE)
+        # self.gitAddFile('main', config.SOURCE_FILE)
+        self.commit('Update tags of sources')
+
     def _update_remote_sources(self, repoName):
 
         dpath = os.path.join(
@@ -1516,6 +1532,8 @@ class GitRepository_Manager:
             repo.index.add(self.filesToAdd[repoID])
             commit = repo.index.commit(message + " by " + config.CRUNCHER)
             self.sources.loc[repoID, 'git_commit_hash'] = commit.hexsha
+            tag = self.get_tag_of_source(repoID)
+            self.sources.loc[repoID, 'git_commit_hash'] = tag
             del self.filesToAdd[repoID]
 
         # commit main repository
@@ -1591,8 +1609,14 @@ class GitRepository_Manager:
 
         """
         remote_repo = self._pull_remote_sources()
-
+        repo = self[repoName]
+        if "Your branch is up to date with 'origin/master'" in repo.git.execute(["git", "status"]):
+            print ('Nothing to push')
+            print(repo.git.execute(["git", "status"]))
+            return 
+        
         self._update_remote_sources(repoName)
+        self._update_local_sources_tag(repoName)
 
         # if repoName not in rem_sources.index:
         remote_repo.remotes.origin.push(progress=TqdmProgressPrinter())
