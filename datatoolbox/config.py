@@ -77,6 +77,7 @@ SOURCE_META_FIELDS = [
     'source_url',
     'licence',
     'git_commit_hash',
+    'tag'
 ]
 
 

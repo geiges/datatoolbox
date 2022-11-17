@@ -25,6 +25,7 @@ dependencies:
 - pylint
 - pip
 - xlsxwriter
+- tabulate
 - pip:
   - hdx-python-country
   - -e .
