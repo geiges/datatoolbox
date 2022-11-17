@@ -385,6 +385,9 @@ class Database:
                 columns=['local version', 'remote version']
             )
             for sourceID in remote_sources_df.index:
+                
+                if sourceID not in self.sources.index:
+                    continue
                 remote_tag = remote_sources_df.loc[sourceID, 'tag']
                 local_tag = self.sources.loc[sourceID, 'tag']
 
