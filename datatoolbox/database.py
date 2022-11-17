@@ -1608,7 +1608,7 @@ class GitRepository_Manager:
         repoPath : str - path of the repository
         """
 
-        self._clone_remote_sources()
+        self._pull_remote_sources()
         try:
             print('Try cloning source via ssh')
             url = config.DATASHELF_REMOTE + repoName + '.git'
