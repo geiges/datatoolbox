@@ -126,7 +126,7 @@ try:
 except:
     AVAILABLE_DOCX = False
     if DEBUG:
-        print('xarray not available: Use "pip install python-docx" to install')
+        print('python-docx not available: Use "pip install python-docx" to install')
 
 
 META_DECLARATION = '### META ###\n'
