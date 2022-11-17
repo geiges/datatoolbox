@@ -78,9 +78,7 @@ def unique(table, field=None):
         print(unique_data)
         
         
-#%%
-    
-        
+#%% Database
 class Database():
     """
     CSV based database that uses git for as distributed version control system.
@@ -88,6 +86,8 @@ class Database():
     The csv files are organized in various sources in individual folders. Each 
     sources comes with its own git repository and can be shared with others.
     """
+    
+    #%% magicc functions
     def __init__(self):
         """ 
         Initialized the database and creates an empty one in case the directory
@@ -131,34 +131,124 @@ class Database():
             
         # remote update checks
         self.check_for_new_remote_data()
-            
-    def check_for_new_remote_data(self, update=False):
+         
+    #%% private functions
+    
+    def _addNewSource(self, sourceMetaDict):
+        """
+        Private
+        Adds new source to the sources table 
+        """
+        source_ID = sourceMetaDict['SOURCE_ID']
         
-        if update:
-            #check for remote data
-            self.gitManager._pull_remote_sources()
+        if not self.sourceExists(source_ID):
             
-        remote_repo_path = os.path.join(
-            config.PATH_TO_DATASHELF, 
-            'remote_sources',
-            'source_states.csv')
-        
-        if not os.path.exists(remote_repo_path):
-            print('No information about remote data available')
-            print('Consider run again with update = True')
+            sourcePath = os.path.join(config.PATH_TO_DATASHELF, 'database', sourceMetaDict['SOURCE_ID'])
+            self.gitManager.init_new_repo(sourcePath, source_ID, sourceMetaDict)
             
+
         else:
-            remote_sources_df = pd.read_csv(remote_repo_path,
-                                            index_col=0)
-            for sourceID in remote_sources_df.index:
-                remote_tag= remote_sources_df.loc[sourceID,'tag']
-                local_tag = self.sources.loc[sourceID,'tag']
+            print('source already exists')
             
-                if float(remote_tag[1:]) > float(local_tag[1:]):
-                    import warnings
-                    warnings.warn(f'Warning: New version {remote_tag} available for local source {sourceID} ({local_tag})',
-                                  stacklevel=0)
-                    
+    def _addTable(self, datatable):
+        """
+        Private
+        Pools functionality to add table to the database
+        """
+        
+        # ID = datatable.generateTableID()
+        source = datatable.source()
+        datatable.meta['creator'] = config.CRUNCHER
+        sourcePath = os.path.join('database', source)
+        filePath = os.path.join(sourcePath, 'tables',  datatable.getTableFileName())
+        if (config.OS == 'win32') | (config.OS == "Windows"):
+            filePath = filePath.replace('|','___')
+        
+        if 'standard_region' in datatable.columns or 'region' in datatable.columns:
+            datatable = datatable.reset_index().set_index(['region', 'standard_region'])
+            datatable.columns = datatable.columns.astype(int)
+        
+        datatable = util.cleanDataTable(datatable)
+        datatable = datatable.sort_index(axis='index')
+        datatable = datatable.sort_index(axis='columns')
+        
+        
+        
+        self.isConsistentTable(datatable)
+        
+    
+        self._gitAddTable(datatable, source, filePath)
+
+    def _checkTablesOnDisk(self, sourceID=None):
+        notExistingTables = list()
+        
+        if sourceID is None:
+            table_list = self.inventory.index
+        else:
+            table_list = self.inventory.index[self.inventory.source == sourceID]
+        
+        for tableID in self.inventory.index:
+            filePath = self._getTableFilePath(tableID)
+            if not os.path.exists(filePath):
+                notExistingTables.append(tableID)
+        
+        return notExistingTables
+         
+    def _gitAddTable(self, datatable, source, filePath):
+        """
+        Private
+        Added file to git system
+        """
+        datatable.to_csv(os.path.join(config.PATH_TO_DATASHELF, filePath))
+        ID = datatable.ID
+        self.gitManager.gitAddFile(source, os.path.join('tables', core.generate_table_file_name(ID)))
+        
+    def _gitCommit(self, message):
+        """
+        Private
+        Commits all changes to git
+        """
+        self.inventory.to_csv(self.INVENTORY_PATH)
+        self.gitManager.gitAddFile('main',self.INVENTORY_PATH)
+
+        for sourceID in self.gitManager.updatedRepos:
+            if sourceID == 'main':
+                continue
+            repoPath = os.path.join(config.PATH_TO_DATASHELF, 'database', sourceID)
+            sourceInventory = self.inventory.loc[self.inventory.source==sourceID,:]
+            sourceInventory.to_csv(os.path.join(repoPath, 'source_inventory.csv'))
+            self.gitManager.gitAddFile(sourceID, os.path.join(repoPath, 'source_inventory.csv'))  
+        self.gitManager.commit(message)
+            
+
+
+
+    def _getSourceFromID(self, tableID):
+        """
+        Private
+        Returns the source of a given table
+        """
+        return tableID.split(config.ID_SEPARATOR)[-1]
+        
+    def _getTableFilePath(self,ID):
+        """
+        Private
+        Return the file path for a given tableID
+        """
+        source = self.inventory.loc[ID].source
+        fileName = core.generate_table_file_name(ID)
+        return os.path.join(config.PATH_TO_DATASHELF, 'database', source, 'tables', fileName)
+
+    # def _getTableFileName(self, ID):
+    #     """
+    #     For compatibility to windows based sytems, the pipe '|' symbols is replaces
+    #     by double underscore '__' for the csv filename.
+    #     """
+    #     return ID.replace('|','-').replace('/','-') + '.csv'
+
+    def _get_source_path(self, sourceID):
+        return  os.path.join(config.PATH_TO_DATASHELF, 'database', sourceID)
+    
         
     def _load_inventory(self, pathname):
         return pd.read_csv(pathname, 
@@ -167,6 +257,66 @@ class Database():
                            low_memory=False)
         
         
+    
+    
+    def _reloadInventory(self):
+       """
+       Private
+       Reloades the inventory from the csv file
+       """
+       self.inventory = pd.read_csv(self.INVENTORY_PATH, index_col=0, dtype={'source_year': str})
+       
+    def _removeTable(self, ID):
+        """
+        Private method
+        Function to pool code for removing a table from the database
+        """
+        source = self.inventory.loc[ID, 'source']
+        tablePath = self._getTableFilePath(ID)
+        self.remove_from_inventory(ID)
+        self.gitManager.gitRemoveFile(source, tablePath)
+
+           
+           
+    def _tableExists(self, ID):
+        return ID in self.inventory.index
+       
+    def _updateTable(self, oldTableID, newDataTable):
+        """
+        Private
+        
+        Method as a common function form multiple functions
+        """
+        newDataTable = util.cleanDataTable(newDataTable)
+        
+        oldDataTable = self.getTable(oldTableID)
+        oldID = oldDataTable.meta['ID']
+        newID = newDataTable.generateTableID()
+        
+        if oldID == newID:# and (oldDataTable.meta['unit'] == newDataTable.meta['unit']):
+            #only change data
+            self._addTable( newDataTable)
+        else:
+            # delete old table
+            self.removeTable(oldID)
+            
+            # add new table
+            self._addTable( newDataTable)
+    
+            #change inventory
+            self.inventory.rename(index = {oldID: newID}, inplace = True)
+        self.add_to_inventory(newDataTable)
+        
+        
+    def _validateRepository(self, repoID='main'):
+        """
+        Private
+        Checks that a sub repository is valid. Valid means that the git repository
+        is clean and not outanding commits are there.
+        """
+        return self.gitManager._validateRepository(repoID)
+    
+    #%% public functions
     
     def create_empty_datashelf(self,
                                modulePath, 
@@ -198,16 +348,33 @@ class Database():
         inventoryDf.to_csv(datashelf / "inventory.csv")
         git.Repo.init(datashelf)
     
-
+    def check_for_new_remote_data(self, update=False):
         
-    def _validateRepository(self, repoID='main'):
-        """
-        Private
-        Checks that a sub repository is valid. Valid means that the git repository
-        is clean and not outanding commits are there.
-        """
-        return self.gitManager._validateRepository(repoID)
-    
+        if update:
+            #check for remote data
+            self.gitManager._pull_remote_sources()
+            
+        remote_repo_path = os.path.join(
+            config.PATH_TO_DATASHELF, 
+            'remote_sources',
+            'source_states.csv')
+        
+        if not os.path.exists(remote_repo_path):
+            print('No information about remote data available')
+            print('Consider run again with update = True')
+            
+        else:
+            remote_sources_df = pd.read_csv(remote_repo_path,
+                                            index_col=0)
+            for sourceID in remote_sources_df.index:
+                remote_tag= remote_sources_df.loc[sourceID,'tag']
+                local_tag = self.sources.loc[sourceID,'tag']
+            
+                if float(remote_tag[1:]) > float(local_tag[1:]):
+                    import warnings
+                    warnings.warn(f'Warning: New version {remote_tag} available for local source {sourceID} ({local_tag})',
+                                  stacklevel=0)
+                    
     def info(self):
         """
         Shows the most inmportant information about the status of the database
@@ -238,13 +405,7 @@ class Database():
         return copy.copy(self.inventory)
 
 
-    def _reloadInventory(self):
-        """
-        Private
-        Reloades the inventory from the csv file
-        """
-        self.inventory = pd.read_csv(self.INVENTORY_PATH, index_col=0, dtype={'source_year': str})
-        
+    
     def sourceExists(self, source):
         """ 
         Function to check if a source is propperly registered in the data base
@@ -362,24 +523,6 @@ class Database():
         table.to_pyam = types.MethodType(util.to_pyam, table)
         return table
     
-    def _getTableFilePath(self,ID):
-        """
-        Private
-        Return the file path for a given tableID
-        """
-        source = self.inventory.loc[ID].source
-        fileName = core.generate_table_file_name(ID)
-        return os.path.join(config.PATH_TO_DATASHELF, 'database', source, 'tables', fileName)
-
-    # def _getTableFileName(self, ID):
-    #     """
-    #     For compatibility to windows based sytems, the pipe '|' symbols is replaces
-    #     by double underscore '__' for the csv filename.
-    #     """
-    #     return ID.replace('|','-').replace('/','-') + '.csv'
-
-    def _get_source_path(self, sourceID):
-        return  os.path.join(config.PATH_TO_DATASHELF, 'database', sourceID)
     
     def getTable(self, ID, native_regions=False):
         """
@@ -740,32 +883,7 @@ class Database():
                 self.add_to_inventory(dataTable)
         self._gitCommit(message)
 
-    def _updateTable(self, oldTableID, newDataTable):
-        """
-        Private
-        
-        Method as a common function form multiple functions
-        """
-        newDataTable = util.cleanDataTable(newDataTable)
-        
-        oldDataTable = self.getTable(oldTableID)
-        oldID = oldDataTable.meta['ID']
-        newID = newDataTable.generateTableID()
-        
-        if oldID == newID:# and (oldDataTable.meta['unit'] == newDataTable.meta['unit']):
-            #only change data
-            self._addTable( newDataTable)
-        else:
-            # delete old table
-            self.removeTable(oldID)
-            
-            # add new table
-            self._addTable( newDataTable)
-
-            #change inventory
-            self.inventory.rename(index = {oldID: newID}, inplace = True)
-        self.add_to_inventory(newDataTable)
-
+    
 
     def updateTablesAvailable(self,private_access_token):
         """
@@ -918,22 +1036,7 @@ class Database():
         self._gitCommit('Table removed')
         self._reloadInventory()
 
-    def _removeTable(self, ID):
-        """
-        Private method
-        Function to pool code for removing a table from the database
-        """
-        source = self.inventory.loc[ID, 'source']
-        tablePath = self._getTableFilePath(ID)
-        self.remove_from_inventory(ID)
-#        self.gitManager[source].execute(["git", "rm", tablePath])
-        self.gitManager.gitRemoveFile(source, tablePath)
 
-        
-        
-    def _tableExists(self, ID):
-        return ID in self.inventory.index
-    
 
 
     def tableExist(self, tableID):
@@ -975,85 +1078,7 @@ class Database():
         return True
     
 
-    def _addTable(self, datatable):
-        """
-        Private
-        Pools functionality to add table to the database
-        """
-        
-        # ID = datatable.generateTableID()
-        source = datatable.source()
-        datatable.meta['creator'] = config.CRUNCHER
-        sourcePath = os.path.join('database', source)
-        filePath = os.path.join(sourcePath, 'tables',  datatable.getTableFileName())
-        if (config.OS == 'win32') | (config.OS == "Windows"):
-            filePath = filePath.replace('|','___')
-        
-        if 'standard_region' in datatable.columns or 'region' in datatable.columns:
-            datatable = datatable.reset_index().set_index(['region', 'standard_region'])
-            datatable.columns = datatable.columns.astype(int)
-        
-        datatable = util.cleanDataTable(datatable)
-        datatable = datatable.sort_index(axis='index')
-        datatable = datatable.sort_index(axis='columns')
-        
-        
-        
-        self.isConsistentTable(datatable)
-        
 
-        self._gitAddTable(datatable, source, filePath)
-
-    def _gitAddTable(self, datatable, source, filePath):
-        """
-        Private
-        Added file to git system
-        """
-        datatable.to_csv(os.path.join(config.PATH_TO_DATASHELF, filePath))
-        ID = datatable.ID
-        self.gitManager.gitAddFile(source, os.path.join('tables', core.generate_table_file_name(ID)))
-        
-    def _gitCommit(self, message):
-        """
-        Private
-        Commits all changes to git
-        """
-        self.inventory.to_csv(self.INVENTORY_PATH)
-        self.gitManager.gitAddFile('main',self.INVENTORY_PATH)
-
-        for sourceID in self.gitManager.updatedRepos:
-            if sourceID == 'main':
-                continue
-            repoPath = os.path.join(config.PATH_TO_DATASHELF, 'database', sourceID)
-            sourceInventory = self.inventory.loc[self.inventory.source==sourceID,:]
-            sourceInventory.to_csv(os.path.join(repoPath, 'source_inventory.csv'))
-            self.gitManager.gitAddFile(sourceID, os.path.join(repoPath, 'source_inventory.csv'))  
-        self.gitManager.commit(message)
-            
-
-    def _addNewSource(self, sourceMetaDict):
-        """
-        Private
-        Adds new source to the sources table 
-        """
-        source_ID = sourceMetaDict['SOURCE_ID']
-        
-        if not self.sourceExists(source_ID):
-            
-            sourcePath = os.path.join(config.PATH_TO_DATASHELF, 'database', sourceMetaDict['SOURCE_ID'])
-            self.gitManager.init_new_repo(sourcePath, source_ID, sourceMetaDict)
-            
-
-        else:
-            print('source already exists')
-
-    def _getSourceFromID(self, tableID):
-        """
-        Private
-        Returns the source of a given table
-        """
-        return tableID.split(config.ID_SEPARATOR)[-1]
-    
     
     def removeSource(self, sourceID):
         """
@@ -1082,23 +1107,7 @@ class Database():
             ins._writeData(setup, dataTable)
             
     
-    #database mangement
-    
-    def _checkTablesOnDisk(self, sourceID=None):
-        notExistingTables = list()
-        
-        if sourceID is None:
-            table_list = self.inventory.index
-        else:
-            table_list = self.inventory.index[self.inventory.source == sourceID]
-        
-        for tableID in self.inventory.index:
-            filePath = self._getTableFilePath(tableID)
-            if not os.path.exists(filePath):
-                notExistingTables.append(tableID)
-        
-        return notExistingTables
-                
+       
       
     def importSourceFromRemote(self, remoteName):
         """
@@ -1202,10 +1211,13 @@ class Database():
         long_df = long_df.set_index(meta_list)
         return long_df       
 
+#%% Git Repository Manager 
 class GitRepository_Manager:
     """
     # Management of git repositories for fast access
     """
+    
+    #%% Magicc methods
     def __init__(self, 
                  config,
                  debugmode = False):
@@ -1228,19 +1240,8 @@ class GitRepository_Manager:
         else:
             print('Git manager initialized in debugmode')
             
-    def get_source_repo_failsave(self, sourceID):
-        """
-        Retrieve `sourceID` from repositories dictionary without checks
-        """
-        repoPath = os.path.join(self.PATH_TO_DATASHELF,  'database', sourceID)
-        repo = git.Repo(repoPath)
-        return repo
     
-    def get_inventory_file_of_source(self, repoName):
-        repo = self[repoName]
-        return os.path.join(repo.working_dir,
-                            'source_inventory.csv')
-    
+   
     def __getitem__(self, sourceID):
         """ 
         Retrieve `sourceID` from repositories dictionary and ensure cleanliness
@@ -1249,6 +1250,90 @@ class GitRepository_Manager:
         if sourceID not in self.validatedRepos:
             self._validateRepository(sourceID)
         return repo
+    
+    #%% Private methods
+    def _init_remote_repo(self):
+        
+        remote_repo_path = os.path.join(
+            config.PATH_TO_DATASHELF, 'remote_sources')
+        if os.path.exist(remote_repo_path):
+            self.remote_repo = self._get_remote_sources_repo()
+            
+    def _get_remote_sources_repo(self):
+        remote_repo_path = os.path.join(
+            config.PATH_TO_DATASHELF, 'remote_sources')
+        remote_repo = git.Repo(remote_repo_path)
+        
+        # self.remote_repo = remote_repo()
+        return remote_repo
+    
+    def _pull_remote_sources(self):
+        
+        remote_repo_path = os.path.join(
+            config.PATH_TO_DATASHELF, 'remote_sources')
+        if os.path.exists(remote_repo_path):
+            #pull
+            remote_repo_path = os.path.join(
+                config.PATH_TO_DATASHELF, 'remote_sources')
+            remote_repo = git.Repo(remote_repo_path)
+            remote_repo.remote('origin').pull(progress=TqdmProgressPrinter())
+            
+        else:
+            #clone
+            remote_repo =self._clone_remote_sources()
+        
+        self.remote_repo = remote_repo
+        
+
+        return remote_repo
+        
+    def _clone_remote_sources(self):
+        
+        # if  not os.path.exists(os.path.join(config.PATH_TO_DATASHELF,
+        #                           'remote_sources')):
+            # no remote folder locally
+        url = config.DATASHELF_REMOTE + 'remote_sources.git'
+        remote_repo = git.Repo.clone_from(url=url, 
+                                   to_path=os.path.join(config.PATH_TO_DATASHELF,
+                                                        'remote_sources'), 
+                                   progress=TqdmProgressPrinter())  
+        
+        
+        return remote_repo
+           
+    def _update_remote_sources(self, repoName):
+        
+        dpath = os.path.join(
+            config.PATH_TO_DATASHELF, 'remote_sources','source_states.csv',
+            )
+        remote_repo = git.Repo(os.path.join(
+            config.PATH_TO_DATASHELF, 'remote_sources'))
+        rem_sources_df = pd.read_csv(dpath, index_col=0)
+        
+        repo = self[repoName]
+        if repoName in rem_sources_df.index:
+            #check that current tag is equal to remote tag
+            
+            assert repo.tags[-1].name == rem_sources_df.loc[repoName,'tag']
+            tag = f'v{float(repo.tags[-1].name.replace("v",""))+1:1.1f}'
+        else:
+            tag = 'v1.0'
+            
+        hash = self[repoName].commit().hexsha
+        user = config.CRUNCHER
+        
+        repo.create_tag(tag)
+        tag = repo.tags[-1].name
+        rem_sources_df.loc[repoName,:] = (hash, tag, user)
+        rem_sources_df.to_csv(dpath)
+        
+        remote_repo.index.add('source_states.csv')
+        remote_repo.index.commit('remote source update' + " by " + config.CRUNCHER)
+        
+        return repo
+    
+    def _gitUpdateFile(self, repoName, filePath):
+        pass
     
     def _validateRepository(self, sourceID):
         """ 
@@ -1270,6 +1355,20 @@ class GitRepository_Manager:
             print('Repo {} is clean'.format(sourceID))
         self.validatedRepos.add(sourceID)
         return True
+    
+    #%% Public methods
+    def get_source_repo_failsave(self, sourceID):
+        """
+        Retrieve `sourceID` from repositories dictionary without checks
+        """
+        repoPath = os.path.join(self.PATH_TO_DATASHELF,  'database', sourceID)
+        repo = git.Repo(repoPath)
+        return repo
+    
+    def get_inventory_file_of_source(self, repoName):
+        repo = self[repoName]
+        return os.path.join(repo.working_dir,
+                            'source_inventory.csv')
         
     def init_new_repo(self, repoPath, repoID, sourceMetaDict):
         """
@@ -1345,8 +1444,7 @@ class GitRepository_Manager:
         self[repoName].git.execute(["git", "rm", "-f", filePath]) #TODO Only works with -f forced, but why?
         self.updatedRepos.add(repoName)
     
-    def _gitUpdateFile(self, repoName, filePath):
-        pass
+    
         
     def commit(self, message):
         """
@@ -1447,85 +1545,7 @@ class GitRepository_Manager:
         self[repoName].remotes.origin.push(progress=TqdmProgressPrinter(),
                                            tags=True)
         
-    def _init_remote_repo(self):
-        
-        remote_repo_path = os.path.join(
-            config.PATH_TO_DATASHELF, 'remote_sources')
-        if os.path.exist(remote_repo_path):
-            self.remote_repo = self._get_remote_sources_repo()
-            
-    def _get_remote_sources_repo(self):
-        remote_repo_path = os.path.join(
-            config.PATH_TO_DATASHELF, 'remote_sources')
-        remote_repo = git.Repo(remote_repo_path)
-        
-        # self.remote_repo = remote_repo()
-        return remote_repo
-    
-    def _pull_remote_sources(self):
-        
-        remote_repo_path = os.path.join(
-            config.PATH_TO_DATASHELF, 'remote_sources')
-        if os.path.exists(remote_repo_path):
-            #pull
-            remote_repo_path = os.path.join(
-                config.PATH_TO_DATASHELF, 'remote_sources')
-            remote_repo = git.Repo(remote_repo_path)
-            remote_repo.remote('origin').pull(progress=TqdmProgressPrinter())
-            
-        else:
-            #clone
-            remote_repo =self._clone_remote_sources()
-        
-        self.remote_repo = remote_repo
-        
 
-        return remote_repo
-        
-    def _clone_remote_sources(self):
-        
-        # if  not os.path.exists(os.path.join(config.PATH_TO_DATASHELF,
-        #                           'remote_sources')):
-            # no remote folder locally
-        url = config.DATASHELF_REMOTE + 'remote_sources.git'
-        remote_repo = git.Repo.clone_from(url=url, 
-                                   to_path=os.path.join(config.PATH_TO_DATASHELF,
-                                                        'remote_sources'), 
-                                   progress=TqdmProgressPrinter())  
-        
-        
-        return remote_repo
-           
-    def _update_remote_sources(self, repoName):
-        
-        dpath = os.path.join(
-            config.PATH_TO_DATASHELF, 'remote_sources','source_states.csv',
-            )
-        remote_repo = git.Repo(os.path.join(
-            config.PATH_TO_DATASHELF, 'remote_sources'))
-        rem_sources_df = pd.read_csv(dpath, index_col=0)
-        
-        repo = self[repoName]
-        if repoName in rem_sources_df.index:
-            #check that current tag is equal to remote tag
-            
-            assert repo.tags[-1].name == rem_sources_df.loc[repoName,'tag']
-            tag = f'v{float(repo.tags[-1].name.replace("v",""))+1:1.1f}'
-        else:
-            tag = 'v1.0'
-            
-        hash = self[repoName].commit().hexsha
-        user = config.CRUNCHER
-        
-        repo.create_tag(tag)
-        tag = repo.tags[-1].name
-        rem_sources_df.loc[repoName,:] = (hash, tag, user)
-        rem_sources_df.to_csv(dpath)
-        
-        remote_repo.index.add('source_states.csv')
-        remote_repo.index.commit('remote source update' + " by " + config.CRUNCHER)
-        
-        return repo
     
     def clone_source_from_remote(self, repoName, repoPath):
         """
@@ -1612,7 +1632,7 @@ class GitRepository_Manager:
             return True
         else:
             return False
-        
+#%% TqdmProgressPrinter  
 class TqdmProgressPrinter(git.RemoteProgress):
     known_ops = {
         git.RemoteProgress.COUNTING: "counting objects",

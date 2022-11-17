@@ -114,6 +114,3 @@ def patch_050_update_sources_csv(coreDB):
     coreDB.sources = coreDB.gitManager.sources
     print("All done!")
 
-
-if __name__ == "__main__":
-    patch_047_move_config_file()
