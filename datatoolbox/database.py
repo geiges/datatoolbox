@@ -391,6 +391,14 @@ class Database:
                 remote_tag = remote_sources_df.loc[sourceID, 'tag']
                 local_tag = self.sources.loc[sourceID, 'tag']
                 if not isinstance(local_tag, str):
+                    # no tag
+                    
+                    #check if remote hash as same tag
+                    remote_hash = remote_sources_df.loc['test_AR6', 'hash']
+                    local_hash = self.gitManager.get_hash_of_source(sourceID)
+                    if remote_hash== local_hash:
+                        print(f'Applying tag from remote for source {sourceID}')
+                        self.sources.loc[sourceID, 'tag'] = remote_tag
                     continue
 
                 if float(remote_tag[1:]) > float(local_tag[1:]):
@@ -421,12 +429,40 @@ class Database:
         #        root_directory = Path(os.path.join(config.PATH_TO_DATASHELF, 'rawdata'))
         #        print('Size of raw_data: {:2.2f} MB'.format(sum(f.stat().st_size for f in root_directory.glob('**/*') if f.is_file() )/1e6))
         print('#############################################')
-
+    def remote_sourceInfo(self):
+        """
+        Returns a list of available sources and meta data
+        """
+        from tabulate import tabulate
+        remote_repo_path = os.path.join(
+            config.PATH_TO_DATASHELF, 'remote_sources', 'source_states.csv'
+        )
+    
+        if not os.path.exists(remote_repo_path):
+            print('No information about remote data available')
+            print('Consider run again with update = True')
+    
+        else:
+            remote_sources_df = pd.read_csv(remote_repo_path, index_col=0)
+    
+        df_print = self.sources.loc[:,['tag',]]
+        df_print['remote_tag'] = None
+        for sourceID in remote_sources_df.index:
+            
+            if sourceID not in self.sources.index:
+                continue
+            remote_tag = remote_sources_df.loc[sourceID, 'tag']
+            local_tag = self.sources.loc[sourceID, 'tag']
+            df_print.loc[sourceID, 'remote_tag'] = remote_tag
+    
+            
+        print(tabulate(df_print, headers='keys', tablefmt='psql'))
+    
     def sourceInfo(self):
         """
         Returns a list of available sources and meta data
         """
-        sources = copy.copy(self.gitManager.sources)
+
         return sources.sort_index()
 
     def returnInventory(self):
@@ -1180,7 +1216,7 @@ class Database:
         hash = self.gitManager.checkout_git_version(sourceID, tag)
 
         # update sources.csv
-        self.gitManager.updateGitHash(sourceID)
+        self.gitManager.updateGitHash_and_Tag(sourceID)
 
         # update inventory
         tables_to_remove = self.inventory.index[self.inventory.source == sourceID]
@@ -1569,7 +1605,11 @@ class GitRepository_Manager:
         # Update references on remote
         origin.fetch()
         branch.set_tracking_branch(origin.refs[0])
-
+    
+    def get_hash_of_source(self, repoName):
+        repo = self[repoName]
+        return repo.head.commit.hexsha
+    
     def get_tag_of_source(self, repoName):
         repo = self.get_source_repo_failsave(repoName)
         if len(repo.tags) == 0:
@@ -1597,7 +1637,7 @@ class GitRepository_Manager:
         repo.git.checkout(tag)
         return repo.commit().hexsha
 
-    def push_to_remote_datashelf(self, repoName):
+    def push_to_remote_datashelf(self, repoName, force=True):
         """
         This function used git push to update the remote database with an updated
         source dataset.
@@ -1610,7 +1650,10 @@ class GitRepository_Manager:
         """
         remote_repo = self._pull_remote_sources()
         repo = self[repoName]
-        if "Your branch is up to date with 'origin/master'" in repo.git.execute(["git", "status"]):
+        if (
+                (not force) and 
+                ("Your branch is up to date with 'origin/master'" in repo.git.execute(["git", "status"]))
+                ):
             print ('Nothing to push')
             print(repo.git.execute(["git", "status"]))
             return 
@@ -1674,7 +1717,7 @@ class GitRepository_Manager:
         remote_repo = self._pull_remote_sources()
 
         self[repoName].remote('origin').pull(progress=TqdmProgressPrinter())
-        self.updateGitHash(repoName)
+        self.updateGitHash_and_Tag(repoName)
         repoPath = os.path.join(self.PATH_TO_DATASHELF, 'database', repoName)
         sourceInventory = pd.read_csv(
             os.path.join(repoPath, 'source_inventory.csv'),
@@ -1697,7 +1740,7 @@ class GitRepository_Manager:
                 'Source {} is inconsistent with overall database'.format(repoName)
             )
 
-    def updateGitHash(self, repoName):
+    def updateGitHash_and_Tag(self, repoName):
         """
         Function to update the git hash code in the sources.csv by the repo hash code
         """
