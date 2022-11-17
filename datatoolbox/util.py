@@ -63,7 +63,7 @@ except:
 #                                reason="please import from matplotlib toolkid",
 #                                version='0.4.0')
 
-#%%
+
 from .tools import html as _html
 
 
@@ -604,7 +604,7 @@ def metaV2_to_meta_V3(tableSet):
     return outList
 
 
-#%%
+
 def zipExport(IDList, fileName):
     from zipfile import ZipFile
 
@@ -632,7 +632,7 @@ def zipExport(IDList, fileName):
 
 def update_DB_from_zip_toV3(filePath, cleanTables=True):
 
-    #%%
+    
     from zipfile import ZipFile
     import shutil
 
@@ -654,7 +654,7 @@ def update_DB_from_zip_toV3(filePath, cleanTables=True):
 
 def update_DB_from_zip(filePath):
 
-    #%%
+    
     from zipfile import ZipFile
     import shutil
 
@@ -673,7 +673,7 @@ def update_DB_from_zip(filePath):
     )
 
 
-#%%
+
 
 
 def forAll(funcHandle, subset='scenario', source='IAMC15_2019_R2'):
@@ -706,7 +706,7 @@ def dict_to_csv(dictionary, filePath):
             writer.writerow([key, val])
 
 
-#%%
+
 def csv_to_dict(filePath):
 
     with open(filePath, 'r', newline='') as file:
@@ -854,7 +854,7 @@ def fix_source_inconsistency(sourceID):
 
 
 def _create_sandbox_tables(sourceID, random_seed):
-    #%%
+    
     #    import datatoolbox as dt
     import numpy as np
 
