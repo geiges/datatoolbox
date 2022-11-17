@@ -27,7 +27,7 @@ def test_sel_methods():
     sub = ds.sel(scenario='Historic')
     assert dict(sub.dims) =={'year': 5, 'region': 4,'source': 1, 'model': 1}
     
-    sub = ds.sel(region=0)
+    sub = ds.sel(region="DEU")
     assert dict(sub.dims) == {'year': 5, 'source': 1,'pathway': 1}
     
     sub = ds.sel(year=2012)

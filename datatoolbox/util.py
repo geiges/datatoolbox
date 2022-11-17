@@ -54,14 +54,13 @@ except:
         return None
 
 
-from .tools import matplotlib as _plt
 
-colorGenerator = dp.deprecated(_plt.colorGenerator, 
-                               reason="please import from matplotlib toolkid", 
-                               version='0.4.0')
-savefig = dp.deprecated(_plt.savefig,
-                               reason="please import from matplotlib toolkid", 
-                               version='0.4.0')
+# colorGenerator = dp.deprecated(_plt.colorGenerator, 
+#                                reason="please import from matplotlib toolkid", 
+#                                version='0.4.0')
+# savefig = dp.deprecated(_plt.savefig,
+#                                reason="please import from matplotlib toolkid", 
+#                                version='0.4.0')
 
 #%%
 from .tools import html as _html

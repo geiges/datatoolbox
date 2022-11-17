@@ -207,7 +207,7 @@ class WDI(BaseImportTool):
             
             # print(metaDf[config.REQUIRED_META_FIELDS].isnull().all() == False)
             #print(metaData[self.setup.INDEX_COLUMN_NAME])
-            metaDf['timeformat'] ='Y'
+            metaDf['timeformat'] ='%Y'
             metaDf['source_name'] = self.setup.SOURCE_NAME
             metaDf['source_year'] = self.setup.SOURCE_YEAR
             metaDict = {key : metaDf[key] for key in config.REQUIRED_META_FIELDS.union({'category', 'unitTo'})}
@@ -780,7 +780,7 @@ class IEA_CO2_FUEL_DETAILED(BaseImportTool):
                 for key in [ 'unit', 'unitTo']:
                     metaDict[key] = self.mapping['FLOW (kt of CO2)'].loc[flow,key]
                 
-                print(metaDict)
+                #print(metaDict)
                 tableID = dt.core._createDatabaseID(dt.core._update_meta(metaDict))
                 #print(tableID)
                 if not updateTables:
@@ -4165,10 +4165,10 @@ class FAO(BaseImportTool):
                                    'Environment_Emissions_intensities_' : os.path.join(self.setup.SOURCE_PATH, 'Environment_Emissions_intensities_E_All_Data.csv'),
                                    'Environment_LandCover_' : os.path.join(self.setup.SOURCE_PATH, 'Environment_LandCover_E_All_Data.csv'),
                                    'Environment_LandUse_'   : os.path.join(self.setup.SOURCE_PATH, 'Environment_LandUse_E_All_Data.csv'),
-                                   'Inputs_LandUse_'        : os.path.join(self.setup.SOURCE_PATH, 'Inputs_LandUse_E_All_Data.csv')
-                                   }
+                                   'Inputs_LandUse_'        : os.path.join(self.setup.SOURCE_PATH, 'Inputs_LandUse_E_All_Data.csv'),
+                                   'Emissions_Total'        : os.path.join(self.setup.SOURCE_PATH, 'Emissions_Totals_E_All_Data.csv')}
 
-        self.setup.MAPPING_FILE = os.path.join(self.setup.SOURCE_PATH, 'mapping.xlsx')
+        self.setup.MAPPING_FILE = os.path.join(self.setup.SOURCE_PATH, 'mapping_2022.xlsx')
         self.setup.LICENCE = 'Food and Agriculture Organization of the United Nations (FAO)'
         self.setup.URL     = 'http://www.fao.org/faostat/en/#data/GL'
 #        self.setup.MODEL_COLUMN_NAME = 'model'
@@ -4197,9 +4197,11 @@ class FAO(BaseImportTool):
             
             file = self.setup.DATA_FILE[fileKey]
             print(file)
-            temp = pd.read_csv(file,  engine='python',  index_col = None, header =0)
+            if not os.path.exists(file):
+                continue
+            temp = pd.read_csv(file,  engine='python',  index_col = None, header =0,encoding = "ISO-8859-1")
             temp.Element = temp.Element.apply(lambda x: fileKey + x )
-            if i == 0:
+            if not hasattr(self, 'data'):
                 self.data = temp
             else:
                 self.data = self.data.append(temp)
@@ -4210,6 +4212,8 @@ class FAO(BaseImportTool):
         self.data.loc[:,'entity'] = self.data.Element + '_' + self.data.Item
         self.data.loc[:,'scenario'] = 'Historic'
         self.data.loc[:,'model'] = ''
+        index_keep = self.data.index[self.data['Source']=='FAO TIER 1']
+        self.data = self.data.loc[index_keep]
         
         newColumns = ['region', 'entity','scenario', 'model', 'Unit']
         self.timeColumns = list()
@@ -4237,7 +4241,7 @@ class FAO(BaseImportTool):
         
         #variables
         #index = self.data[self.setup.VARIABLE_COLUMN_NAME].unique()
-        self.availableSeries = self.data.drop_duplicates('variable').set_index( self.setup.VARIABLE_COLUMN_NAME)['Unit']
+        self.availableSeries = self.data.drop_duplicates('entity').set_index( self.setup.VARIABLE_COLUMN_NAME)['Unit']
         self.mapping = pd.DataFrame(index=self.availableSeries.index, columns =  [ self.setup.VARIABLE_COLUMN_NAME])
         self.mapping = pd.concat([self.mapping, self.availableSeries], axis=1)
         self.mapping = self.mapping.sort_index()
@@ -4279,7 +4283,7 @@ class FAO(BaseImportTool):
         writer.close()
 
 
-    def gatherMappedData(self, spatialSubSet = None, updateTables=False):
+    def gatherMappedData(self, spatialSubSet = None):
         
         import tqdm
         # loading data if necessary
@@ -4328,13 +4332,8 @@ class FAO(BaseImportTool):
                         table = table.convert(self.mapping['unitTo'][variable])
                     
                     tableID = dt.core._createDatabaseID(table.meta)
-                    if not updateTables:
-                        if dt.core.DB.tableExist(tableID):
-                            excludedTables['exists'].append(tableID)
-                        else:
-                            tablesToCommit.append(table)
-                    else:
-                        tablesToCommit.append(table)
+                    tablesToCommit.append(table)
+                    
         return tablesToCommit, excludedTables  
 
 class WEO(BaseImportTool):
@@ -4497,18 +4496,20 @@ class WEO(BaseImportTool):
         return tablesList, []
 
 class ENERDATA(BaseImportTool):
-    def __init__(self, year = 2019):
+    def __init__(self, year = 2019, 
+                 data_path = None,
+                 filename = None):
+        
+        if data_path is None:
+            data_path = os.path.join(config.PATH_TO_DATASHELF, 'rawdata')
+            
+        if filename is None:
+            filename = f'enerdata_{year}.xlsx'
         self.setup = setupStruct()
         self.setup.SOURCE_ID    = "ENERDATA_" + str(year)
-        self.setup.SOURCE_PATH  = os.path.join(config.PATH_TO_DATASHELF,'rawdata', self.setup.SOURCE_ID)
-        if year == 2019:
-            self.setup.DATA_FILE    = os.path.join(self.setup.SOURCE_PATH, 'enerdata_2019_G2G.xlsx')
-        elif year == 2020:
-            self.setup.DATA_FILE    = os.path.join(self.setup.SOURCE_PATH, 'export_enerdata_1137124_050510.xlsx')
-            self.setup.DATA_FILE    = os.path.join(self.setup.SOURCE_PATH, 'export_enerdata_1137124_113516.xlsx')
-        elif year == 2021:
-            self.setup.DATA_FILE    = os.path.join(self.setup.SOURCE_PATH, 'export_enerdata_1137124_094807.xlsx')
-            self.setup.DATA_FILE    = os.path.join(self.setup.SOURCE_PATH, 'export_enerdata_2021_07_09.xlsx')
+        self.setup.SOURCE_PATH  = os.path.join(data_path, self.setup.SOURCE_ID)
+
+        self.setup.DATA_FILE    = os.path.join(self.setup.SOURCE_PATH, filename)
         self.setup.MAPPING_FILE =  os.path.join(self.setup.SOURCE_PATH,'mapping_' + str(year) + '.xlsx')
         self.setup.LICENCE = ' Restricted use in the Climate Transparency Report project only'
         self.setup.URL     = 'https://www.enerdata.net/user/?destination=services.html'
@@ -4607,7 +4608,7 @@ class ENERDATA(BaseImportTool):
         writer.close()
         
 
-    def gatherMappedData(self, spatialSubSet = None, updateTables=False):
+    def gatherMappedData(self, spatialSubSet = None):
         
         import tqdm
         # loading data if necessary
@@ -4622,16 +4623,12 @@ class ENERDATA(BaseImportTool):
         excludedTables['error'] = list()
         excludedTables['exists'] = list()
         
-        
-#        for model in ['']:
-#            tempMo = self.data
-#            
-##            tempMo = self.data.loc[self.data.model == model]
-#            for scenario in self.mapping['scenario'].keys():
-#                tempMoSc = tempMo.loc[tempMo.scenario == scenario]
-##                for variable in self.mapping['variable'].keys():
-##                    tempMoScVa = tempMoSc.loc[self.data.variable == variable]    
-                
+        #fix double entries for power generation wind
+        wind_mask = self.data.entity == 'eeopd'
+        Mtoe_mask = self.data.Unit == 'Mtoe'        
+        mask = wind_mask & Mtoe_mask
+        self.data = self.data.drop(self.data.index[mask])
+
         for variable in list(self.mapping['entity'].keys()):
 #            metaDf = self.mapping.loc[variable]
             tempMoScVar =  self.data.loc[self.data.entity == variable]
@@ -4644,7 +4641,8 @@ class ENERDATA(BaseImportTool):
                                              'category':self.mapping['category'][variable],
                                              'scenario' : 'Historic',
                                              'source' : self.setup.SOURCE_ID,
-                                             'unit' : self.mapping['unit'][variable]})
+                                             'unit' : self.mapping['unit'][variable],
+                                             'original code' : variable})
             table.index = tempMoScVar.region
 #                    table.meta['category'] = ""
 #                    table.meta['source'] = 
@@ -4655,13 +4653,8 @@ class ENERDATA(BaseImportTool):
                 print('conversion to : ' +str(self.mapping['unitTo'][variable]))
                 table = table.convert(self.mapping['unitTo'][variable])
             tableID = dt.core._createDatabaseID(table.meta)
-            if not updateTables:
-                if dt.core.DB.tableExist(tableID):
-                    excludedTables['exists'].append(tableID)
-                else:
-                    tablesToCommit.append(table)
-            else:
-                tablesToCommit.append(table)
+            tablesToCommit.append(table)
+
         return tablesToCommit, excludedTables  
    
 class PIK_NDC(BaseImportTool):
@@ -4778,7 +4771,8 @@ class IIASA(BaseImportTool):
             .replace('kt CF4-equiv/y', 'kt CF4eq/y')
             .replace('kt HFC134a-equiv/yr', 'kt HFC134aeq/yr')
             .replace('Index (2005 = 1)', 'dimensionless') # ?? TODO
-            .replace('US$2005', 'USD2005'))
+            .replace('US$2005', 'USD2005')
+            .replace('kt HFC43-10/yr', 'kt HFC43_10/yr'))
         return meta   
          
     def gatherMappedData(self,

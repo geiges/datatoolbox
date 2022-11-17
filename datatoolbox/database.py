@@ -102,7 +102,7 @@ class Database():
         
         self.gitManager = GitRepository_Manager(config)
         self.INVENTORY_PATH = os.path.join(self.path, 'inventory.csv')
-        self.inventory = pd.read_csv(self.INVENTORY_PATH, index_col=0, dtype={'source_year': str})
+        self.inventory = pd.read_csv(self.INVENTORY_PATH, index_col=0, dtype={'source_year': str},low_memory=False)
         self.sources   = self.gitManager.sources
         
         #self.gitManager._validateRepository('main')
@@ -133,36 +133,28 @@ class Database():
         Method to create the required files for an empty csv-based data base. 
         (Equivalent to the fucntions in admin.py)
         """
-        from pathlib import Path
-        import os
-        import shutil
-        path = Path(pathToDataself)
-        path.mkdir(parents=True,exist_ok=True)
+        datashelf = Path(pathToDataself)
+        datashelf.mkdir(parents=True, exist_ok=True)
         
         # add subfolders database
-        Path(os.path.join(pathToDataself, 'database')).mkdir(exist_ok=True)
-        Path(os.path.join(pathToDataself, 'mappings')).mkdir(exist_ok=True)
-        Path(os.path.join(pathToDataself, 'rawdata')).mkdir(exist_ok=True)
+        (datashelf / 'database').mkdir(exist_ok=True)
+        (datashelf / 'mappings').mkdir(exist_ok=True)
+        (datashelf / 'rawdata').mkdir(exist_ok=True)
         
         #create mappings
-        os.makedirs(os.path.join(pathToDataself, 'mappings'),exist_ok=True)
-        shutil.copyfile(os.path.join(modulePath, 'data/regions.csv'),
-                        os.path.join(pathToDataself, 'mappings/regions.csv'))
-        shutil.copyfile(os.path.join(modulePath, 'data/continent.csv'),
-                        os.path.join(pathToDataself, 'mappings/continent.csv'))
-        shutil.copyfile(os.path.join(modulePath, 'data/country_codes.csv'),
-                        os.path.join(pathToDataself, 'mappings/country_codes.csv'))    
+        modulePath = Path(modulePath)
+
+        for fn in ("regions.csv", "continent.csv", "country_codes.csv"):
+            shutil.copyfile(modulePath / 'data' / fn, datashelf / 'mappings' / fn)
         
         # created sources.csv that contains the indivitual information for each source
         sourcesDf = pd.DataFrame(columns = config.SOURCE_META_FIELDS)
-        filePath= os.path.join(pathToDataself, 'sources.csv')
-        sourcesDf.to_csv(filePath)
+        sourcesDf.to_csv(datashelf / "sources.csv")
         
         # creates inventory.csv that contains all data tables from all sources
         inventoryDf = pd.DataFrame(columns = config.INVENTORY_FIELDS)
-        filePath= os.path.join(pathToDataself, 'inventory.csv')
-        inventoryDf.to_csv(filePath)
-        git.Repo.init(pathToDataself)
+        inventoryDf.to_csv(datashelf / "inventory.csv")
+        git.Repo.init(datashelf)
     
 
         
@@ -335,7 +327,7 @@ class Database():
         """
         source = self.inventory.loc[ID].source
         fileName = core.generate_table_file_name(ID)
-        return os.path.join(config.PATH_TO_DATASHELF, 'database/', source, 'tables', fileName)
+        return os.path.join(config.PATH_TO_DATASHELF, 'database', source, 'tables', fileName)
 
     # def _getTableFileName(self, ID):
     #     """
@@ -1119,16 +1111,16 @@ class Database():
                             meta_list = ['variable', 'region','scenario', 'model', 'source', 'unit']):
     
     
-        tables = [self.getTable(x) for x in query.index]
+        tables = [self.getTable(x, native_regions = native_regions) for x in query.index]
         final_tables = list()
         for table in tables:
             if table.empty:
                 continue
             
-            if native_regions:
-                table = table.reset_index('standard_region',drop=True)
-            else:
-                table = table.reset_index('region',drop=True)
+            # if native_regions:
+            #     table = table.reset_index('standard_region',drop=True)
+            # else:
+            #     table = table.reset_index('region',drop=True)
                 
             inp_dict = dict()    
             for metaKey in meta_list:
@@ -1143,10 +1135,7 @@ class Database():
                 raise AssertionError(f"meta of {table.ID} does not contain {exc.args[0]}")
         long_df = pd.concat(final_tables, ignore_index=True, sort=False)
         
-        # move id columns to the front
-        id_cols = pd.Index(meta_list)
-        long_df = long_df[list(id_cols) + list( long_df.columns.difference(id_cols))]
-        long_df = pd.DataFrame(long_df)
+        long_df = long_df.set_index(meta_list)
         return long_df       
 #%%
 class GitRepository_Manager:

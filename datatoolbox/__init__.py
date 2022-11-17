@@ -71,6 +71,8 @@ from . import admin as admin
 from . import templates
 from . import converters
 # from . import utilities as _util 
+#%% optional support xarray
+
 
 from . import data_readers
 
@@ -84,6 +86,7 @@ from .tools import matplotlib as plt
 from .tools import xarray as xr
 from .tools import excel as xls
 
+isin = tools.pandas.isin
 # unit conversion package
 unitReg = core.ur
 

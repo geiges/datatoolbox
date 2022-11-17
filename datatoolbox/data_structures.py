@@ -7,7 +7,6 @@ based data sets.
 Datatables are based on pandas dataframes and enfore regions as index
 and years as columns. It uses meta data and provides full unit handling
 by any computations using datatables.
-
 """
 
 import pandas as pd
@@ -20,6 +19,7 @@ from . import config
 import traceback
 from . import util
 import os
+from . import tools
        
 class Datatable(pd.DataFrame):
     """
@@ -66,8 +66,9 @@ class Datatable(pd.DataFrame):
         self.columns.name = config.DATATABLE_COLUMN_NAME
         self.index.name   = config.DATATABLE_INDEX_NAME
         
-        # print(self.meta)
-        if ('_timeformat' in self.meta.keys()) and (self.meta['_timeformat'] != '%Y'):
+        #print(self.meta)
+        if ('_timeformat' in self.meta.keys()) and (self.meta['_timeformat'] != '%Y'
+                                                    and self.meta['_timeformat'] != 'Y'):
             self.columns_to_datetime()
 
         self.attrs = self.meta
@@ -313,7 +314,6 @@ class Datatable(pd.DataFrame):
             reduced_data.loc[coISO, idx_min] = self.loc[coISO,idx_min]
             reduced_data.loc[coISO, idx_max] = self.loc[coISO,idx_max]
             
-            #%%
         return reduced_data
     
     def to_excel(self, fileName = None, sheetName = "Sheet0", writer = None, append=False):
@@ -868,9 +868,9 @@ class TableSet(dict):
             except:
 #                print('Could not generate ID, key used instead')
                 datatable.ID = key
-        self.inventory.loc[datatable.ID] = None
-        self.inventory.loc[datatable.ID, "key"] = key
-        self.inventory.loc[datatable.ID, config.INVENTORY_FIELDS] = [datatable.meta.get(x,None) for x in config.INVENTORY_FIELDS]
+
+        data = [key] + [datatable.meta.get(x, None) for x in config.INVENTORY_FIELDS]
+        self.inventory.loc[datatable.ID] = data
     
         
         
@@ -1110,7 +1110,7 @@ class TableSet(dict):
         
         
     
-    #%%
+
         
     def to_compact_excel(self,
                          writer,
@@ -1324,7 +1324,7 @@ class TableSet(dict):
         None.
 
         """
-        #%%
+
 
         long, metaDict = self._compact_to_long_format()
         
@@ -1332,7 +1332,7 @@ class TableSet(dict):
                         long,
                         metaDict,
                         index=None)
-    #%%           
+        
     def to_xarray(self, dimensions=None):
         """
         Convert tableset to and xarray with the given dimenions.
@@ -1360,7 +1360,7 @@ class TableSet(dict):
         
         if not config.AVAILABLE_XARRAY:
             raise(BaseException('module xarray not available'))
-        return core.to_XDataArray(self, dimensions)
+        return tools.xarray.to_XDataArray(self, dimensions)
        
     def to_xset(self, dimensions = ['region', 'time']):
         """
@@ -1380,7 +1380,7 @@ class TableSet(dict):
         dimensions = ['region', 'time']
         if not config.AVAILABLE_XARRAY:
             raise(BaseException('module xarray not available'))
-        return core.to_XDataSet(self, dimensions)
+        return tools.xarray.to_XDataSet(self, dimensions)
     
     def to_list(self):
         """
@@ -1736,7 +1736,7 @@ def read_csv(fileName, native_regions=False):
 
     """
     
-    fid = open(fileName,'r', encoding='utf-8')
+    fid = open(fileName,'r', encoding='UTF-8')
     
     assert (fid.readline()) == config.META_DECLARATION
     #print(nMetaData)
@@ -1758,6 +1758,8 @@ def read_csv(fileName, native_regions=False):
     if 'timeformat' in meta.keys():
          meta['_timeformat'] = meta['timeformat']
          del meta['timeformat']
+    # if meta['_timeformat'] == 'Y':
+    #     meta['_timeformat'] = '%Y'
     # print(meta) 
     
     df = pd.read_csv(fid)
@@ -1778,7 +1780,8 @@ def read_csv(fileName, native_regions=False):
     fid.close()
     df = Datatable(df, meta=meta)
     
-    if ('_timeformat' in meta.keys()) and (meta['_timeformat'] != '%Y'):
+    if ('_timeformat' in meta.keys()) and (meta['_timeformat'] != '%Y'
+                                           and meta['_timeformat'] != 'Y'):
         df.columns_to_datetime()
     else:
         df.columns = df.columns.astype(int)
@@ -1971,6 +1974,7 @@ class MetaData(dict):
         super(MetaData, self).__setitem__('variable', '|'.join([self[key] for key in ['entity', 'category'] if key in self.keys()]))
         super(MetaData, self).__setitem__('pathway', '|'.join([self[key] for key in ['scenario', 'model'] if key in self.keys()]))
         super(MetaData, self).__setitem__('source', '_'.join([self[key] for key in ['institution', 'year'] if key in self.keys()]))
+   
         
 #%% Test     
 def _add_required_meta(data, meta, stacked_dims):
@@ -2057,6 +2061,15 @@ class DataSet(xr.Dataset):
     Very simple class to allow initialization of xarray datasets from pyam, wide pandas dataframes 
     and datatoolbox queries.
     """
+    __slots__ = (
+        '_attrs',
+         '_cache',
+         '_coord_names',
+         '_dims',
+         '_encoding',
+         '_close',
+         '_indexes',
+         '_variables')
     
     @classmethod
     def from_wide_dataframe(cls, 
@@ -2088,11 +2101,12 @@ class DataSet(xr.Dataset):
         
         if meta_dims is not None:
             meta = data.meta.loc[:,meta_dims]
-            data, stacked_dims = _add_meta(data, meta, stacked_dims)
+            # data, stacked_dims = _add_meta(data, meta, stacked_dims)
         else:
             meta = None
         data = data.timeseries()
-        #data = _add_required_meta(data, meta, stacked_dims)
+        if meta_dims is not None:
+            data = _add_required_meta(data, meta, stacked_dims)
         
         return cls.from_wide_dataframe(data, meta, stacked_dims)
         
@@ -2101,7 +2115,7 @@ class DataSet(xr.Dataset):
                    query,
                    stacked_dims = {'pathway' : ("model", "scenario")}):
         dimensions = ['model', 'scenario', 'region', 'variable', 'source', 'unit']
-        data = query.as_wide_dataframe(meta_list = dimensions).set_index(dimensions)
+        data = query.as_wide_dataframe(meta_list = dimensions)
         
         return cls.from_wide_dataframe(data, meta = None, stacked_dims = stacked_dims)
     

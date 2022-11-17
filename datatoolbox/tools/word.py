@@ -82,10 +82,13 @@ def open_word_file(file_name):
 class Document():
     
     
-    def __init__(self, file_name):
+    def __init__(self, file_name,
+                 numbering_figures=False):
         self.file_name = file_name
         self.doc = docx.Document()
-        # return self.doc
+        
+        self.numbering_figures = numbering_figures
+        self.fig_counter = 1
 
     def add_page_break(self,):
         self.doc.add_page_break()
@@ -94,6 +97,7 @@ class Document():
         self.doc.add_heading(string,level=level)
       
     def add_bullet_list(self, bullet_list):
+        # para = self.add_paragraph([])
         for bullet in bullet_list:
             self.add_paragraph('•	' + bullet)
         
@@ -206,7 +210,8 @@ class Document():
                    fig,
                    path = None, 
                    relative_width = 1., 
-                   crop= False):
+                   crop= False,
+                   caption=''):
         
         if path is None:
             path = 'temp.png'
@@ -234,12 +239,38 @@ class Document():
          
         os.remove(path)
         
+        if self.numbering_figures:
+            prefix = f'Fig {self.fig_counter}: '
+            para = self.add_paragraph(prefix + caption)
+            self.font_color_runs(para, hexcolor='2a6099')
+        elif caption != '':
+            para = self.add_paragraph(caption)
+            self.font_color_runs(para, hexcolor='2a6099')
+        
+        # increase figure counter
+        self.fig_counter +=1
+    
+    def font_color_runs(self, para, 
+                       index_to_highlight=None,
+                       hexcolor= '000000'):
+        
+        if index_to_highlight is None:
+            for run in para.runs:
+                run.font.color.rgb=RGBColor.from_string(hexcolor)
+        else:
+            for idx in index_to_highlight:
+                para.runs[idx].font.color.rgb=RGBColor.from_string(hexcolor)
+                
     def highlight_runs(self, para, 
-                       index_to_highlight,
+                       index_to_highlight=None,
                        color = WD_COLOR_INDEX.YELLOW):
         
-        for idx in index_to_highlight:
-            para.runs[idx].font.highlight_color=color
+        if index_to_highlight is None:
+            for run in para.runs:
+                run.font.highlight_color=color
+        else:
+            for idx in index_to_highlight:
+                para.runs[idx].font.highlight_color=color
     
        
     def set_cell_background(table, 

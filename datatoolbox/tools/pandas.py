@@ -6,7 +6,7 @@ Created on Tue Dec 22 09:34:50 2020
 @author: ageiges
 """
 import numpy as np
-from ..util import identifyCountry
+# from ..util import identifyCountry
 from .. import mapping as mapp
 
 def addCountryNames(table, as_index=False):
@@ -23,6 +23,7 @@ def addCountryNames(table, as_index=False):
     return table
 
 def convertIndexToISO(table, iso_type='alpha3'):
+    from datatoolbox.util import identifyCountry
     """
     Convert index of a dataframe into iso codes.
 
@@ -118,4 +119,22 @@ def index_availablity(dataframe,
     missing_idx = set(index_list).difference(available_idx)
     
     return available_idx, missing_idx
-        
+   
+from operator import and_
+from functools import reduce
+
+def isin(df=None, **filters):
+    """Constructs a MultiIndex selector
+
+    Usage
+    -----
+    > df.loc[isin(region="World", gas=["CO2", "N2O"])]
+    or with explicit df to get a boolean mask
+    > isin(df, region="World", gas=["CO2", "N2O"])
+    """
+
+    def tester(df):
+        tests = (df.index.isin(np.atleast_1d(v), level=k) for k, v in filters.items())
+        return reduce(and_, tests, next(tests))
+
+    return tester if df is None else tester(df)

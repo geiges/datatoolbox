@@ -361,9 +361,11 @@ class Excel():
         elif config.OS == 'Darwin':
             os.system('open -a "Microsoft Excel" ' + filePath )
 
+# if config.AVAILABLE_XARRAY:
+from datatoolbox.tools import xarray as _xr
 class _Xarray():
 
-    to_Xarray = core.to_XDataArray
+    to_Xarray = _xr.to_XDataArray
         
  
 #%%    
@@ -429,6 +431,8 @@ class IAMC_PYAM():
                 category = variable.replace(key,'').lstrip('_').lstrip('|')
                 entity = self.entityDict[key]
                 return entity, category
+        else:
+            return None, None
     
     def from_IamDataFrame(self, idf):
         """Extracts a consistent time-series for a unique variable from ``idf``
@@ -457,12 +461,9 @@ class IAMC_PYAM():
                 data = timeseries.loc[isin(model=model, scenario=scenario, variable=variable)]
                 if data.empty:
                     continue
-
-                entity, category = self._split_variable(variable)
+                print(variable)
                 meta = {
                     "pathway": pathway,
-                    "entity": entity,
-                    "category": category,
                     **extra_meta,
                     **{
                         k: v
@@ -470,6 +471,12 @@ class IAMC_PYAM():
                         if k in meta_columns
                     }
                 }
+                entity, category = self._split_variable(variable)
+                if entity is not None:
+                    meta['entity'] = entity
+                    meta['category'] = category
+                
+                
                 table = Datatable(data.droplevel(list(meta_columns)), meta=meta)
 
                 try:

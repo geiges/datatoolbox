@@ -77,7 +77,6 @@ def test_quantified_xdataset_from_query_result():
 #%%    
 dt.admin.switch_database_to_testing()
 
-test_to_xarray_interface()
 #if False:
     #%%
 #    import xarray as xr
