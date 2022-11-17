@@ -22,15 +22,15 @@ from .version import version as __version__
 
 
 #%% PATCHES
-import traceback
-try:
-    from . import config
-    if not hasattr(config, 'last_checked_remote'):
-        from .patches import patch_050_source_tracking
-        personal = config.get_personal()
-        personal = patch_050_source_tracking(personal)
-except:
-    raise(Exception('failed to apply 0.5 version patch'))
+# import traceback
+# try:
+#     from . import config
+#     if not hasattr(config, 'last_checked_remote'):
+#         from .patches import patch_050_source_tracking
+#         personal = config.get_personal()
+#         personal = patch_050_source_tracking(personal)
+# except:
+#     raise(Exception('failed to apply 0.5 version patch'))
 
 # %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 

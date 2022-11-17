@@ -7,7 +7,7 @@ Created on Wed Feb 17 11:07:40 2021
 """
 import os
 import shutil
-import config
+# import config
 
 
 #%% patch 0.4.5
@@ -67,34 +67,34 @@ def patch_047_move_config_file():
 
 
 #%% patch 0.5
-def patch_050_source_tracking(personal):
-    from appdirs import user_data_dir
+# def patch_050_source_tracking(personal):
+#     from appdirs import user_data_dir
 
-    appname = "datatoolbox"
-    appauthor = "ageiges"
-    CONFIG_DIR = user_data_dir(appname, appauthor)
+#     appname = "datatoolbox"
+#     appauthor = "ageiges"
+#     CONFIG_DIR = user_data_dir(appname, appauthor)
 
-    fin = open(os.path.join(CONFIG_DIR, "personal.py"), "r")
-    lines = fin.readlines()
-    fin.close()
-    # os.makedirs(os.path.join(config.MODULE_PATH, 'settings'),exist_ok=True)
-    fout = open(os.path.join(CONFIG_DIR, "personal.py"), "w")
+#     fin = open(os.path.join(CONFIG_DIR, "personal.py"), "r")
+#     lines = fin.readlines()
+#     fin.close()
+#     # os.makedirs(os.path.join(config.MODULE_PATH, 'settings'),exist_ok=True)
+#     fout = open(os.path.join(CONFIG_DIR, "personal.py"), "w")
 
-    for line in lines:
-        if line.endswith("\n"):
-            outLine = line
-        else:
-            outLine = line + "\n"
+#     for line in lines:
+#         if line.endswith("\n"):
+#             outLine = line
+#         else:
+#             outLine = line + "\n"
 
-        fout.write(outLine)
-    # add it to old personal config
-    outLine = "last_checked_remote = None"
-    fout.write(outLine)
-    fout.close()
+#         fout.write(outLine)
+#     # add it to old personal config
+#     outLine = "last_checked_remote = None"
+#     fout.write(outLine)
+#     fout.close()
 
-    config.last_checked_remote = None
+#     config.last_checked_remote = None
 
-    return personal
+#     return personal
 
 
 def patch_050_update_sources_csv(coreDB):
@@ -106,8 +106,8 @@ def patch_050_update_sources_csv(coreDB):
         coreDB.sources.loc[sourceID, "tag"] = tag
     coreDB._gitCommit("update sources by patch for v0.50")
 
-    from database import GitRepository_Manager
-
+    from .database import GitRepository_Manager
+    from . import config
     coreDB.gitManager = GitRepository_Manager(config)
     coreDB.INVENTORY_PATH = os.path.join(coreDB.path, "inventory.csv")
     coreDB.inventory = coreDB._load_inventory(coreDB.INVENTORY_PATH)

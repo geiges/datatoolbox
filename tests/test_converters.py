@@ -14,7 +14,7 @@ from util_for_testing import df, df2, sourceMeta
 dt.admin.switch_database_to_testing()
 
 def test_to_xdataset():
-    idf = dt.findp().as_pyam()
+    idf = dt.findp(source='Numbers_2020').as_pyam()
     
     ds1 = dt.converters.to_xdataset(idf)
     
@@ -24,7 +24,7 @@ def test_to_xdataset():
 
 
 def test_to_pyam():
-    tables = dt.findp().load()
+    tables = dt.findp(source='Numbers_2020').load()
     
     for table in tables:
         table.meta['model'] = 'test'

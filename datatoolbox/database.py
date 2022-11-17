@@ -109,7 +109,7 @@ class Database:
 
         # check for patch
         if 'tag' not in self.sources.columns:
-            from patches import patch_050_update_sources_csv
+            from .patches import patch_050_update_sources_csv
 
             patch_050_update_sources_csv(self)
 
@@ -184,6 +184,14 @@ class Database:
         self.isConsistentTable(datatable)
 
         self._gitAddTable(datatable, source, filePath)
+
+    def _check_online_data(self):
+        curr_date = pd.to_datetime(core.getTimeString()).date()
+        last_access_date = pd.to_datetime(
+            self.gitManager._get_last_remote_access()
+        ).date()
+
+        return curr_date > last_access_date
 
     def _checkTablesOnDisk(self, sourceID=None):
         notExistingTables = list()
@@ -353,9 +361,14 @@ class Database:
 
     def check_for_new_remote_data(self, update=False):
 
-        if update:
+        if update or self._check_online_data():
             # check for remote data
-            self.gitManager._pull_remote_sources()
+            try:
+                print('Looking for new online sources...', end='')
+                self.gitManager._pull_remote_sources()
+                print('Done!')
+            except:
+                print('Could not check online data repository')
 
         remote_repo_path = os.path.join(
             config.PATH_TO_DATASHELF, 'remote_sources', 'source_states.csv'
@@ -367,17 +380,22 @@ class Database:
 
         else:
             remote_sources_df = pd.read_csv(remote_repo_path, index_col=0)
+
+            sources_with_update = pd.DataFrame(
+                columns=['local version', 'remote version']
+            )
             for sourceID in remote_sources_df.index:
                 remote_tag = remote_sources_df.loc[sourceID, 'tag']
                 local_tag = self.sources.loc[sourceID, 'tag']
 
                 if float(remote_tag[1:]) > float(local_tag[1:]):
-                    import warnings
+                    sources_with_update.loc[sourceID] = local_tag, remote_tag
 
-                    warnings.warn(
-                        f'Warning: New version {remote_tag} available for local source {sourceID} ({local_tag})',
-                        stacklevel=0,
-                    )
+            if len(sources_with_update) > 0:
+                print('The following source have newer versions available:')
+                from tabulate import tabulate
+
+                print(tabulate(sources_with_update, headers='keys', tablefmt='psql'))
 
     def info(self):
         """
@@ -1293,6 +1311,7 @@ class GitRepository_Manager:
             # clone
             remote_repo = self._clone_remote_sources()
 
+        self._update_last_remote_access()
         self.remote_repo = remote_repo
 
         return remote_repo
@@ -1308,8 +1327,27 @@ class GitRepository_Manager:
             to_path=os.path.join(config.PATH_TO_DATASHELF, 'remote_sources'),
             progress=TqdmProgressPrinter(),
         )
+        self._update_last_remote_access()
 
         return remote_repo
+
+    def _get_last_remote_access(self):
+        filepath = os.path.join(
+            config.PATH_TO_DATASHELF, 'remote_sources', 'last_accessed_remote'
+        )
+        if not os.path.exists(filepath):
+            return np.nan
+        with open(filepath, 'r') as f:
+            last_accessed = f.read()
+        return last_accessed
+
+    def _update_last_remote_access(self):
+
+        filepath = os.path.join(
+            config.PATH_TO_DATASHELF, 'remote_sources', 'last_accessed_remote'
+        )
+        with open(filepath, 'w') as f:
+            f.write(core.getTimeString())
 
     def _update_remote_sources(self, repoName):
 
