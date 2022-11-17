@@ -6,7 +6,7 @@ Created on Tue Oct 27 11:05:30 2020
 @author: ageiges
 """
 from .. import config
-from . import  for_datatables 
+from . import for_datatables
 
 from . import pandas
 from . import excel
@@ -20,7 +20,6 @@ if config.AVAILABLE_XARRAY:
 if config.AVAILABLE_DOCX:
     from . import word
 
-#from . import magicc6
+# from . import magicc6
 
-from . import  pyam
-
+from . import pyam

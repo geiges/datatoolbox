@@ -42,14 +42,16 @@ from .data_structures import Datatable, TableSet, DataSet, read_csv, read_excel
 
 try:
     from . import database
+
     core.DB = database.Database()
     db_connected = True
-except :
+except:
     import traceback
-    print('Database connection broken. Running without database connection.')    
+
+    print('Database connection broken. Running without database connection.')
     traceback.print_exc()
     db_connected = False
-    
+
 from . import mapping as mapp
 from . import io_tools as io
 from . import interfaces
@@ -57,7 +59,8 @@ from . import util as util
 from . import admin as admin
 from . import templates
 from . import converters
-# from . import utilities as _util 
+
+# from . import utilities as _util
 #%% optional support xarray
 
 
@@ -77,28 +80,32 @@ isin = tools.pandas.isin
 # unit conversion package
 unitReg = core.ur
 
-ExcelReader = xls.ExcelReader # TODO make this general IO tools
+ExcelReader = xls.ExcelReader  # TODO make this general IO tools
 
 if db_connected:
-    commitTable  = core.DB.commitTable
+    commitTable = core.DB.commitTable
     commitTables = core.DB.commitTables
-    
-    updateTable             = core.DB.updateTable
-    updateTables            = core.DB.updateTables
-    updateTablesAvailable   = core.DB.updateTablesAvailable
-    
-    removeTable   = core.DB.removeTable
-    removeTables  = core.DB.removeTables
-    
-    find                = _deprecated.deprecated(core.DB.findc, version='0.4.7', reason="Will be removed, please use finc instead")
-    findc               = core.DB.findc
-    findp               = core.DB.findp
-    findExact           = core.DB.findExact
-    getTable            = core.DB.getTable
-    getTables           = core.DB.getTables
-    getTablesAvailable  = core.DB.getTablesAvailable
-    
-    isAvailable  = core.DB._tableExists
+
+    updateTable = core.DB.updateTable
+    updateTables = core.DB.updateTables
+    updateTablesAvailable = core.DB.updateTablesAvailable
+
+    removeTable = core.DB.removeTable
+    removeTables = core.DB.removeTables
+
+    find = _deprecated.deprecated(
+        core.DB.findc,
+        version='0.4.7',
+        reason="Will be removed, please use finc instead",
+    )
+    findc = core.DB.findc
+    findp = core.DB.findp
+    findExact = core.DB.findExact
+    getTable = core.DB.getTable
+    getTables = core.DB.getTables
+    getTablesAvailable = core.DB.getTablesAvailable
+
+    isAvailable = core.DB._tableExists
 
     updateExcelInput = core.DB.updateExcelInput
 
@@ -121,16 +128,16 @@ if db_connected:
     DBinfo = core.DB.info
     sourceInfo = core.DB.sourceInfo
     inventory = core.DB.returnInventory
-    
+
     validate_ID = core.DB.validate_ID
-    #writeMAGICC6ScenFile = tools.wr
-    
+    # writeMAGICC6ScenFile = tools.wr
+
     # Source management
     import_new_source_from_remote = core.DB.importSourceFromRemote
-    export_new_source_to_remote   = core.DB.exportSourceToRemote
-    remove_source                 = core.DB.removeSource
-    push_source_to_remote         = core.DB.gitManager.push_to_remote_datashelf
-    pull_source_from_remote      = core.DB.pull_update_from_remote
+    export_new_source_to_remote = core.DB.exportSourceToRemote
+    remove_source = core.DB.removeSource
+    push_source_to_remote = core.DB.gitManager.push_to_remote_datashelf
+    pull_source_from_remote = core.DB.pull_update_from_remote
 
 
 # convenience functions
@@ -139,8 +146,11 @@ getDateString = core.getDateString
 
 
 if db_connected:
-    if config.PATH_TO_DATASHELF == os.path.join(config.MODULE_PATH, 'data/SANDBOX_datashelf'):
-        print("""
+    if config.PATH_TO_DATASHELF == os.path.join(
+        config.MODULE_PATH, 'data/SANDBOX_datashelf'
+    ):
+        print(
+            """
               ################################################################
               You are using datatoolbox with a testing database as a SANDBOX.
               This allows for testing and initial tutorial use.
@@ -154,9 +164,11 @@ if db_connected:
                   
                   
               ################################################################
-              """)
+              """
+        )
 else:
-     print("""
+    print(
+        """
           ################################################################
           
           You are using datatoolbox with no database connected
@@ -164,4 +176,5 @@ else:
           Access functions and methods to database are not available.
               
           ################################################################
-          """)
+          """
+    )

@@ -7,6 +7,7 @@ Created on Wed Feb 17 11:07:40 2021
 """
 import os
 import shutil
+
 # import config
 
 
@@ -108,9 +109,9 @@ def patch_050_update_sources_csv(coreDB):
 
     from .database import GitRepository_Manager
     from . import config
+
     coreDB.gitManager = GitRepository_Manager(config)
     coreDB.INVENTORY_PATH = os.path.join(coreDB.path, "inventory.csv")
     coreDB.inventory = coreDB._load_inventory(coreDB.INVENTORY_PATH)
     coreDB.sources = coreDB.gitManager.sources
     print("All done!")
-
