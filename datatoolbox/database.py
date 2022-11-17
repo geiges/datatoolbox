@@ -463,7 +463,7 @@ class Database:
         Returns a list of available sources and meta data
         """
 
-        return sources.sort_index()
+        return self.sources.sort_index()
 
     def returnInventory(self):
         """
@@ -1569,7 +1569,7 @@ class GitRepository_Manager:
             commit = repo.index.commit(message + " by " + config.CRUNCHER)
             self.sources.loc[repoID, 'git_commit_hash'] = commit.hexsha
             tag = self.get_tag_of_source(repoID)
-            self.sources.loc[repoID, 'git_commit_hash'] = tag
+            self.sources.loc[repoID, 'tag'] = tag
             del self.filesToAdd[repoID]
 
         # commit main repository

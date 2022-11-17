@@ -248,7 +248,7 @@ def _create_empty_datashelf(
 
     sourcesDf = pd.DataFrame(columns=SOURCE_META_FIELDS)
     filePath = os.path.join(pathToDataself, 'sources.csv')
-    sourcesDf.to_csv(filePath)
+    sourcesDf.to_csv(filePath,  index=False)
 
     inventoryDf = pd.DataFrame(columns=INVENTORY_FIELDS)
     filePath = os.path.join(pathToDataself, 'inventory.csv')
