@@ -102,10 +102,15 @@ class Database():
         
         self.gitManager = GitRepository_Manager(config)
         self.INVENTORY_PATH = os.path.join(self.path, 'inventory.csv')
-        self.inventory = pd.read_csv(self.INVENTORY_PATH, index_col=0, dtype={'source_year': str},low_memory=False)
+        self.inventory = self._load_inventory(self.INVENTORY_PATH)
         self.sources   = self.gitManager.sources
         
-        #self.gitManager._validateRepository('main')
+        #check for patch
+        if 'tag' not in self.sources.columns:
+            from patches import patch_050_update_sources_csv
+            patch_050_update_sources_csv(self)
+
+            
 
 
         if config.DEBUG:
@@ -124,7 +129,44 @@ class Database():
                          sourceMetaDict = source_meta)
             print('Added test tables to Sandbox datashelf')
             
- 
+        # remote update checks
+        self.check_for_new_remote_data()
+            
+    def check_for_new_remote_data(self, update=False):
+        
+        if update:
+            #check for remote data
+            self.gitManager._pull_remote_sources()
+            
+        remote_repo_path = os.path.join(
+            config.PATH_TO_DATASHELF, 
+            'remote_sources',
+            'source_states.csv')
+        
+        if not os.path.exists(remote_repo_path):
+            print('No information about remote data available')
+            print('Consider run again with update = True')
+            
+        else:
+            remote_sources_df = pd.read_csv(remote_repo_path,
+                                            index_col=0)
+            for sourceID in remote_sources_df.index:
+                remote_tag= remote_sources_df.loc[sourceID,'tag']
+                local_tag = self.sources.loc[sourceID,'tag']
+            
+                if float(remote_tag[1:]) > float(local_tag[1:]):
+                    import warnings
+                    warnings.warn(f'Warning: New version {remote_tag} available for local source {sourceID} ({local_tag})',
+                                  stacklevel=0)
+                    
+        
+    def _load_inventory(self, pathname):
+        return pd.read_csv(pathname, 
+                           index_col=0, 
+                           dtype={'source_year': str},
+                           low_memory=False)
+        
+        
     
     def create_empty_datashelf(self,
                                modulePath, 
@@ -1083,6 +1125,28 @@ class Database():
         self.gitManager.push_to_remote_datashelf(sourceID)
         print('export successful: ({})'.format( config.DATASHELF_REMOTE +  sourceID))
         
+    def checkout_source_version(self, sourceID , tag ='latest'):
+        
+        
+        
+        # set source to tag
+        hash = self.gitManager.checkout_git_version(sourceID, tag)
+        
+        # update sources.csv
+        self.gitManager.updateGitHash(sourceID)
+        
+        # update inventory
+        tables_to_remove = self.inventory.index[
+            self.inventory.source == sourceID
+            ]
+        self.inventory = self.inventory.drop(tables_to_remove)
+        
+        inv_file = self.gitManager.get_inventory_file_of_source(sourceID)
+        source_inventory =  self._load_inventory(inv_file)
+        self.inventory = pd.concat([self.inventory,
+                                    source_inventory])
+        # commit all
+        self._gitCommit(f'Set source {sourceID} to tag {tag}')
 
     def pull_update_from_remote(self, repoName):
         """
@@ -1137,7 +1201,7 @@ class Database():
         
         long_df = long_df.set_index(meta_list)
         return long_df       
-#%%
+
 class GitRepository_Manager:
     """
     # Management of git repositories for fast access
@@ -1172,6 +1236,11 @@ class GitRepository_Manager:
         repo = git.Repo(repoPath)
         return repo
     
+    def get_inventory_file_of_source(self, repoName):
+        repo = self[repoName]
+        return os.path.join(repo.working_dir,
+                            'source_inventory.csv')
+    
     def __getitem__(self, sourceID):
         """ 
         Retrieve `sourceID` from repositories dictionary and ensure cleanliness
@@ -1184,7 +1253,7 @@ class GitRepository_Manager:
     def _validateRepository(self, sourceID):
         """ 
         Private
-        Cheks if sourceID points to a valid repository
+        Checks if sourceID points to a valid repository
         
         """
         repo = self.repositories[sourceID]
@@ -1195,6 +1264,7 @@ class GitRepository_Manager:
         if repo.is_dirty():
             raise RuntimeError('Git repo: "{}" is inconsistent! - please check uncommitted modifications'.format(sourceID))
 
+        
         config.DB_READ_ONLY = False
         if config.DEBUG:
             print('Repo {} is clean'.format(sourceID))
@@ -1330,6 +1400,30 @@ class GitRepository_Manager:
         origin.fetch()
         branch.set_tracking_branch(origin.refs[0])
     
+    def get_tag_of_source(self, repoName):
+        repo = self.get_source_repo_failsave(repoName)
+        if len(repo.tags) == 0:
+            return None
+        
+        # tag of head
+        return  next((tag.name for tag in repo.tags if tag.commit == repo.head.commit), None)
+        # latest tag
+        return repo.tags[-1].name
+    
+    def checkout_git_version(self, repoName, tag):
+        
+        repo = self[repoName]
+        
+        if tag == 'latest':
+            # hash = repo.commit().hexsha
+            tag = 'master'
+        elif tag in repo.tags:
+            hash = repo.tags['v3.0'].commit.hexsha
+        else:
+            raise(Exception(f'Tag {tag} does not exist'))
+            
+        repo.git.checkout(tag)
+        return repo.commit().hexsha
     def push_to_remote_datashelf(self, repoName):
         """
         This function used git push to update the remote database with an updated
@@ -1341,8 +1435,98 @@ class GitRepository_Manager:
         function. TODO
 
         """
+        remote_repo = self._pull_remote_sources()
+        
+        self._update_remote_sources(repoName)
+        
+        # if repoName not in rem_sources.index:
+        remote_repo.remotes.origin.push(progress=TqdmProgressPrinter())
+           
         self[repoName].remotes.origin.push(progress=TqdmProgressPrinter())
         
+        self[repoName].remotes.origin.push(progress=TqdmProgressPrinter(),
+                                           tags=True)
+        
+    def _init_remote_repo(self):
+        
+        remote_repo_path = os.path.join(
+            config.PATH_TO_DATASHELF, 'remote_sources')
+        if os.path.exist(remote_repo_path):
+            self.remote_repo = self._get_remote_sources_repo()
+            
+    def _get_remote_sources_repo(self):
+        remote_repo_path = os.path.join(
+            config.PATH_TO_DATASHELF, 'remote_sources')
+        remote_repo = git.Repo(remote_repo_path)
+        
+        # self.remote_repo = remote_repo()
+        return remote_repo
+    
+    def _pull_remote_sources(self):
+        
+        remote_repo_path = os.path.join(
+            config.PATH_TO_DATASHELF, 'remote_sources')
+        if os.path.exists(remote_repo_path):
+            #pull
+            remote_repo_path = os.path.join(
+                config.PATH_TO_DATASHELF, 'remote_sources')
+            remote_repo = git.Repo(remote_repo_path)
+            remote_repo.remote('origin').pull(progress=TqdmProgressPrinter())
+            
+        else:
+            #clone
+            remote_repo =self._clone_remote_sources()
+        
+        self.remote_repo = remote_repo
+        
+
+        return remote_repo
+        
+    def _clone_remote_sources(self):
+        
+        # if  not os.path.exists(os.path.join(config.PATH_TO_DATASHELF,
+        #                           'remote_sources')):
+            # no remote folder locally
+        url = config.DATASHELF_REMOTE + 'remote_sources.git'
+        remote_repo = git.Repo.clone_from(url=url, 
+                                   to_path=os.path.join(config.PATH_TO_DATASHELF,
+                                                        'remote_sources'), 
+                                   progress=TqdmProgressPrinter())  
+        
+        
+        return remote_repo
+           
+    def _update_remote_sources(self, repoName):
+        
+        dpath = os.path.join(
+            config.PATH_TO_DATASHELF, 'remote_sources','source_states.csv',
+            )
+        remote_repo = git.Repo(os.path.join(
+            config.PATH_TO_DATASHELF, 'remote_sources'))
+        rem_sources_df = pd.read_csv(dpath, index_col=0)
+        
+        repo = self[repoName]
+        if repoName in rem_sources_df.index:
+            #check that current tag is equal to remote tag
+            
+            assert repo.tags[-1].name == rem_sources_df.loc[repoName,'tag']
+            tag = f'v{float(repo.tags[-1].name.replace("v",""))+1:1.1f}'
+        else:
+            tag = 'v1.0'
+            
+        hash = self[repoName].commit().hexsha
+        user = config.CRUNCHER
+        
+        repo.create_tag(tag)
+        tag = repo.tags[-1].name
+        rem_sources_df.loc[repoName,:] = (hash, tag, user)
+        rem_sources_df.to_csv(dpath)
+        
+        remote_repo.index.add('source_states.csv')
+        remote_repo.index.commit('remote source update' + " by " + config.CRUNCHER)
+        
+        return repo
+    
     def clone_source_from_remote(self, repoName, repoPath):
         """
         Function to clone a remote git repository as a local copy.
@@ -1352,6 +1536,8 @@ class GitRepository_Manager:
         repoName : str - valid repository in the remove database
         repoPath : str - path of the repository
         """
+        
+        self._clone_remote_sources()
         try:
             print('Try cloning source via ssh')
             url = config.DATASHELF_REMOTE + repoName + '.git'
@@ -1383,6 +1569,9 @@ class GitRepository_Manager:
         function. TODO
 
         """
+        remote_repo = self._pull_remote_sources()
+        
+        
         self[repoName].remote('origin').pull(progress=TqdmProgressPrinter())
         self.updateGitHash(repoName)
         repoPath = os.path.join(self.PATH_TO_DATASHELF,  'database', repoName)
@@ -1408,7 +1597,9 @@ class GitRepository_Manager:
         Function to update the git hash code in the sources.csv by the repo hash code
         """
         self.sources.loc[repoName,'git_commit_hash'] = self[repoName].commit().hexsha
-        
+        tag = self.get_tag_of_source(repoName)
+        self.sources.loc[repoName,'tag'] = tag
+            
     def setActive(self, repoName):
         """
         Function to set a reposity active
