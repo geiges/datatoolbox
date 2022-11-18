@@ -468,7 +468,7 @@ class Database:
             df_print.loc[sourceID, 'remote_tag'] = remote_tag
     
             
-        print(tabulate(df_print, headers='keys', tablefmt='psql'))
+        print(tabulate(remote_sources_df, headers='keys', tablefmt='psql'))
         return remote_sources_df
     
     def sourceInfo(self):
