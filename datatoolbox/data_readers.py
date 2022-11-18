@@ -5492,13 +5492,16 @@ class IIASA(BaseImportTool):
 
         self.region_mapping = dict()
 
-        self.region_mapping['iamc15'] = mapping.IPCC_SR15().region_mapping()
+        
+        
+        self.region_mapping['iamc15'] =mapping.IPCC_SR15().region_mapping()
         self.region_mapping['IPCC_SR15'] = self.region_mapping['iamc15']
-
-        self.region_mapping['CD_LINKS'] = mapping.CD_LINKS().region_mapping()
-
-        self.region_mapping['engage'] = mapping.ENGAGE().region_mapping()
-
+        self.region_mapping["IAMC15_2019_R2"] = self.region_mapping["iamc15"]  
+        
+        self.region_mapping['CD_LINKS'] =mapping.CD_LINKS().region_mapping()
+        
+        self.region_mapping['engage'] =mapping.ENGAGE().region_mapping()
+        
         self.region_mapping['IPCC_AR5'] = mapping.IPCC_AR5().region_mapping()
 
         self.region_mapping['IPCC_AR6'] = mapping.IPCC_AR6().region_mapping()
