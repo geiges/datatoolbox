@@ -79,6 +79,7 @@ from .tools import excel as xls
 isin = tools.pandas.isin
 # unit conversion package
 unitReg = core.ur
+DB      = core.DB
 
 ExcelReader = xls.ExcelReader  # TODO make this general IO tools
 
