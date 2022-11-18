@@ -28,6 +28,7 @@ from . import io_tools as io
 from . import util
 from . import core
 from .tools import xarray
+from tabulate import tabulate
 
 # helper funtions
 def restore_source(repoName):
@@ -409,7 +410,7 @@ class Database:
 
             if len(sources_with_update) > 0:
                 print('The following source have newer versions available:')
-                from tabulate import tabulate
+               
 
                 print(tabulate(sources_with_update, headers='keys', tablefmt='psql'))
                 

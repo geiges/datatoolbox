@@ -125,6 +125,7 @@ countryDataExtract = xls.getCountryExtract
 
 executeForAll = util.forAll
 
+
 if db_connected:
     DBinfo = core.DB.info
     sourceInfo = core.DB.sourceInfo
@@ -140,6 +141,8 @@ if db_connected:
     push_source_to_remote = core.DB.gitManager.push_to_remote_datashelf
     pull_source_from_remote = core.DB.pull_update_from_remote
 
+    #show available remote data sources
+    available_remote_data = DB.check_for_new_remote_data
 
 # convenience functions
 getTimeString = core.getTimeString
