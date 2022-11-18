@@ -18,7 +18,7 @@ def test_to_xdataset():
     
     ds1 = dt.converters.to_xdataset(idf)
     
-    tables = dt.findp().load()
+    tables = dt.findp(source='Numbers_2020').load()
     
     ds2 = dt.converters.to_xdataset(tables)
 
