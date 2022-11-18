@@ -1444,7 +1444,8 @@ class GitRepository_Manager:
             tag = 'v1.0'
             
         else:
-            last_tag = repo.tags[-1]
+            tags = sorted(repo.tags, key=lambda t: t.commit.committed_datetime)
+            last_tag = tags[-1]
             tag_hash = last_tag.commit.hexsha
             
             if tag_hash == hash:
@@ -1456,11 +1457,13 @@ class GitRepository_Manager:
                     return repo
             else:
                 # there are new commits -> increase version by 1.0
-                tag = f'v{float(repo.tags[-1].name.replace("v",""))+1:1.1f}'
+                
+                latest_tag = tags[-1]
+                tag = f'v{float(latest_tag.name.replace("v",""))+1:1.1f}'
         
         #update remote sources csv 
         repo.create_tag(tag)
-        tag = repo.tags[-1].name
+        # tag = repo.tags[-1].name
         rem_sources_df.loc[repoName, :] = (hash, tag, user)
         rem_sources_df.to_csv(dpath)
 
@@ -1653,7 +1656,8 @@ class GitRepository_Manager:
             (tag.name for tag in repo.tags if tag.commit == repo.head.commit), None
         )
         # latest tag
-        return repo.tags[-1].name
+        tags = sorted(repo.tags, key=lambda t: t.commit.committed_datetime)
+        return tags[-1].name
 
     def checkout_git_version(self, repoName, tag):
 
@@ -1730,6 +1734,8 @@ class GitRepository_Manager:
         # Update source file
         sourceMetaDict = util.csv_to_dict(os.path.join(repoPath, 'meta.csv'))
         sourceMetaDict['git_commit_hash'] = repo.commit().hexsha
+        tag = self.get_tag_of_source(repoName)
+        sourceMetaDict['tag'] = tag
         self.sources.loc[repoName] = pd.Series(sourceMetaDict)
         self.sources.to_csv(config.SOURCE_FILE)
         self.gitAddFile('main', config.SOURCE_FILE)
