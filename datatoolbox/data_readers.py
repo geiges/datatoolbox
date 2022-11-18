@@ -3868,22 +3868,25 @@ class IMAGE15_2020(BaseImportTool):
 
 
 class PRIMAP_HIST(BaseImportTool):
-    def __init__(self, version="v2.2_19-Jan-2021", year=2021):
+    def __init__(self, 
+                 filename,
+                 year,
+                 mapping_file):
+               
 
         self.setup = setupStruct()
 
         self.setup.SOURCE_ID = "PRIMAP_" + str(year)
         self.setup.SOURCE_NAME = "PRIMAP"
         self.setup.SOURCE_YEAR = str(year)
-        self.setup.SOURCE_PATH = os.path.join(
-            config.PATH_TO_DATASHELF, 'rawdata/PRIMAP'
+        self.setup.SOURCE_PATH = os.path.join('data','PRIMAP',str(year)
         )
         self.setup.DATA_FILE = os.path.join(
-            self.setup.SOURCE_PATH, str(year), 'PRIMAP-hist_' + str(version) + '.csv'
+            self.setup.SOURCE_PATH, filename
         )
-        self.setup.MAPPING_FILE = os.path.join(self.setup.SOURCE_PATH, 'mapping.xlsx')
+        self.setup.MAPPING_FILE = mapping_file
         self.setup.LICENCE = 'CC BY-4.0'
-        self.setup.URL = 'https://zenodo.org/record/4479172'
+        self.setup.URL = 'https://zenodo.org/record/7179775'
 
         #        self.setup.INDEX_COLUMN_NAME = 'SeriesCode'
         #        self.setup.SPATIAL_COLUM_NAME = 'GeoAreaCode'

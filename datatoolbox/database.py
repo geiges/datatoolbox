@@ -360,7 +360,12 @@ class Database:
         git.Repo.init(datashelf)
 
     def check_for_new_remote_data(self, update=False):
-
+        remote_repo_path = os.path.join(
+            config.PATH_TO_DATASHELF, 'remote_sources', 'source_states.csv'
+        )
+        if os.path.exists(remote_repo_path):
+            remote_sources_df_before = pd.read_csv(remote_repo_path, index_col=0)
+        
         if update or self._check_online_data():
             # check for remote data
             try:
@@ -370,9 +375,7 @@ class Database:
             except:
                 print('Could not check online data repository')
 
-        remote_repo_path = os.path.join(
-            config.PATH_TO_DATASHELF, 'remote_sources', 'source_states.csv'
-        )
+
 
         if not os.path.exists(remote_repo_path):
             print('No information about remote data available')
@@ -409,6 +412,14 @@ class Database:
                 from tabulate import tabulate
 
                 print(tabulate(sources_with_update, headers='keys', tablefmt='psql'))
+                
+            new_entries = remote_sources_df.index.difference(remote_sources_df_before.index)
+            if len(new_entries) > 0:
+                print('The followgin new sources have been added:')
+                df_news= remote_sources_df.loc[new_entries,['tag', 'last_to_update']]
+                df_news.columns = ['version', 'updated_by']
+                tabulate(df_news)
+                
 
     def info(self):
         """
@@ -457,6 +468,7 @@ class Database:
     
             
         print(tabulate(df_print, headers='keys', tablefmt='psql'))
+        return remote_sources_df
     
     def sourceInfo(self):
         """
@@ -1423,17 +1435,29 @@ class GitRepository_Manager:
         rem_sources_df = pd.read_csv(dpath, index_col=0)
 
         repo = self[repoName]
-        if repoName in rem_sources_df.index:
-            # check that current tag is equal to remote tag
-
-            # assert repo.tags[-1].name == rem_sources_df.loc[repoName, 'tag']
-            tag = f'v{float(repo.tags[-1].name.replace("v",""))+1:1.1f}'
-        else:
-            tag = 'v1.0'
-
-        hash = self[repoName].commit().hexsha
+        hash = repo.commit().hexsha
         user = config.CRUNCHER
-
+        
+        if len(repo.tags) == 0:
+            # start new tag with version 1.0
+            tag = 'v1.0'
+            
+        else:
+            last_tag = repo.tags[-1]
+            tag_hash = last_tag.commit.hexsha
+            
+            if tag_hash == hash:
+                #no new commits -> keep tag
+                tag = last_tag.name
+                
+                if rem_sources_df.loc[repoName, 'tag'] == tag:
+                    #nothing needs to be done
+                    return repo
+            else:
+                # there are new commits -> increase version by 1.0
+                tag = f'v{float(repo.tags[-1].name.replace("v",""))+1:1.1f}'
+        
+        #update remote sources csv 
         repo.create_tag(tag)
         tag = repo.tags[-1].name
         rem_sources_df.loc[repoName, :] = (hash, tag, user)
