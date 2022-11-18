@@ -693,6 +693,14 @@ class Database:
         return pd.read_csv(
             os.path.join(config.MODULE_DATA_PATH, 'datashelf_contents.csv')
         )
+    
+    def get_remote_summary(self):
+        remote_repo_path = os.path.join(
+            config.PATH_TO_DATASHELF, 'remote_sources', 'source_states.csv'
+        )
+
+        remote_sources_df = pd.read_csv(remote_repo_path, index_col=0)
+        return remote_sources_df
 
     def startLogTables(self):
         """
@@ -1418,7 +1426,7 @@ class GitRepository_Manager:
         if repoName in rem_sources_df.index:
             # check that current tag is equal to remote tag
 
-            assert repo.tags[-1].name == rem_sources_df.loc[repoName, 'tag']
+            # assert repo.tags[-1].name == rem_sources_df.loc[repoName, 'tag']
             tag = f'v{float(repo.tags[-1].name.replace("v",""))+1:1.1f}'
         else:
             tag = 'v1.0'
