@@ -142,7 +142,7 @@ if db_connected:
     pull_source_from_remote = core.DB.pull_update_from_remote
 
     #show available remote data sources
-    available_remote_data = DB.check_for_new_remote_data
+    available_remote_data = DB.remote_sourceInfo
 
 # convenience functions
 getTimeString = core.getTimeString
