@@ -57,6 +57,7 @@ def main():
             "networkx",
             "pint_xarray",
             "openpyxl",
+            "tabulate",
             "xarray",
             "deprecated",],
         }
