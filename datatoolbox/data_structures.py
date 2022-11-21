@@ -12,6 +12,7 @@ by any computations using datatables.
 import pandas as pd
 import matplotlib.pylab as plt
 import numpy as np
+import xarray as xr
 from copy import copy
 import ast
 from . import core
@@ -20,7 +21,7 @@ import traceback
 from . import util
 import os
 from . import tools
-
+from . import converters
 
 class Datatable(pd.DataFrame):
     """
@@ -565,7 +566,7 @@ class Datatable(pd.DataFrame):
             Default is forward.
         """
 
-        #%%
+
         if forward:
             t0_years = self.columns[:-1]
             t1_years = self.columns[1:]
@@ -597,7 +598,7 @@ class Datatable(pd.DataFrame):
 
         return deltaData
 
-    #%%
+
     def generateTableID(self):
         """
         Generates the table ID based on the meta data of the table.
@@ -834,7 +835,7 @@ class Datatable(pd.DataFrame):
         return outStr
 
 
-#%%
+
 class TableSet(dict):
     """
     Class TableSet that is inherited from the dict class. It organized multiple
@@ -1075,7 +1076,12 @@ class TableSet(dict):
             newTableSet[key] = self[key]
 
         return newTableSet
-
+    
+    
+    @classmethod
+    def from_converter(cls, data):
+        return converters.to_tableset(data)
+    
     @classmethod
     def from_list(cls, tableList):
         """
@@ -1497,6 +1503,72 @@ class TableSet(dict):
         )
 
 
+class DataSet(xr.Dataset):
+    """
+    Very simple class to allow initialization of xarray datasets from pyam, wide pandas dataframes
+    and datatoolbox queries.
+    """
+
+    __slots__ = (
+        '_attrs',
+        '_cache',
+        '_coord_names',
+        '_dims',
+        '_encoding',
+        '_close',
+        '_indexes',
+        '_variables',
+    )
+    @classmethod
+    def from_converter(cls, data):
+        return converters.to_xdataset(data)
+    
+    
+    @classmethod
+    def from_wide_dataframe(
+        cls, data, meta=None, stacked_dims={'pathway': ("model", "scenario")}
+    ):
+        to_merge = list()
+        for (variable, unit), df_ in data.groupby(['variable', 'unit']):
+            # print(df_)
+
+            index = df_.index
+            df_ = df_.reset_index(['variable', 'unit'], drop=True)
+            index, dims = _pack_dimensions(df_.index, **stacked_dims)
+            da = (
+                xr.DataArray(df_.set_axis(index).rename_axis(columns="year"))
+                .unstack("dim_0")
+                .pint.quantify(unit)
+                .assign_coords(dims)
+            )
+            to_merge.append(xr.Dataset({variable: da}))
+        self = xr.merge(to_merge)
+        return self
+
+    @classmethod
+    def from_pyam(
+        cls, data, meta_dims=None, stacked_dims={'pathway': ("model", "scenario")}
+    ):
+
+        if meta_dims is not None:
+            meta = data.meta.loc[:, meta_dims]
+            # data, stacked_dims = _add_meta(data, meta, stacked_dims)
+        else:
+            meta = None
+        data = data.timeseries()
+        if meta_dims is not None:
+            data = _add_required_meta(data, meta, stacked_dims)
+
+        return cls.from_wide_dataframe(data, meta, stacked_dims)
+
+    @classmethod
+    def from_query(cls, query, stacked_dims={'pathway': ("model", "scenario")}):
+        dimensions = ['model', 'scenario', 'region', 'variable', 'source', 'unit']
+        data = query.as_wide_dataframe(meta_list=dimensions)
+
+        return cls.from_wide_dataframe(data, meta=None, stacked_dims=stacked_dims)
+
+
 class Visualization:
     """
     This class addes handy built-in visualizations to datatables
@@ -1675,7 +1747,6 @@ class Visualization:
         plt.show()
 
     #        plt.colorbar()
-    #%%
 
     def html_scatter(self, fileName=None, paletteName="Category20", returnHandle=False):
         from bokeh.io import show
@@ -2123,67 +2194,6 @@ def _pack_dimensions(index, **stacked_dims):
 
 import xarray as xr
 
-
-class DataSet(xr.Dataset):
-    """
-    Very simple class to allow initialization of xarray datasets from pyam, wide pandas dataframes
-    and datatoolbox queries.
-    """
-
-    __slots__ = (
-        '_attrs',
-        '_cache',
-        '_coord_names',
-        '_dims',
-        '_encoding',
-        '_close',
-        '_indexes',
-        '_variables',
-    )
-
-    @classmethod
-    def from_wide_dataframe(
-        cls, data, meta=None, stacked_dims={'pathway': ("model", "scenario")}
-    ):
-        to_merge = list()
-        for (variable, unit), df_ in data.groupby(['variable', 'unit']):
-            # print(df_)
-
-            index = df_.index
-            df_ = df_.reset_index(['variable', 'unit'], drop=True)
-            index, dims = _pack_dimensions(df_.index, **stacked_dims)
-            da = (
-                xr.DataArray(df_.set_axis(index).rename_axis(columns="year"))
-                .unstack("dim_0")
-                .pint.quantify(unit)
-                .assign_coords(dims)
-            )
-            to_merge.append(xr.Dataset({variable: da}))
-        self = xr.merge(to_merge)
-        return self
-
-    @classmethod
-    def from_pyam(
-        cls, data, meta_dims=None, stacked_dims={'pathway': ("model", "scenario")}
-    ):
-
-        if meta_dims is not None:
-            meta = data.meta.loc[:, meta_dims]
-            # data, stacked_dims = _add_meta(data, meta, stacked_dims)
-        else:
-            meta = None
-        data = data.timeseries()
-        if meta_dims is not None:
-            data = _add_required_meta(data, meta, stacked_dims)
-
-        return cls.from_wide_dataframe(data, meta, stacked_dims)
-
-    @classmethod
-    def from_query(cls, query, stacked_dims={'pathway': ("model", "scenario")}):
-        dimensions = ['model', 'scenario', 'region', 'variable', 'source', 'unit']
-        data = query.as_wide_dataframe(meta_list=dimensions)
-
-        return cls.from_wide_dataframe(data, meta=None, stacked_dims=stacked_dims)
 
 
 if __name__ == '__main__':

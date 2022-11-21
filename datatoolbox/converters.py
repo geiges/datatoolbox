@@ -267,16 +267,6 @@ def _pack_dimensions(index, **stacked_dims):
         packed_labels,
     )
 
-
-def to_dataset(
-    data_dict,
-    var_data_labels,  # with different units
-    packed_dimensions,  # dependent dimenions
-):
-
-    pass
-
-
 def _xDataSet_to_wide_dataframe(xds):
     merge_list = list()
     dims = list(xds.coords)

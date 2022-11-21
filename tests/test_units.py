@@ -15,18 +15,18 @@ def test_base_conversion1():
     npt.assert_almost_equal(obs, exp)
 
 def test_custom_base_conversion1():    
-    obs = dt.conversionFactor('t oil_equivalent/capita', 'MJ/capita')
+    obs = dt.units.conversionFactor('t oil_equivalent/capita', 'MJ/capita')
     exp = 41868
     npt.assert_almost_equal(obs, exp)
 
 
 def test_GWP_conversion_N2O():    
-    obs = dt.conversionFactor("Mt N2O", "Gg CO2eq", context="GWPAR4")
+    obs = dt.units.conversionFactor("Mt N2O", "Gg CO2eq", context="GWPAR4")
     exp = 298000
     npt.assert_almost_equal(obs, exp)
 
 def test_GWP_conversion_CH4():        
-    obs = dt.conversionFactor("Mt CH4", "Mt CO2eq", context="GWPAR4")
+    obs = dt.units.conversionFactor("Mt CH4", "Mt CO2eq", context="GWPAR4")
     exp = 25
     npt.assert_almost_equal(obs, exp)
     
