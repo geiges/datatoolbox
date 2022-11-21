@@ -13,3 +13,6 @@ ur = core.ur
 
 # conversion factor between two units
 conversionFactor = core.conversionFactor
+
+getUnit = core.getUnit
+getUnitWindows = core.getUnitWindows
