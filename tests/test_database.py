@@ -21,7 +21,7 @@ def test_commit_new_table():
     
     
 def test_validate_ID():
-    assert dt.validate_ID(list(dt.find_c().index)[0])
+    assert dt.validate_ID(list(dt.findc().index)[0])
     
 def test_update_value_table():
     

@@ -4,13 +4,13 @@ import numpy.testing as npt
 
 def test_base_conversion1():
     #testing compound units and addtional units (CO2eq)
-    hr_in_yr = dt.conversionFactor('yr', 'h')
+    hr_in_yr = dt.units.conversionFactor('yr', 'h')
     
     try:
         npt.assert_almost_equal(hr_in_yr, 8765.812770749999) # were counting leap years now?
     except:
         npt.assert_almost_equal(hr_in_yr, 8766.0) # allow for rounding (for some openscm versions)
-    obs = dt.conversionFactor('Mt CO2eq / yr', 'kg CO2eq / hr')
+    obs = dt.units.conversionFactor('Mt CO2eq / yr', 'kg CO2eq / hr')
     exp = 1e9 / hr_in_yr
     npt.assert_almost_equal(obs, exp)
 

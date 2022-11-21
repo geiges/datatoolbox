@@ -66,7 +66,7 @@ from datatoolbox.sets import REGIONS, SCENARIOS
 
 #%% DATABASE 
 if db_connected:
-    db      = core.DB
+    db = core.DB
     commitTable = core.DB.commitTable
     commitTables = core.DB.commitTables
 

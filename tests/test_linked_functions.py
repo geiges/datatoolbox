@@ -11,7 +11,7 @@ dt.admin.switch_database_to_testing()
 
 def test_init():
     dt.inventory()
-    dt.DBinfo()
+    # dt.DBinfo()
     dt.sourceInfo()
     assert len(dt.sourceInfo()) == len(dt.core.DB.sources)
     
