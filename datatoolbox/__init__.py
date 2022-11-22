@@ -127,8 +127,8 @@ getCountryISO = util.getCountryISO
 
 
 # convenience functions
-get_time_string = core.getTimeString
-get_date_string = core.getDateString
+get_time_string = core.get_time_string
+get_date_string = core.get_date_string
 
 
 if db_connected:

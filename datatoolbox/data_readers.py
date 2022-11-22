@@ -121,7 +121,7 @@ class BaseImportTool:
         self.meta = {
             'SOURCE_ID': self.setup.SOURCE_ID,
             'collected_by': config.CRUNCHER,
-            'date': dt.core.getDateString(),
+            'date': dt.core.get_date_string(),
             'source_url': self.setup.URL,
             'licence': self.setup.LICENCE,
         }
@@ -147,7 +147,7 @@ class BaseImportTool:
 
         dt.commitTables(
             tableList,
-            f'update {self.__class__.__name__} data at {dt.getDateString()} by {dt.config.CRUNCHER}',
+            f'update {self.__class__.__name__} data at {dt.get_date_string()} by {dt.config.CRUNCHER}',
             sourceMetaDict=self.meta,
             update=updateContent,
             append_data=append_data,
@@ -1901,7 +1901,7 @@ class IAMC15_2019(BaseImportTool):
         self.meta = {
             'SOURCE_ID': self.setup.SOURCE_ID,
             'collected_by': config.CRUNCHER,
-            'date': dt.core.getDateString(),
+            'date': dt.core.get_date_string(),
             'source_url': self.setup.URL,
             'licence': self.setup.LICENCE,
         }
@@ -2561,7 +2561,7 @@ class AIM_SSP_DATA_2019(BaseImportTool):
     #    def createSourceMeta(self):
     #        self.meta = {'SOURCE_ID': self.setup.SOURCE_ID,
     #                      'collected_by' : config.CRUNCHER,
-    #                      'date': dt.core.getDateString(),
+    #                      'date': dt.core.get_date_string(),
     #                      'source_url' : self.setup.URL,
     #                      'licence': self.setup.LICENCE }
 
@@ -2962,7 +2962,7 @@ class SSP_DATA(BaseImportTool):
         self.meta = {
             'SOURCE_ID': self.setup.SOURCE_ID,
             'collected_by': config.CRUNCHER,
-            'date': dt.core.getDateString(),
+            'date': dt.core.get_date_string(),
             'source_url': self.setup.URL,
             'licence': self.setup.LICENCE,
         }
@@ -5834,7 +5834,7 @@ def HDI_import(year=2020):
     sourceMeta = {
         'SOURCE_ID': 'HDI_' + str(year),
         'collected_by': 'AG',
-        'date': dt.core.getDateString(),
+        'date': dt.core.get_date_string(),
         'source_url': 'http://hdr.undp.org/en/data',
         'licence': 'open source',
     }
@@ -6083,7 +6083,7 @@ def UN_WPP_2019_import():
     sourceMeta = {
         'SOURCE_ID': 'UN_WPP2019',
         'collected_by': 'AG',
-        'date': dt.core.getDateString(),
+        'date': dt.core.get_date_string(),
         'source_url': 'https://population.un.org/wpp/Download/Standard/Population/',
         'licence': 'open source',
     }

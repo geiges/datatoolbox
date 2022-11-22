@@ -864,7 +864,7 @@ def _create_sandbox_tables(sourceID, random_seed):
     source_meta = {
         'SOURCE_ID': sourceID,
         'collected_by': 'Hard worker 1',
-        'date': core.getDateString(),
+        'date': core.get_date_string(),
         'source_url': 'www.www.www',
         'licence': 'open access',
     }
