@@ -478,7 +478,7 @@ class Datatable(pd.DataFrame):
 
         dfNew.loc[:] = self.values * factor
         dfNew.meta['unit'] = newUnit
-        dfNew.meta['modified'] = core.getTimeString()
+        dfNew.meta['modified'] = core.get_time_string()
         return dfNew
 
     def aggregate_region(self, mapping, skipna=False):

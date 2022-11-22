@@ -336,7 +336,7 @@ if osIsWindows():
     getUnit = getUnitWindows
 
 
-def getTimeString():
+def get_time_string():
     """
     Return formated time string.
 
@@ -348,7 +348,7 @@ def getTimeString():
     return time.strftime("%Y/%m/%d-%I:%M:%S")
 
 
-def getDateString():
+def get_date_string():
     """
     Return formated date string.
 

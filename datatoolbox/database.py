@@ -187,7 +187,7 @@ class Database:
         self._gitAddTable(datatable, source, filePath)
 
     def _check_online_data(self):
-        curr_date = pd.to_datetime(core.getTimeString()).date()
+        curr_date = pd.to_datetime(core.get_time_string()).date()
         last_access_date = pd.to_datetime(
             self.gitManager._get_last_remote_access()
         ).date()
@@ -416,10 +416,10 @@ class Database:
                 
             new_entries = remote_sources_df.index.difference(remote_sources_df_before.index)
             if len(new_entries) > 0:
-                print('The followgin new sources have been added:')
+                print('The following new sources have been added:')
                 df_news= remote_sources_df.loc[new_entries,['tag', 'last_to_update']]
                 df_news.columns = ['version', 'updated_by']
-                tabulate(df_news)
+                print(tabulate(df_news, headers='keys', tablefmt='psql'))
                 
 
     def info(self):
@@ -1409,7 +1409,7 @@ class GitRepository_Manager:
             config.PATH_TO_DATASHELF, 'remote_sources', 'last_accessed_remote'
         )
         with open(filepath, 'w') as f:
-            f.write(core.getTimeString())
+            f.write(core.get_time_string())
 
     def _update_local_sources_tag(self, repoName):
         repo = self.repositories[repoName]
