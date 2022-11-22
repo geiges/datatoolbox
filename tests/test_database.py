@@ -55,7 +55,7 @@ def test_delete_mutliple_tables():
 def test_delete_source():    
     dt.core.DB.removeSource('XYZ_2020')
     
-def test_findp():
+def test_find_p():
     inv = dt.findp(variable = 'Numbers|Ones',
                    source='Numbers_2020')    
     

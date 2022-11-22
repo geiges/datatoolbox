@@ -20,25 +20,9 @@ Authors: Andreas Geiges
 
 from .version import version as __version__
 
-
-#%% PATCHES
-# import traceback
-# try:
-#     from . import config
-#     if not hasattr(config, 'last_checked_remote'):
-#         from .patches import patch_050_source_tracking
-#         personal = config.get_personal()
-#         personal = patch_050_source_tracking(personal)
-# except:
-#     raise(Exception('failed to apply 0.5 version patch'))
-
-# %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-
 import os
-import deprecated as _deprecated
 from . import config
 from . import core
-from .data_structures import Datatable, TableSet, DataSet, read_csv, read_excel
 
 try:
     from . import database
@@ -53,37 +37,36 @@ except:
     db_connected = False
 
 from . import mapping as mapp
-from . import io_tools as io
+
 from . import interfaces
 from . import util as util
 from . import admin as admin
 from . import templates
 from . import converters
 
-# from . import utilities as _util
-#%% optional support xarray
 
 
+
+#%% DATA STRUCTURES
+from .data_structures import (
+    Datatable, 
+    TableSet, 
+    DataSet
+    )
+
+
+#%% IO 
+from .data_structures import read_csv, read_excel
 from . import data_readers
+from . import io_tools as io
 
+#%% SETS
 # Predefined sets for regions and scenrarios
 from datatoolbox.sets import REGIONS, SCENARIOS
 
-import datatoolbox.tools as tools
-
-from .tools import pandas as pd
-from .tools import matplotlib as plt
-from .tools import xarray as xr
-from .tools import excel as xls
-
-isin = tools.pandas.isin
-# unit conversion package
-unitReg = core.ur
-DB      = core.DB
-
-ExcelReader = xls.ExcelReader  # TODO make this general IO tools
-
+#%% DATABASE 
 if db_connected:
+    db = core.DB
     commitTable = core.DB.commitTable
     commitTables = core.DB.commitTables
 
@@ -94,14 +77,9 @@ if db_connected:
     removeTable = core.DB.removeTable
     removeTables = core.DB.removeTables
 
-    find = _deprecated.deprecated(
-        core.DB.findc,
-        version='0.4.7',
-        reason="Will be removed, please use finc instead",
-    )
     findc = core.DB.findc
     findp = core.DB.findp
-    findExact = core.DB.findExact
+    finde = core.DB.finde
     getTable = core.DB.getTable
     getTables = core.DB.getTables
     getTablesAvailable = core.DB.getTablesAvailable
@@ -110,24 +88,6 @@ if db_connected:
 
     updateExcelInput = core.DB.updateExcelInput
 
-insertDataIntoExcelFile = io.insertDataIntoExcelFile
-# sources = _raw_sources.sources
-
-# get country ISO code
-getCountryISO = util.getCountryISO
-
-# open_file = _util.open_file
-
-conversionFactor = core.conversionFactor
-
-# extract data for specific countries and sources
-countryDataExtract = xls.getCountryExtract
-
-executeForAll = util.forAll
-
-
-if db_connected:
-    DBinfo = core.DB.info
     sourceInfo = core.DB.sourceInfo
     inventory = core.DB.returnInventory
 
@@ -142,11 +102,33 @@ if db_connected:
     pull_source_from_remote = core.DB.pull_update_from_remote
 
     #show available remote data sources
-    available_remote_data = DB.remote_sourceInfo
+    available_remote_data = core.DB.remote_sourceInfo
+    
+#%% TOOLS
+# Tools related to packages
+import datatoolbox.tools as tools
+from .tools import pandas as pd
+from .tools import matplotlib as plt
+from .tools import xarray as xr
+from .tools import excel as xl
+from .tools import pyam as pyam
+
+insertDataIntoExcelFile = io.insertDataIntoExcelFile
+
+
+#%% UNITS
+from . import units
+
+
+# get country ISO code
+getCountryISO = util.getCountryISO
+
+
+
 
 # convenience functions
-getTimeString = core.getTimeString
-getDateString = core.getDateString
+get_time_string = core.getTimeString
+get_date_string = core.getDateString
 
 
 if db_connected:

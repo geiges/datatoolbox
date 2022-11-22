@@ -579,9 +579,9 @@ class Database:
         table.as_wide_dataframe = types.MethodType(self.query_to_long_table, table)
         return table
 
-    def findExact(self, **kwargs):
+    def finde(self, **kwargs):
         """
-        Finds an exact match for the given filter criteria
+        Finds an exact match for the given filter criteria.
         """
         table = self.inventory.copy()
         for key in kwargs.keys():
