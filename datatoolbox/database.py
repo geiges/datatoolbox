@@ -375,6 +375,8 @@ class Database:
                 print('Done!')
             except:
                 print('Could not check online data repository')
+                import traceback
+                traceback.print_exc()
 
 
 
