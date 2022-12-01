@@ -255,12 +255,7 @@ def _create_empty_datashelf(
     inventoryDf.to_csv(filePath)
     git.Repo.init(pathToDataself)
 
-
-def create_personal_setting(modulePath, OS):
-
-    from . import config
-
-    os.makedirs(config.CONFIG_DIR, exist_ok=True)
+def _open_dialog_for_user():
     # Linux
     if OS == 'Linux':
         import tkinter as tk
@@ -291,10 +286,25 @@ def create_personal_setting(modulePath, OS):
         userName = input("Please enter your initials: ")
         file_path_variable = input("Please enter path to datashelf: ")
 
+    return userName, file_path_variable
+
+def create_personal_setting(
+        modulePath, 
+        OS,
+        userName = None,
+        file_path_variable = None):
+
+    from . import config
+
+    os.makedirs(config.CONFIG_DIR, exist_ok=True)
+    
     fin = open(os.path.join(modulePath, 'data', 'personal_template.py'), 'r')
 
     fout = open(os.path.join(config.CONFIG_DIR, 'personal.py'), 'w')
-
+    
+    if (userName is None) or (file_path_variable is None):
+        userName, file_path_variable = _open_dialog_for_user()
+    
     for line in fin.readlines():
         outLine = line.replace('XX', userName).replace('/PPP/PPP', file_path_variable)
         fout.write(outLine)
@@ -326,10 +336,10 @@ def create_initial_config(module_path, config_path, write_config=True):
     return 'XXX', sandboxPath, READ_ONLY, DEBUG
 
 
-def change_personal_config():
+def change_personal_config(userName = None, file_path_variable = None):
     #    from .tools.install_support import create_personal_setting
     modulePath = os.path.dirname(__file__) + '/'
-    create_personal_setting(modulePath, OS)
+    create_personal_setting(modulePath, OS, userName, file_path_variable)
 
 
 def _create_test_tables():
