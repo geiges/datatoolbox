@@ -390,6 +390,7 @@ def to_tableset(data, additional_meta=dict()):
                 print(meta)
                 continue
             table = dt.Datatable(data=sel, meta=meta)
+            table.columns = table.columns.astype(int)
             ts[i] = table
 
         return ts

@@ -11,9 +11,9 @@ emission_entities = set(
         'Emissions|Kyoto Gases (AR5-GWP100)',
         'Emissions|Kyoto Gases (SAR-GWP100)',
         'Emissions|Kyoto Gases',
-        'Emissions|KYOTOGHG SAR',
-        'Emissions|KYOTOGHG AR4',  # EM|KYO_AR4
-        'Emissions|KYOTOGHG AR5',  # EM|KYO_AR4
+        'Emissions|KYOTOGHG_SAR',
+        'Emissions|KYOTOGHG_AR4',  # EM|KYO_AR4
+        'Emissions|KYOTOGHG_AR5',  # EM|KYO_AR4
         'Emissions|BC',
         'Emissions|CO2',
         'Emissions|CH4',
