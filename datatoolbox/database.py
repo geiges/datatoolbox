@@ -1322,6 +1322,9 @@ class GitRepository_Manager:
             "source_states.csv",
                 )
             self.remote_sources = pd.read_csv(dpath, index_col=0)
+        else:
+            #create empty dummy
+            self.remote_sources = pd.DataFrame()
             
     def _get_remote_sources_repo(self):
         remote_repo_path = os.path.join(config.PATH_TO_DATASHELF, "remote_sources")
