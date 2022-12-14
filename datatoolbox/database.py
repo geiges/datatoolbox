@@ -144,8 +144,8 @@ class Database:
             )
             print("Added test tables to Sandbox datashelf")
 
-        # remote update checks
-        self.check_for_new_remote_data()
+        
+        
 
     #%% private functions
 
@@ -156,8 +156,12 @@ class Database:
         """
         source_ID = sourceMetaDict["SOURCE_ID"]
 
+                
         if not self.sourceExists(source_ID):
-
+            
+            # check if source is aready online
+            if self.gitManager.check_if_online_repo_exists(source_ID):
+                raise(Exception(f"Souce with name {source_ID} exists already online. Use dt.importSourceFromRemote() do create a local copy. Review the data and consider adding to the existing dataset"))
             sourcePath = os.path.join(
                 config.PATH_TO_DATASHELF, "database", sourceMetaDict["SOURCE_ID"]
             )
@@ -191,14 +195,6 @@ class Database:
         self.isConsistentTable(datatable)
 
         self._gitAddTable(datatable, source, filePath)
-
-    def _check_online_data(self):
-        curr_date = pd.to_datetime(core.get_time_string()).date()
-        last_access_date = pd.to_datetime(
-            self.gitManager._get_last_remote_access()
-        ).date()
-
-        return curr_date > last_access_date
 
     def _checkTablesOnDisk(self, sourceID=None):
         notExistingTables = list()
@@ -366,69 +362,10 @@ class Database:
         inventoryDf.to_csv(datashelf / "inventory.csv")
         git.Repo.init(datashelf)
 
-    def check_for_new_remote_data(self, update=False):
-        remote_repo_path = os.path.join(
-            config.PATH_TO_DATASHELF, "remote_sources", "source_states.csv"
-        )
-        if os.path.exists(remote_repo_path):
-            remote_sources_df_before = pd.read_csv(remote_repo_path, index_col=0)
-
-        if update or self._check_online_data():
-            # check for remote data
-            try:
-                print("Looking for new online sources...", end="")
-                self.gitManager._pull_remote_sources()
-                print("Done!")
-            except:
-                print("Could not check online data repository")
-                import traceback
-
-                traceback.print_exc()
-
-        if not os.path.exists(remote_repo_path):
-            print("No information about remote data available")
-            print("Consider run again with update = True")
-
-        else:
-            remote_sources_df = pd.read_csv(remote_repo_path, index_col=0)
-
-            sources_with_update = pd.DataFrame(
-                columns=["local version", "remote version"]
-            )
-            for sourceID in remote_sources_df.index:
-
-                if sourceID not in self.sources.index:
-                    continue
-                remote_tag = remote_sources_df.loc[sourceID, "tag"]
-                local_tag = self.sources.loc[sourceID, "tag"]
-                if not isinstance(local_tag, str):
-                    # no tag
-
-                    # check if remote hash as same tag
-                    remote_hash = remote_sources_df.loc["test_AR6", "hash"]
-                    local_hash = self.gitManager.get_hash_of_source(sourceID)
-                    if remote_hash == local_hash:
-                        print(f"Applying tag from remote for source {sourceID}")
-                        self.sources.loc[sourceID, "tag"] = remote_tag
-                    continue
-
-                if float(remote_tag[1:]) > float(local_tag[1:]):
-                    sources_with_update.loc[sourceID] = local_tag, remote_tag
-
-            if len(sources_with_update) > 0:
-                print("The following source have newer versions available:")
-
-                print(tabulate(sources_with_update, headers="keys", tablefmt="psql"))
-
-            new_entries = remote_sources_df.index.difference(
-                remote_sources_df_before.index
-            )
-            if len(new_entries) > 0:
-                print("The following new sources have been added:")
-                df_news = remote_sources_df.loc[new_entries, ["tag", "last_to_update"]]
-                df_news.columns = ["version", "updated_by"]
-                print(tabulate(df_news, headers="keys", tablefmt="psql"))
-
+    def check_for_new_remote_data (self, update=False):
+        # redirecting to gitManager function
+        return self.gitManager.check_for_new_remote_data(update)
+    
     def info(self):
         """
         Shows the most inmportant information about the status of the database
@@ -1340,7 +1277,11 @@ class GitRepository_Manager:
         self.updatedRepos = set()
         self.validatedRepos = set()
         self.filesToAdd = defaultdict(list)
-
+        
+        # remote update checks (only once per day)
+        self._init_remote_repo()
+        self.check_for_new_remote_data()
+        
         if not debugmode:
             for sourceID in self.sources.index:
                 repoPath = os.path.join(self.PATH_TO_DATASHELF, "database", sourceID)
@@ -1362,12 +1303,26 @@ class GitRepository_Manager:
         return repo
 
     #%% Private methods
-    def _init_remote_repo(self):
+    def _check_online_data(self):
+        curr_date = pd.to_datetime(core.get_time_string()).date()
+        last_access_date = pd.to_datetime(
+            self._get_last_remote_access()
+        ).date()
 
+        return curr_date > last_access_date
+  
+    def _init_remote_repo(self):   
         remote_repo_path = os.path.join(config.PATH_TO_DATASHELF, "remote_sources")
-        if os.path.exist(remote_repo_path):
+        if os.path.exists(remote_repo_path):
             self.remote_repo = self._get_remote_sources_repo()
-
+            
+            dpath = os.path.join(
+            config.PATH_TO_DATASHELF,
+            "remote_sources",
+            "source_states.csv",
+                )
+            self.remote_sources = pd.read_csv(dpath, index_col=0)
+            
     def _get_remote_sources_repo(self):
         remote_repo_path = os.path.join(config.PATH_TO_DATASHELF, "remote_sources")
         remote_repo = git.Repo(remote_repo_path)
@@ -1481,10 +1436,11 @@ class GitRepository_Manager:
         # tag = repo.tags[-1].name
         rem_sources_df.loc[repoName, :] = (hash, tag, user)
         rem_sources_df.to_csv(dpath)
-
+        
         remote_repo.index.add("source_states.csv")
         remote_repo.index.commit("remote source update" + " by " + config.CRUNCHER)
-
+        
+        self.remote_sources = rem_sources_df
         return repo
 
     def _gitUpdateFile(self, repoName, filePath):
@@ -1515,6 +1471,74 @@ class GitRepository_Manager:
         return True
 
     #%% Public methods
+    
+    def check_if_online_repo_exists(self, sourceID):
+        return sourceID in self.remote_sources.index
+    
+    def check_for_new_remote_data(self, update=False):
+        remote_repo_path = os.path.join(
+            config.PATH_TO_DATASHELF, "remote_sources", "source_states.csv"
+        )
+        if os.path.exists(remote_repo_path):
+            remote_sources_df_before = pd.read_csv(remote_repo_path, index_col=0)
+
+        if update or self._check_online_data():
+            # check for remote data
+            try:
+                print("Looking for new online sources...", end="")
+                self._pull_remote_sources()
+                print("Done!")
+            except:
+                print("Could not check online data repository")
+                import traceback
+
+                traceback.print_exc()
+
+        if not os.path.exists(remote_repo_path):
+            print("No information about remote data available")
+            print("Consider run again with update = True")
+
+        else:
+            remote_sources_df = pd.read_csv(remote_repo_path, index_col=0)
+
+            sources_with_update = pd.DataFrame(
+                columns=["local version", "remote version"]
+            )
+            for sourceID in remote_sources_df.index:
+
+                if sourceID not in self.sources.index:
+                    continue
+                remote_tag = remote_sources_df.loc[sourceID, "tag"]
+                local_tag = self.sources.loc[sourceID, "tag"]
+                if not isinstance(local_tag, str):
+                    # no tag
+
+                    # check if remote hash as same tag
+                    remote_hash = remote_sources_df.loc["test_AR6", "hash"]
+                    local_hash = self.get_hash_of_source(sourceID)
+                    if remote_hash == local_hash:
+                        print(f"Applying tag from remote for source {sourceID}")
+                        self.sources.loc[sourceID, "tag"] = remote_tag
+                    continue
+
+                if float(remote_tag[1:]) > float(local_tag[1:]):
+                    sources_with_update.loc[sourceID] = local_tag, remote_tag
+
+            if len(sources_with_update) > 0:
+                print("The following source have newer versions available:")
+
+                print(tabulate(sources_with_update, headers="keys", tablefmt="psql"))
+
+            new_entries = remote_sources_df.index.difference(
+                remote_sources_df_before.index
+            )
+            if len(new_entries) > 0:
+                print("The following new sources have been added:")
+                df_news = remote_sources_df.loc[new_entries, ["tag", "last_to_update"]]
+                df_news.columns = ["version", "updated_by"]
+                print(tabulate(df_news, headers="keys", tablefmt="psql"))
+
+
     def get_source_repo_failsave(self, sourceID):
         """
         Retrieve `sourceID` from repositories dictionary without checks
