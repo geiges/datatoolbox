@@ -203,3 +203,14 @@ def test_lsubstraction_dfs_conv():
     assert obs.loc[:,2020].isnull().all()
     assert obs.meta['unit']   == exp.meta['unit']
     assert obs.meta['source'] == 'calculation'
+
+ur = dt.core.ur
+def test_computation_with_pint_quantities():
+    df1 + (1* ur('Mt CO2'))
+    df1 - (2* ur('Mt CO2'))
+    df1 * (1* ur('kg /(Mt CO2)'))
+    df1 / (1* ur('Mt CO2 /kg'))
+    
+def test_rhs_computation_with_pint_quantities():
+    (100* ur('Mt CO2 /kg')) / df1
+    (100* ur('Mt CO2 /kg')) * df1

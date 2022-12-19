@@ -298,6 +298,9 @@ def getUnit(string):
     """
     # if not isinstance(string, str):
     #     string = str(string)
+    # capture if already is pint unit
+    if isinstance(string, pint.Unit):
+        string = str(string)
     if string is None:
         string = ''
     else:

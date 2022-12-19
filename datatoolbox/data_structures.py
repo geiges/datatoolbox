@@ -13,6 +13,7 @@ import pandas as pd
 import matplotlib.pylab as plt
 import numpy as np
 import xarray as xr
+import pint
 from copy import copy
 import ast
 from . import core
@@ -77,6 +78,9 @@ class Datatable(pd.DataFrame):
 
         self.attrs = self.meta
 
+    @property
+    def units(self):
+        return self.meta['unit']
     def info(self):
         """
         Returns information about the dataframe like shape, index and column
@@ -665,7 +669,7 @@ class Datatable(pd.DataFrame):
                 #                print(other.meta['entity'] )
                 #                print(self.meta['entity'])
                 raise (BaseException('Physical entities do not match, please correct'))
-            if other.meta['unit'] != self.meta['unit']:
+            if other.units != self.meta['unit']:
                 other = other.convert(self.meta['unit'])
 
         out = pd.concat([self, other], **kwargs)
@@ -699,18 +703,23 @@ class Datatable(pd.DataFrame):
             DESCRIPTION.
 
         """
-        if isinstance(other, Datatable):
-
-            if self.meta['unit'] == other.meta['unit']:
+        if isinstance(other, (Datatable, pint.Quantity)):
+              
+            if self.meta['unit'] == other.units:
                 factor = 1
             else:
-                factor = core.getUnit(other.meta['unit']).to(self.meta['unit']).m
-
-            rhs = pd.DataFrame(other * factor)
+                factor = core.getUnit(other.units).to(self.meta['unit']).m
+            if isinstance(other, pint.Quantity):
+                rhs = other.m
+            else:
+                rhs = pd.DataFrame(other * factor)
             out = Datatable(super(Datatable, self.copy()).__add__(rhs))
 
             out.meta['unit'] = self.meta['unit']
             out.meta['source'] = 'calculation'
+            
+        # elif isinstance(ur(df1.meta['unit']),pint.Quantity):
+            
         else:
             out = Datatable(super(Datatable, self).__add__(other))
             out.meta['unit'] = self.meta['unit']
@@ -735,12 +744,15 @@ class Datatable(pd.DataFrame):
             DESCRIPTION.
 
         """
-        if isinstance(other, Datatable):
-            if self.meta['unit'] == other.meta['unit']:
+        if isinstance(other, (Datatable, pint.Quantity)):
+            if self.meta['unit'] == other.units:
                 factor = 1
             else:
-                factor = core.getUnit(other.meta['unit']).to(self.meta['unit']).m
-            rhs = pd.DataFrame(other * factor)
+                factor = core.getUnit(other.units).to(self.meta['unit']).m
+            if isinstance(other, pint.Quantity):
+                rhs = other.m
+            else:
+                rhs = pd.DataFrame(other * factor)
             out = Datatable(super(Datatable, self).__sub__(rhs))
             out.meta['unit'] = self.meta['unit']
             out.meta['source'] = 'calculation'
@@ -754,11 +766,13 @@ class Datatable(pd.DataFrame):
         """
         Equivalent to __sub__
         """
-        if isinstance(other, Datatable):
-            if self.meta['unit'] == other.meta['unit']:
+        if isinstance(other, (Datatable, pint.Quantity)):
+            if self.meta['unit'] == other.units:
                 factor = 1
             else:
-                factor = core.getUnit(other.meta['unit']).to(self.meta['unit']).m
+                factor = core.getUnit(other.units).to(self.meta['unit']).m
+            if isinstance(other, pint.Quantity):
+                other = other.m
             out = Datatable(super(Datatable, self).__rsub__(other * factor))
             out.meta['unit'] = self.meta['unit']
             out.meta['source'] = 'calculation'
@@ -769,8 +783,10 @@ class Datatable(pd.DataFrame):
         return out
 
     def __mul__(self, other):
-        if isinstance(other, Datatable):
-            newUnit = core.getUnit(self.meta['unit']) * core.getUnit(other.meta['unit'])
+        if isinstance(other, (Datatable, pint.Quantity)):
+            newUnit = core.getUnit(self.meta['unit']) * core.getUnit(other.units)
+            if isinstance(other, pint.Quantity):
+                other = other.m
             out = Datatable(super(Datatable, self).__mul__(other))
             out.meta['unit'] = str(newUnit.u)
             out.meta['source'] = 'calculation'
@@ -784,8 +800,10 @@ class Datatable(pd.DataFrame):
     __rmul__ = __mul__
 
     def __truediv__(self, other):
-        if isinstance(other, Datatable):
-            newUnit = core.getUnit(self.meta['unit']) / core.getUnit(other.meta['unit'])
+        if isinstance(other, (Datatable, pint.Quantity)):
+            newUnit = core.getUnit(self.meta['unit']) / core.getUnit(other.units)
+            if isinstance(other, pint.Quantity):
+                other = other.m
             out = Datatable(super(Datatable, self).__truediv__(other))
             out.meta['unit'] = str(newUnit.u)
             out.meta['source'] = 'calculation'
@@ -798,8 +816,10 @@ class Datatable(pd.DataFrame):
 
     #    __rtruediv__ = __truediv__
     def __rtruediv__(self, other):
-        if isinstance(other, Datatable):
-            newUnit = core.getUnit(other.meta['unit']) / core.getUnit(self.meta['unit'])
+        if isinstance(other, (Datatable, pint.Quantity)):
+            newUnit = core.getUnit(other.units) / core.getUnit(self.meta['unit'])
+            if isinstance(other, pint.Quantity):
+                other = other.m
             out = Datatable(super(Datatable, self).__rtruediv__(other))
             out.meta['unit'] = str(newUnit.u)
             out.meta['source'] = 'calculation'
