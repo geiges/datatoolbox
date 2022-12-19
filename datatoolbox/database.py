@@ -792,7 +792,7 @@ class Database:
         append_data [optinal]  : bool to choose if new data is added to the existing
                                  table (new data does not overwrite old data)
         update : [optional]    : bool to choose if the exting data is updated
-        overwrire : [optional] : bool to choose if data is overwriten (new data
+        overwrite : [optional] : bool to choose if data is overwriten (new data
                                  overwrites old data)
         cleanTables [optional] : bool (default: true) to choose if tables are
                                  cleaned before commit
@@ -1280,7 +1280,7 @@ class GitRepository_Manager:
         
         # remote update checks (only once per day)
         self._init_remote_repo()
-        self.check_for_new_remote_data()
+        
         
         if not debugmode:
             for sourceID in self.sources.index:
@@ -1293,6 +1293,8 @@ class GitRepository_Manager:
         else:
             print("Git manager initialized in debugmode")
 
+        self.check_for_new_remote_data()
+        
     def __getitem__(self, sourceID):
         """
         Retrieve `sourceID` from repositories dictionary and ensure cleanliness
