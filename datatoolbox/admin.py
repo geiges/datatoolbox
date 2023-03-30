@@ -13,11 +13,11 @@ import os
 
 OS = platform.system()
 # from . import config
-# from datatoolbox import config
+from datatoolbox import config
 import git
 import shutil
 import datatoolbox as dt
-
+import subprocess
 
 def create_empty_datashelf(pathToDataself, force_new=False):
     """
@@ -414,6 +414,15 @@ def _re_link_functions(dt):
 
     dt.updateExcelInput = dt.core.DB.updateExcelInput
 
+def open_config_file():
+    filepath = os.path.join(config.CONFIG_DIR,'personal.py')#
+   
+    if platform.system() == 'Darwin':       # macOS
+        subprocess.run(['open', filepath], check=True)
+    elif platform.system() == 'Windows':    # Windows
+        os.startfile(filepath)
+    else:                                   # linux variants
+        subprocess.call(('xdg-open', filepath))
 
 def set_autoload_source(boolean):
     """
