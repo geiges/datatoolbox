@@ -268,7 +268,7 @@ def key_set_to_xdataset(
 
 def load_as_xdataset(
     query_results,
-    dimensions=['model', 'scenario', 'region', 'time'],
+    dimensions=['model', 'scenario', 'region', 'time', 'source'],
     stacked_dims={'pathway': ('model', 'scenario')},
     native_regions=False,
 ):

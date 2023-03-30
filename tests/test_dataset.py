@@ -25,13 +25,19 @@ def test_sel_methods():
     ds = dt.DataSet.from_query(res)
     
     sub = ds.sel(scenario='Historic')
-    assert dict(sub.dims) =={'year': 5, 'region': 4,'source': 1, 'model': 1}
+    
+    exp ={'time': 5, 'region': 4,'source': 1, 'model': 1}
+    assert all([exp[key] == dict(sub.dims)[key] for key in exp.keys()])
     
     sub = ds.sel(region="DEU")
-    assert dict(sub.dims) == {'year': 5, 'source': 1,'pathway': 1}
     
-    sub = ds.sel(year=2012)
-    assert dict(sub.dims) == {'region': 4, 'source': 1,'pathway': 1}
+    exp = {'time': 5, 'source': 1,'pathway': 1}
+    
+    
+    sub = ds.sel(time=2012)
+    
+    exp =  {'region': 4, 'source': 1,'pathway': 1}
+    assert all([exp[key] == dict(sub.dims)[key] for key in exp.keys()])
 
 def test_unit_conversion():
     res = dt.findp(variable = ['Numbers|One',

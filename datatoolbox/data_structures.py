@@ -1583,10 +1583,10 @@ class DataSet(xr.Dataset):
 
     @classmethod
     def from_query(cls, query, stacked_dims={'pathway': ("model", "scenario")}):
-        dimensions = ['model', 'scenario', 'region', 'variable', 'source', 'unit']
-        data = query.as_wide_dataframe(meta_list=dimensions)
-
-        return cls.from_wide_dataframe(data, meta=None, stacked_dims=stacked_dims)
+        #dimensions = ['model', 'scenario', 'region', 'variable', 'source', 'unit']
+        # data = query.as_wide_dataframe(meta_list=dimensions)
+        return tools.xarray.load_as_xdataset(query, stacked_dims=stacked_dims)
+        #return cls.from_wide_dataframe(data, meta=None, stacked_dims=stacked_dims)
 
 
 class Visualization:
