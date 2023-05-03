@@ -4171,7 +4171,7 @@ class CRF_DATA(BaseImportTool):
             for name in os.listdir(self.setup.SOURCE_PATH)
             if os.path.isdir(os.path.join(self.setup.SOURCE_PATH, name))
         ]
-        for folder in folderList:
+        for folder in tqdm(folderList):
             coISO = folder
             countryPath = os.path.join(self.setup.SOURCE_PATH, folder)
             try:
@@ -5506,7 +5506,7 @@ class IIASA(BaseImportTool):
 
         self.region_mapping['IPCC_AR6'] = mapping.IPCC_AR6().region_mapping()
         self.region_mapping['IPCC_AR6_raw'] = mapping.IPCC_AR6().region_mapping()
-
+        self.region_mapping['IPCC_SSP_2018'] = mapping.IPCC_AR6().region_mapping()
         self.region_mapping['ngfs_2'] = mapping.NGFS().region_mapping()
 
         self.region_mapping['ADVANCE'] = mapping.ADVANCE().region_mapping()

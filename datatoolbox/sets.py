@@ -227,7 +227,6 @@ class _Regions:
                 'SWE',
             ]
         )
-
         self.EU27 = set(
             [
                 'AUT',
@@ -260,6 +259,7 @@ class _Regions:
                 'SWE',
             ]
         )
+     
 
         self.LDCS = set(
             [

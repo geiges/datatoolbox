@@ -1486,6 +1486,8 @@ class GitRepository_Manager:
         )
         if os.path.exists(remote_repo_path):
             remote_sources_df_before = pd.read_csv(remote_repo_path, index_col=0)
+        else:
+            remote_sources_df_before = None
 
         if force_check or self._check_online_data():
             # check for remote data
@@ -1534,14 +1536,15 @@ class GitRepository_Manager:
 
                 print(tabulate(sources_with_update, headers="keys", tablefmt="psql"))
 
-            new_entries = remote_sources_df.index.difference(
-                remote_sources_df_before.index
-            )
-            if len(new_entries) > 0:
-                print("The following new sources have been added:")
-                df_news = remote_sources_df.loc[new_entries, ["tag", "last_to_update"]]
-                df_news.columns = ["version", "updated_by"]
-                print(tabulate(df_news, headers="keys", tablefmt="psql"))
+            if remote_sources_df_before is not None:
+                new_entries = remote_sources_df.index.difference(
+                    remote_sources_df_before.index
+                )
+                if len(new_entries) > 0:
+                    print("The following new sources have been added:")
+                    df_news = remote_sources_df.loc[new_entries, ["tag", "last_to_update"]]
+                    df_news.columns = ["version", "updated_by"]
+                    print(tabulate(df_news, headers="keys", tablefmt="psql"))
 
 
     def get_source_repo_failsave(self, sourceID):

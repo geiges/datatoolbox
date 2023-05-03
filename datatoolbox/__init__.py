@@ -118,7 +118,7 @@ insertDataIntoExcelFile = io.insertDataIntoExcelFile
 
 #%% UNITS
 from . import units
-
+conversionFactor = units.conversionFactor
 
 # get country ISO code
 getCountryISO = util.getCountryISO
