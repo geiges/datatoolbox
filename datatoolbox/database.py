@@ -1311,7 +1311,7 @@ class GitRepository_Manager:
             self._get_last_remote_access()
         ).date()
 
-        return curr_date > last_access_date
+        return pd.isna(last_access_date) or curr_date > last_access_date
   
     def _init_remote_repo(self):   
         remote_repo_path = os.path.join(config.PATH_TO_DATASHELF, "remote_sources")
