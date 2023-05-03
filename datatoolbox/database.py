@@ -1480,14 +1480,14 @@ class GitRepository_Manager:
     def check_if_online_repo_exists(self, sourceID):
         return sourceID in self.remote_sources.index
     
-    def check_for_new_remote_data(self, update=False):
+    def check_for_new_remote_data(self, force_check=False):
         remote_repo_path = os.path.join(
             config.PATH_TO_DATASHELF, "remote_sources", "source_states.csv"
         )
         if os.path.exists(remote_repo_path):
             remote_sources_df_before = pd.read_csv(remote_repo_path, index_col=0)
 
-        if update or self._check_online_data():
+        if force_check or self._check_online_data():
             # check for remote data
             try:
                 print("Looking for new online sources...", end="")
