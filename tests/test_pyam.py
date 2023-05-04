@@ -52,7 +52,7 @@ def test_to_pyam_interface():
 def test_lossless_conversion():
     
     exp = df.copy().clean() # copy initial datatable
-    
+    print(exp)
     idf = exp.to_pyam() # create IamDataFrame
     
     obs = dt.Datatable.from_pyam(idf)
@@ -62,3 +62,4 @@ def test_lossless_conversion():
 if __name__ == '__main__':
     test_import()
     test_to_pyam_interface()
+    test_lossless_conversion()

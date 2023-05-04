@@ -14,7 +14,7 @@ import matplotlib.pylab as plt
 import numpy as np
 import xarray as xr
 import pint
-from copy import copy
+from copy import copy, deepcopy
 import ast
 from . import core
 from . import config
@@ -144,10 +144,12 @@ class Datatable(pd.DataFrame):
         meta = {
             **extract_unique_values(idf.data, pyam.IAMC_IDX, ['region']),
             **extract_unique_values(idf.meta, idf.meta.columns, ['exclude']),
-        }
+        }   
 
         data = idf.data.pivot_table(
-            index=['region'], columns=idf.time_col
+            index=['region'], 
+            columns=idf.time_col,
+            aggfunc='sum',
         ).value.rename_axis(  # column name
             columns=None
         )
@@ -1011,8 +1013,11 @@ class TableSet(dict):
 
         return tables
 
-    def copy(self):
-        return copy(self)
+    def copy(self, deep=False):
+        if deep:
+            return deepcopy(self)
+        else:
+            return copy(self)
 
     def remove(self, tableID):
         """
@@ -1460,7 +1465,7 @@ class TableSet(dict):
 
         import pyam
 
-        long_table = self.to_LongTable()
+        long_table = self.copy(deep=True).to_LongTable()
         long_table.index.name = None
 
         # make sure that region does not contain any nan values
