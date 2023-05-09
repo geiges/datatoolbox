@@ -13,6 +13,7 @@ import time
 import copy
 import types
 
+from threading import Thread
 import traceback
 from collections import defaultdict
 from pathlib import Path
@@ -108,8 +109,12 @@ class Database:
 
         if not os.path.exists(os.path.join(self.path, "inventory.csv")):
             self.create_empty_datashelf(config.MODULE_PATH, self.path)
-
+            
+        tt2 = time.time()
         self.gitManager = GitRepository_Manager(config)
+        if config.DEBUG:
+            print("Git Manager loaded in {:2.4f} seconds".format(time.time() - tt2))
+
         self.INVENTORY_PATH = os.path.join(self.path, "inventory.csv")
         self.inventory = self._load_inventory(self.INVENTORY_PATH)
         self.sources = self.gitManager.sources
@@ -1273,6 +1278,28 @@ class GitRepository_Manager:
         self.PATH_TO_DATASHELF = config.PATH_TO_DATASHELF
         self.sources = pd.read_csv(config.SOURCE_FILE, index_col="SOURCE_ID")
 
+        remote_repo_path = os.path.join(
+            config.PATH_TO_DATASHELF, "remote_sources", "source_states.csv"
+        )
+        if os.path.exists(remote_repo_path):
+            self.remote_sources = pd.read_csv(remote_repo_path, index_col=0)
+            
+            
+            new_items, updated_items = self._get_difference_to_remote()
+            n_new_entries = len(new_items)
+            n_updated_sources = len(updated_items)
+            if n_new_entries + n_updated_sources  > 0:
+                print('Remote: ',end='')
+                if n_new_entries >0:
+                   print(f'({n_new_entries}) new sources', end='')
+                    
+                if n_updated_sources > 0:
+                    print(f' and ({len(updated_items)}) updated sources', end='')
+                print(' are available online (see dt.available_remote_data_updates)')
+                
+        else:
+            print('Remote: not setup')
+        
         self.repositories = dict()
         self.updatedRepos = set()
         self.validatedRepos = set()
@@ -1305,6 +1332,24 @@ class GitRepository_Manager:
         return repo
 
     #%% Private methods
+    
+    def _get_difference_to_remote(self):
+        
+        new_items = self.remote_sources.index.difference(
+            self.sources.index
+        )
+        compare_df = self.sources.copy()
+        compare_df['remote_tag'] = self.remote_sources['tag']
+        compare_df = compare_df[(~compare_df.tag.isnull()) &(~compare_df.remote_tag.isnull())]
+        
+        updated_items = compare_df.index[(
+            compare_df.tag.apply(lambda x : float(x[1:])) < compare_df.remote_tag.apply(lambda x : float(x[1:]))
+            )]
+        
+        
+        
+        return new_items, updated_items
+    
     def _check_online_data(self):
         curr_date = pd.to_datetime(core.get_time_string()).date()
         last_access_date = pd.to_datetime(
@@ -1480,71 +1525,49 @@ class GitRepository_Manager:
     def check_if_online_repo_exists(self, sourceID):
         return sourceID in self.remote_sources.index
     
-    def check_for_new_remote_data(self, force_check=False):
-        remote_repo_path = os.path.join(
-            config.PATH_TO_DATASHELF, "remote_sources", "source_states.csv"
-        )
-        if os.path.exists(remote_repo_path):
-            remote_sources_df_before = pd.read_csv(remote_repo_path, index_col=0)
-        else:
-            remote_sources_df_before = None
+    def check_for_new_remote_data(self, force_check=False, foreground=False):
 
-        if force_check or self._check_online_data():
+        if (force_check or self._check_online_data()) and not ("PYTEST_CURRENT_TEST" in os.environ):
+                
             # check for remote data
             try:
-                print("Looking for new online sources...", end="")
-                self._pull_remote_sources()
-                print("Done!")
+                if foreground:
+                    print("Looking for new online sources...", end='')
+                    self._pull_remote_sources()
+                    print("Done!")    
+                else:
+                    print("Looking for new online sources in the backgound")
+                    thread = Thread(target=self._pull_remote_sources)
+                    thread.start()
+                # 
+                # print("Done!")
             except:
                 print("Could not check online data repository")
                 import traceback
 
                 traceback.print_exc()
-
-        if not os.path.exists(remote_repo_path):
-            print("No information about remote data available")
-            print("Consider run again with update = True")
-
-        else:
-            remote_sources_df = pd.read_csv(remote_repo_path, index_col=0)
-
-            sources_with_update = pd.DataFrame(
-                columns=["local version", "remote version"]
-            )
-            for sourceID in remote_sources_df.index:
-
-                if sourceID not in self.sources.index:
-                    continue
-                remote_tag = remote_sources_df.loc[sourceID, "tag"]
-                local_tag = self.sources.loc[sourceID, "tag"]
-                if not isinstance(local_tag, str):
-                    # no tag
-
-                    # check if remote hash as same tag
-                    remote_hash = remote_sources_df.loc["test_AR6", "hash"]
-                    local_hash = self.get_hash_of_source(sourceID)
-                    if remote_hash == local_hash:
-                        print(f"Applying tag from remote for source {sourceID}")
-                        self.sources.loc[sourceID, "tag"] = remote_tag
-                    continue
-
-                if float(remote_tag[1:]) > float(local_tag[1:]):
-                    sources_with_update.loc[sourceID] = local_tag, remote_tag
-
-            if len(sources_with_update) > 0:
-                print("The following source have newer versions available:")
-
-                print(tabulate(sources_with_update, headers="keys", tablefmt="psql"))
-
-            if remote_sources_df_before is not None:
-                new_entries = remote_sources_df.index.difference(
-                    remote_sources_df_before.index
-                )
-                if len(new_entries) > 0:
-                    print("The following new sources have been added:")
-                    df_news = remote_sources_df.loc[new_entries, ["tag", "last_to_update"]]
-                    df_news.columns = ["version", "updated_by"]
-                    print(tabulate(df_news, headers="keys", tablefmt="psql"))
+                
+    def available_remote_data_updates(self):
+        
+        new_items, updated_items = self._get_difference_to_remote()
+        
+        print('New items:')
+        print(tabulate(
+            self.remote_sources.loc[new_items, ['tag', 'last_to_update']], 
+            headers="keys", tablefmt="psql"))
+        
+        print('Sources with newer data:')
+        
+        df = pd.concat(
+            [
+                self.sources.loc[updated_items, ['tag']].rename(columns={'tag':'local_tag'}),
+                self.remote_sources.loc[updated_items, ['tag']].rename(columns={'tag':'remote_tag'}),
+            ], axis=1)
+        print(tabulate(
+            df, 
+            headers="keys", tablefmt="psql"))
+    
+        
 
 
     def get_source_repo_failsave(self, sourceID):

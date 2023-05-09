@@ -54,7 +54,6 @@ def test_lossless_conversion():
     exp = df.copy().clean() # copy initial datatable
     print(exp)
     idf = exp.to_pyam() # create IamDataFrame
-    
     obs = dt.Datatable.from_pyam(idf)
     
     assert pd.testing.assert_frame_equal(obs,exp) is None

@@ -102,7 +102,8 @@ if db_connected:
     pull_source_from_remote = core.DB.pull_update_from_remote
 
     #show available remote data sources
-    available_remote_data = core.DB.remote_sourceInfo
+    remote_sourceInfo = core.DB.remote_sourceInfo
+    available_remote_data_updates = core.DB.gitManager.available_remote_data_updates
     
 #%% TOOLS
 # Tools related to packages
