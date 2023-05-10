@@ -1333,6 +1333,13 @@ class GitRepository_Manager:
 
     #%% Private methods
     
+    def _ssh_agent_running(self):
+        import subprocess
+
+        proc = subprocess.Popen(["ssh-add -l"], stdout=subprocess.PIPE, shell=True)
+        (out, err) = proc.communicate()
+        return not out.startswith(b'The agent has no identities')
+
     def _get_difference_to_remote(self):
         
         new_items = self.remote_sources.index.difference(
@@ -1536,9 +1543,12 @@ class GitRepository_Manager:
                     self._pull_remote_sources()
                     print("Done!")    
                 else:
-                    print("Looking for new online sources in the backgound")
-                    thread = Thread(target=self._pull_remote_sources)
-                    thread.start()
+                    if self._ssh_agent_running():
+                        print("Looking for new online sources in the backgound")
+                        thread = Thread(target=self._pull_remote_sources)
+                        thread.start()
+                    else:
+                        print('SSH agent not running, not checking for remote data.')
                 # 
                 # print("Done!")
             except:
