@@ -386,6 +386,11 @@ def conversionFactor(unitFrom, unitTo, context=None):
         DESCRIPTION.
 
     """
+    
+    if context == 'GWPAR4':
+        import warnings
+        warnings.warn('The context "AR4GWP" is depricated. Pleases use "AR4GWP100" instead')
+        context = "AR4GWP100"
     if context is None:
         return getUnit(unitFrom).to(getUnit(unitTo)).m
     # elif context == 'GWPAR4':
