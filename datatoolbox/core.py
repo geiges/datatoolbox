@@ -22,7 +22,7 @@ tt = time.time()
 #%% Pint unit handling
 gases = {
     "CO2eq": "carbon_dioxide_equivalent",
-    "CO2e": "CO2eq",
+    # "CO2e": "CO2eq",
     "NO2": "NO2",
     'PM25': 'PM25',
 }
@@ -31,7 +31,9 @@ from openscm_units import unit_registry as ur
 
 
 try:
+    
     ur._add_gases(gases)
+    
     ur.define('fraction = [] = frac')
     ur.define('percent = 1e-2 frac = pct')
     ur.define('ppm = 1e-6 fraction')
@@ -39,6 +41,7 @@ try:
     ur.define('none = dimensionless')
 
     ur.load_definitions(config.PATH_PINT_DEFINITIONS)
+    ur.define('CO2eq = CO2')
 except pint.errors.DefinitionSyntaxError:
     # avoid double import of units defintions
     pass
@@ -281,7 +284,7 @@ def osIsWindows():
         return False
 
 
-def getUnit(string):
+def getUnit(string, ur=ur):
     """
     Return the pint unit for a given unit string. Compared to the original
     pint this functions replaces special characters $ € and % by a string
@@ -385,13 +388,17 @@ def conversionFactor(unitFrom, unitTo, context=None):
     """
     if context is None:
         return getUnit(unitFrom).to(getUnit(unitTo)).m
-    elif context == 'GWPAR4':
+    # elif context == 'GWPAR4':
 
-        return _AR4_conversionFactor(unitFrom, unitTo)
+    #     return _AR4_conversionFactor(unitFrom, unitTo)
 
-    else:
-        raise (BaseException('unkown context'))
-
+    # else:
+    #     raise (BaseException('unkown context'))
+    else:   
+        with ur.context(context) as urc:
+            factor =getUnit(unitFrom, ur=urc).to(getUnit(unitTo, ur=urc))
+            
+        return factor.m
 
 def _findGases(string, candidateList):
     hits = list()

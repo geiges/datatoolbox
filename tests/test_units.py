@@ -21,17 +21,34 @@ def test_custom_base_conversion1():
 
 
 def test_GWP_conversion_N2O():    
-    obs = dt.units.conversionFactor("Mt N2O", "Gg CO2eq", context="GWPAR4")
+    obs = dt.units.conversionFactor("Mt N2O", "Gg CO2eq", context="AR4GWP100")
     exp = 298000
     npt.assert_almost_equal(obs, exp)
 
 def test_GWP_conversion_CH4():        
-    obs = dt.units.conversionFactor("Mt CH4", "Mt CO2eq", context="GWPAR4")
+    obs = dt.units.conversionFactor("Mt CH4", "Mt CO2eq", context="AR4GWP100")
     exp = 25
+    npt.assert_almost_equal(obs, exp)
+    
+def test_GWP_AR6_conversion_CH4():        
+    obs = dt.units.conversionFactor("Mt CH4", "Mt CO2eq", context="AR5GWP100")
+    exp = 28
+    npt.assert_almost_equal(obs, exp)
+        
+    
+def test_context_and_missing_space():        
+    obs = dt.units.conversionFactor("MtCH4", "tCO2eq", context="AR5GWP100")
+    exp = 28
     npt.assert_almost_equal(obs, exp)
     
 def test_HFC_units():    
     dt.core.ur('HFC134aeq') 
+    
+def test_unique_conversion():
+    assert dt.units.conversionFactor("ppm", "fraction") == 1e-6
+    assert dt.units.conversionFactor("%", "fraction") == 0.01
+    assert dt.units.conversionFactor("fraction", "percent") == 100
+    
     
 def test_function_getUnit():
     

@@ -51,6 +51,7 @@ DM = [demand]
 AGWP_CO2 =  9.17E-14 * W * yr /m**2 / kg
 #CO2eq = [CO2-equiv]
 #CO2eq = 1 * [GWP]
+CO2eq = [CO2]
 
 # social dimension
 capita = [count]

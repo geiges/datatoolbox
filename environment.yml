@@ -5,7 +5,7 @@ dependencies:
 - regex
 - numpy
 - gitpython
-- openscm-units
+- openscm-units>0.5
 - pint>=0.11
 - pycountry
 - fuzzywuzzy
