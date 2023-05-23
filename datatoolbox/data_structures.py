@@ -34,6 +34,7 @@ class Datatable(pd.DataFrame):
 
     _metadata = ['meta', 'ID', 'attrs']
 
+    #%% magicc methods
     def __init__(self, *args, **kwargs):
 
         # pop meta out of kwargs since pandas is not expecting it
@@ -78,9 +79,352 @@ class Datatable(pd.DataFrame):
 
         self.attrs = self.meta
 
+    def __add__(self, other):
+       """
+       Private function to add two dataframes. The added table is converted to
+       the unit of first table.
+
+       Parameters
+       ----------
+       other : datatble
+           Data to add.
+
+       Returns
+       -------
+       out : datatable
+           DESCRIPTION.
+
+       """
+       if isinstance(other, (Datatable, pint.Quantity)):
+             
+           if self.meta['unit'] == other.units:
+               factor = 1
+           else:
+               factor = core.getUnit(other.units).to(self.meta['unit']).m
+           if isinstance(other, pint.Quantity):
+               rhs = other.m
+           else:
+               rhs = pd.DataFrame(other * factor)
+           out = Datatable(super(Datatable, self.copy()).__add__(rhs))
+
+           out.meta['unit'] = self.meta['unit']
+           out.meta['source'] = 'calculation'
+           
+       # elif isinstance(ur(df1.meta['unit']),pint.Quantity):
+           
+       else:
+           out = Datatable(super(Datatable, self).__add__(other))
+           out.meta['unit'] = self.meta['unit']
+           out.meta['source'] = 'calculation'
+       return out
+
+    __radd__ = __add__
+
+
+
+    def __finalize__(self, other, method=None, **kwargs):
+        """propagate metadata from other to self"""
+        # merge operation: using metadata of the left object
+        if method == 'merge':
+            for name in self._metadata:
+                object.__setattr__(self, name, copy(getattr(other.left, name, None)))
+        # concat operation: using metadata of the first object
+        elif method == 'concat':
+            for name in self._metadata:
+                object.__setattr__(self, name, copy(getattr(other.objs[0], name, None)))
+        else:
+            for name in self._metadata:
+                # print(other)
+                object.__setattr__(self, name, copy(getattr(other, name, None)))
+        return self
+
+    def __appendMetaData__(self, metaDict):
+        """
+        Private function to append meta data.
+
+        Parameters
+        ----------
+        metaDict : dict
+            New meta data.
+
+
+        """
+
+        for metaKey in config.REQUIRED_META_FIELDS:
+            if (
+                metaKey not in metaDict.keys()
+                or metaDict[metaKey] == ''
+                or pd.isna(metaDict[metaKey])
+            ):
+
+                # Overwrite with default or empty string
+                if metaKey in config.META_DEFAULTS:
+                    metaDict[metaKey] = config.META_DEFAULTS[metaKey]
+                else:
+                    metaDict[metaKey] = ''
+
+        self.__setattr__('meta', metaDict.copy())
+
+        assert core.getUnit(self.meta['unit'])
+        
+    def __sub__(self, other):
+       """
+       Private function to subract two dataframes. The subracted table is converted to
+       the unit of first table.
+
+       Parameters
+       ----------
+       other : datatble
+           Data to substract.
+
+       Returns
+       -------
+       out : datatable
+           DESCRIPTION.
+
+       """
+       if isinstance(other, (Datatable, pint.Quantity)):
+           if self.meta['unit'] == other.units:
+               factor = 1
+           else:
+               factor = core.getUnit(other.units).to(self.meta['unit']).m
+           if isinstance(other, pint.Quantity):
+               rhs = other.m
+           else:
+               rhs = pd.DataFrame(other * factor)
+           out = Datatable(super(Datatable, self).__sub__(rhs))
+           out.meta['unit'] = self.meta['unit']
+           out.meta['source'] = 'calculation'
+       else:
+           out = Datatable(super(Datatable, self).__sub__(other))
+           out.meta['unit'] = self.meta['unit']
+           out.meta['source'] = 'calculation'
+       return out
+
+    def __rsub__(self, other):
+       """
+       Equivalent to __sub__
+       """
+       if isinstance(other, (Datatable, pint.Quantity)):
+           if self.meta['unit'] == other.units:
+               factor = 1
+           else:
+               factor = core.getUnit(other.units).to(self.meta['unit']).m
+           if isinstance(other, pint.Quantity):
+               other = other.m
+           out = Datatable(super(Datatable, self).__rsub__(other * factor))
+           out.meta['unit'] = self.meta['unit']
+           out.meta['source'] = 'calculation'
+       else:
+           out = Datatable(super(Datatable, self).__rsub__(other))
+           out.meta['unit'] = self.meta['unit']
+           out.meta['source'] = 'calculation'
+       return out
+
+    def __mul__(self, other):
+       if isinstance(other, (Datatable, pint.Quantity)):
+           newUnit = core.getUnit(self.meta['unit']) * core.getUnit(other.units)
+           if isinstance(other, pint.Quantity):
+               other = other.m
+           out = Datatable(super(Datatable, self).__mul__(other))
+           out.meta['unit'] = str(newUnit.u)
+           out.meta['source'] = 'calculation'
+           out.values[:] *= newUnit.m
+       else:
+           out = Datatable(super(Datatable, self).__mul__(other))
+           out.meta['unit'] = self.meta['unit']
+           out.meta['source'] = 'calculation'
+       return out
+
+    __rmul__ = __mul__
+
+    def __truediv__(self, other):
+       if isinstance(other, (Datatable, pint.Quantity)):
+           newUnit = core.getUnit(self.meta['unit']) / core.getUnit(other.units)
+           if isinstance(other, pint.Quantity):
+               other = other.m
+           out = Datatable(super(Datatable, self).__truediv__(other))
+           out.meta['unit'] = str(newUnit.u)
+           out.meta['source'] = 'calculation'
+           out.values[:] *= newUnit.m
+       else:
+           out = Datatable(super(Datatable, self).__truediv__(other))
+           out.meta['unit'] = self.meta['unit']
+           out.meta['source'] = 'calculation'
+       return out
+
+    #    __rtruediv__ = __truediv__
+    def __rtruediv__(self, other):
+       if isinstance(other, (Datatable, pint.Quantity)):
+           newUnit = core.getUnit(other.units) / core.getUnit(self.meta['unit'])
+           if isinstance(other, pint.Quantity):
+               other = other.m
+           out = Datatable(super(Datatable, self).__rtruediv__(other))
+           out.meta['unit'] = str(newUnit.u)
+           out.meta['source'] = 'calculation'
+           out.values[:] *= newUnit.m
+       else:
+           out = Datatable(super(Datatable, self).__rtruediv__(other))
+           out.meta['unit'] = str((core.getUnit(self.meta['unit']) ** -1).u)
+           out.meta['source'] = 'calculation'
+       return out
+
+    def __repr__(self):
+       outStr = """"""
+       if 'ID' in self.meta.keys():
+           outStr += '=== Datatable - ' + self.meta['ID'] + ' ===\n'
+       else:
+           outStr += '=== Datatable ===\n'
+       for key in self.meta.keys():
+           if self.meta[key] is not None and not str(self.meta[key]).startswith('_'):
+               outStr += key + ': ' + str(self.meta[key]) + ' \n'
+       outStr += super(Datatable, self).__repr__()
+       return outStr
+
+    def _repr_html_(self):
+       outStr = """"""
+       if 'ID' in self.meta.keys():
+           outStr += '=== Datatable - ' + self.meta['ID'] + ' ===<br/>\n'
+       else:
+           outStr += '=== Datatable ===<br/>\n'
+       for key in self.meta.keys():
+           if self.meta[key] is not None and not str(self.meta[key]).startswith('_'):
+               outStr += key + ': ' + str(self.meta[key]) + ' <br/>\n'
+       outStr += super(Datatable, self)._repr_html_()
+       return outStr
+
+    #%% private methods
+    @property
+    def _constructor(self):
+        return Datatable
+    
+    def _to_xarray(self):
+
+        return core.xr.DataArray(
+            self.values,
+            coords=[self.index, self.columns],
+            dims=['space', 'time'],
+            attrs=self.meta,
+        )
+    def _update_meta(self):
+        self.meta = core._update_meta(self.meta)
+
+    #%% public methods
+    
+    def aggregate_region(self, mapping, skipna=False):
+        """
+        This functions added the aggregates to the table according to the provided
+        mapping.( See datatools.mapp.regions)
+
+        Returns the result, but does not inplace add it.
+        """
+        from datatoolbox.tools.for_datatables import aggregate_region
+
+        return aggregate_region(self, mapping, skipna)
+    
+    def append(self, other, **kwargs):
+        """
+        Append data to the datatable
+
+
+        Parameters
+        ----------
+        other : datatable
+            New data that will be added to the datatable.
+        **kwargs : TYPE
+            Default pandas append arguments.
+
+        Returns
+        -------
+        datatable
+
+        """
+        kwargs.setdefault("sort", True)
+
+        if isinstance(other, Datatable):
+
+            if other.meta['entity'] != self.meta['entity']:
+                #                print(other.meta['entity'] )
+                #                print(self.meta['entity'])
+                raise (BaseException('Physical entities do not match, please correct'))
+            if other.units != self.meta['unit']:
+                other = other.convert(self.meta['unit'])
+
+        out = pd.concat([self, other], **kwargs)
+
+        # only copy required keys
+        out.meta = {
+            key: value
+            for key, value in self.meta.items()
+            if key in config.REQUIRED_META_FIELDS
+        }
+
+        # overwrite scenario
+        out.meta['scenario'] = (
+            'computed: ' + self.meta['scenario'] + '+' + other.meta['scenario']
+        )
+        return out
+    
+    def clean(self):
+        """
+        Clean up the dataframe to only recogniszed regions, years and numeric values.
+        Removed columns and rows with only nan values.
+
+        Returns
+        -------
+        datatable
+            DESCRIPTION.
+
+        """
+        return util.cleanDataTable(self)
+    
+    def copy(self, deep=True):
+        """
+        Make a copy of this Datatable object
+        Parameters
+        ----------
+        deep : boolean, default True
+            Make a deep copy, i.e. also copy data
+        Returns
+        -------
+        copy : Datatable
+        """
+        # FIXME: this will likely be unnecessary in pandas >= 0.13
+        data = self._data
+        if deep:
+            data = data.copy(deep=True)
+        return Datatable(data).__finalize__(self)
+    
+    def columns_to_datetime(self):
+        self.columns = pd.to_datetime(self.columns, format=self.meta['_timeformat'])
+    
+
+    def diff(self, periods=1, axis=0):
+        """
+        Compute the difference between different years in the datatable
+        Equivalent do pandas diff but return datatable.
+
+        Parameters
+        ----------
+        periods : int, optional
+            DESCRIPTION. The default is 1.
+        axis : int, optional
+            DESCRIPTION. The default is 0.
+
+        Returns
+        -------
+        out : TYPE
+            DESCRIPTION.
+
+        """
+        out = super(Datatable, self).diff(periods=periods, axis=axis)
+        out.meta['unit'] = self.meta['unit']
+
+        return out    
     @property
     def units(self):
         return self.meta['unit']
+    
     def info(self):
         """
         Returns information about the dataframe like shape, index and column
@@ -100,6 +444,17 @@ class Datatable(pd.DataFrame):
         n_entries = (~self.isnull()).sum().sum()
         return f'{shp[0]}x{shp[1]} Datatable with {n_entries} entries, index from {idx_ext[0]} to {idx_ext[1]} and time from {time_ext[0]} to {time_ext[0]}'
 
+    @classmethod
+    def from_multi_indexed_dataframe(cls, df):
+        #find unique index
+        idx_ames_to_meta = [x for x in df.index.names if (len(df.index.unique(x)) ==1) and x !='region']
+        table = cls(df.copy())
+        table.meta = {x : df.index.unique(x)[0] for x in idx_ames_to_meta}
+        table.index = table.index.droplevel(idx_ames_to_meta)
+        return table
+    
+    
+    
     @classmethod
     def from_pyam(cls, idf, **kwargs):
         """
@@ -181,106 +536,11 @@ class Datatable(pd.DataFrame):
             sheetNames = [sheetNames]
         return read_excel(filepath, sheetNames=sheetNames)
 
-    def _to_xarray(self):
-
-        return core.xr.DataArray(
-            self.values,
-            coords=[self.index, self.columns],
-            dims=['space', 'time'],
-            attrs=self.meta,
-        )
-
-    @property
-    def _constructor(self):
-        return Datatable
-
-    def __finalize__(self, other, method=None, **kwargs):
-        """propagate metadata from other to self"""
-        # merge operation: using metadata of the left object
-        if method == 'merge':
-            for name in self._metadata:
-                object.__setattr__(self, name, copy(getattr(other.left, name, None)))
-        # concat operation: using metadata of the first object
-        elif method == 'concat':
-            for name in self._metadata:
-                object.__setattr__(self, name, copy(getattr(other.objs[0], name, None)))
-        else:
-            for name in self._metadata:
-                # print(other)
-                object.__setattr__(self, name, copy(getattr(other, name, None)))
-        return self
-
-    def __appendMetaData__(self, metaDict):
-        """
-        Private function to append meta data.
-
-        Parameters
-        ----------
-        metaDict : dict
-            New meta data.
+    
 
 
-        """
 
-        for metaKey in config.REQUIRED_META_FIELDS:
-            if (
-                metaKey not in metaDict.keys()
-                or metaDict[metaKey] == ''
-                or pd.isna(metaDict[metaKey])
-            ):
 
-                # Overwrite with default or empty string
-                if metaKey in config.META_DEFAULTS:
-                    metaDict[metaKey] = config.META_DEFAULTS[metaKey]
-                else:
-                    metaDict[metaKey] = ''
-
-        self.__setattr__('meta', metaDict.copy())
-
-        assert core.getUnit(self.meta['unit'])
-
-    def columns_to_datetime(self):
-        self.columns = pd.to_datetime(self.columns, format=self.meta['_timeformat'])
-
-    def copy(self, deep=True):
-        """
-        Make a copy of this Datatable object
-        Parameters
-        ----------
-        deep : boolean, default True
-            Make a deep copy, i.e. also copy data
-        Returns
-        -------
-        copy : Datatable
-        """
-        # FIXME: this will likely be unnecessary in pandas >= 0.13
-        data = self._data
-        if deep:
-            data = data.copy(deep=True)
-        return Datatable(data).__finalize__(self)
-
-    def diff(self, periods=1, axis=0):
-        """
-        Compute the difference between different years in the datatable
-        Equivalent do pandas diff but return datatable.
-
-        Parameters
-        ----------
-        periods : int, optional
-            DESCRIPTION. The default is 1.
-        axis : int, optional
-            DESCRIPTION. The default is 0.
-
-        Returns
-        -------
-        out : TYPE
-            DESCRIPTION.
-
-        """
-        out = super(Datatable, self).diff(periods=periods, axis=axis)
-        out.meta['unit'] = self.meta['unit']
-
-        return out
 
     def reduce(self, method='linear_piece_wise', eps=1e-6):
         """
@@ -453,7 +713,33 @@ class Datatable(pd.DataFrame):
         Depreciated.
 
         """
+        
         return self.to_pyam(**kwargs)
+        
+    def to_multi_index_dataframe(self, 
+                            exclude_meta =['ID', 'creator', 'source_name','source_year'],
+                            use_index_names = None):
+        """
+        Return a new datatable with a mult-index that has all meta data assigned
+        
+        Parameters
+        -------
+        exclude_meta: optinal list of meta keys that should be ignored
+        Returns
+        -------
+        Datatable
+            New Datatable with multi_index and not meta data.
+
+        """
+ 
+        from pandas_indexing import assignlevel
+        
+        if use_index_names is None:
+            meta_for_index = {x: self.meta[x] for x in sorted(self.meta.keys()) if not x in exclude_meta}
+        else:
+            meta_for_index = {x: self.meta[x] for x in sorted(use_index_names) if x!='region' }
+        
+        return assignlevel(self, **meta_for_index)
 
     def convert(self, newUnit, context=None):
         """
@@ -487,16 +773,6 @@ class Datatable(pd.DataFrame):
         dfNew.meta['modified'] = core.get_time_string()
         return dfNew
 
-    def aggregate_region(self, mapping, skipna=False):
-        """
-        This functions added the aggregates to the table according to the provided
-        mapping.( See datatools.mapp.regions)
-
-        Returns the result, but does not inplace add it.
-        """
-        from datatoolbox.tools.for_datatables import aggregate_region
-
-        return aggregate_region(self, mapping, skipna)
 
     def interpolate(self, method="linear", add_missing_years=False):
         """
@@ -528,18 +804,7 @@ class Datatable(pd.DataFrame):
 
         return interpolate(self, method)
 
-    def clean(self):
-        """
-        Clean up the dataframe to only recogniszed regions, years and numeric values.
-        Removed columns and rows with only nan values.
 
-        Returns
-        -------
-        datatable
-            DESCRIPTION.
-
-        """
-        return util.cleanDataTable(self)
 
     def filter(self, spaceIDs):
         """
@@ -637,8 +902,6 @@ class Datatable(pd.DataFrame):
 
         return core.generate_table_file_name(self.ID)
 
-    def _update_meta(self):
-        self.meta = core._update_meta(self.meta)
 
     def source(self):
         """
@@ -646,216 +909,9 @@ class Datatable(pd.DataFrame):
         """
         return self.meta['source']
 
-    def append(self, other, **kwargs):
-        """
-        Append data to the datatable
+    
 
-
-        Parameters
-        ----------
-        other : datatable
-            New data that will be added to the datatable.
-        **kwargs : TYPE
-            Default pandas append arguments.
-
-        Returns
-        -------
-        datatable
-
-        """
-        kwargs.setdefault("sort", True)
-
-        if isinstance(other, Datatable):
-
-            if other.meta['entity'] != self.meta['entity']:
-                #                print(other.meta['entity'] )
-                #                print(self.meta['entity'])
-                raise (BaseException('Physical entities do not match, please correct'))
-            if other.units != self.meta['unit']:
-                other = other.convert(self.meta['unit'])
-
-        out = pd.concat([self, other], **kwargs)
-
-        # only copy required keys
-        out.meta = {
-            key: value
-            for key, value in self.meta.items()
-            if key in config.REQUIRED_META_FIELDS
-        }
-
-        # overwrite scenario
-        out.meta['scenario'] = (
-            'computed: ' + self.meta['scenario'] + '+' + other.meta['scenario']
-        )
-        return out
-
-    def __add__(self, other):
-        """
-        Private function to add two dataframes. The added table is converted to
-        the unit of first table.
-
-        Parameters
-        ----------
-        other : datatble
-            Data to add.
-
-        Returns
-        -------
-        out : datatable
-            DESCRIPTION.
-
-        """
-        if isinstance(other, (Datatable, pint.Quantity)):
-              
-            if self.meta['unit'] == other.units:
-                factor = 1
-            else:
-                factor = core.getUnit(other.units).to(self.meta['unit']).m
-            if isinstance(other, pint.Quantity):
-                rhs = other.m
-            else:
-                rhs = pd.DataFrame(other * factor)
-            out = Datatable(super(Datatable, self.copy()).__add__(rhs))
-
-            out.meta['unit'] = self.meta['unit']
-            out.meta['source'] = 'calculation'
-            
-        # elif isinstance(ur(df1.meta['unit']),pint.Quantity):
-            
-        else:
-            out = Datatable(super(Datatable, self).__add__(other))
-            out.meta['unit'] = self.meta['unit']
-            out.meta['source'] = 'calculation'
-        return out
-
-    __radd__ = __add__
-
-    def __sub__(self, other):
-        """
-        Private function to subract two dataframes. The subracted table is converted to
-        the unit of first table.
-
-        Parameters
-        ----------
-        other : datatble
-            Data to substract.
-
-        Returns
-        -------
-        out : datatable
-            DESCRIPTION.
-
-        """
-        if isinstance(other, (Datatable, pint.Quantity)):
-            if self.meta['unit'] == other.units:
-                factor = 1
-            else:
-                factor = core.getUnit(other.units).to(self.meta['unit']).m
-            if isinstance(other, pint.Quantity):
-                rhs = other.m
-            else:
-                rhs = pd.DataFrame(other * factor)
-            out = Datatable(super(Datatable, self).__sub__(rhs))
-            out.meta['unit'] = self.meta['unit']
-            out.meta['source'] = 'calculation'
-        else:
-            out = Datatable(super(Datatable, self).__sub__(other))
-            out.meta['unit'] = self.meta['unit']
-            out.meta['source'] = 'calculation'
-        return out
-
-    def __rsub__(self, other):
-        """
-        Equivalent to __sub__
-        """
-        if isinstance(other, (Datatable, pint.Quantity)):
-            if self.meta['unit'] == other.units:
-                factor = 1
-            else:
-                factor = core.getUnit(other.units).to(self.meta['unit']).m
-            if isinstance(other, pint.Quantity):
-                other = other.m
-            out = Datatable(super(Datatable, self).__rsub__(other * factor))
-            out.meta['unit'] = self.meta['unit']
-            out.meta['source'] = 'calculation'
-        else:
-            out = Datatable(super(Datatable, self).__rsub__(other))
-            out.meta['unit'] = self.meta['unit']
-            out.meta['source'] = 'calculation'
-        return out
-
-    def __mul__(self, other):
-        if isinstance(other, (Datatable, pint.Quantity)):
-            newUnit = core.getUnit(self.meta['unit']) * core.getUnit(other.units)
-            if isinstance(other, pint.Quantity):
-                other = other.m
-            out = Datatable(super(Datatable, self).__mul__(other))
-            out.meta['unit'] = str(newUnit.u)
-            out.meta['source'] = 'calculation'
-            out.values[:] *= newUnit.m
-        else:
-            out = Datatable(super(Datatable, self).__mul__(other))
-            out.meta['unit'] = self.meta['unit']
-            out.meta['source'] = 'calculation'
-        return out
-
-    __rmul__ = __mul__
-
-    def __truediv__(self, other):
-        if isinstance(other, (Datatable, pint.Quantity)):
-            newUnit = core.getUnit(self.meta['unit']) / core.getUnit(other.units)
-            if isinstance(other, pint.Quantity):
-                other = other.m
-            out = Datatable(super(Datatable, self).__truediv__(other))
-            out.meta['unit'] = str(newUnit.u)
-            out.meta['source'] = 'calculation'
-            out.values[:] *= newUnit.m
-        else:
-            out = Datatable(super(Datatable, self).__truediv__(other))
-            out.meta['unit'] = self.meta['unit']
-            out.meta['source'] = 'calculation'
-        return out
-
-    #    __rtruediv__ = __truediv__
-    def __rtruediv__(self, other):
-        if isinstance(other, (Datatable, pint.Quantity)):
-            newUnit = core.getUnit(other.units) / core.getUnit(self.meta['unit'])
-            if isinstance(other, pint.Quantity):
-                other = other.m
-            out = Datatable(super(Datatable, self).__rtruediv__(other))
-            out.meta['unit'] = str(newUnit.u)
-            out.meta['source'] = 'calculation'
-            out.values[:] *= newUnit.m
-        else:
-            out = Datatable(super(Datatable, self).__rtruediv__(other))
-            out.meta['unit'] = str((core.getUnit(self.meta['unit']) ** -1).u)
-            out.meta['source'] = 'calculation'
-        return out
-
-    def __repr__(self):
-        outStr = """"""
-        if 'ID' in self.meta.keys():
-            outStr += '=== Datatable - ' + self.meta['ID'] + ' ===\n'
-        else:
-            outStr += '=== Datatable ===\n'
-        for key in self.meta.keys():
-            if self.meta[key] is not None and not str(self.meta[key]).startswith('_'):
-                outStr += key + ': ' + str(self.meta[key]) + ' \n'
-        outStr += super(Datatable, self).__repr__()
-        return outStr
-
-    def _repr_html_(self):
-        outStr = """"""
-        if 'ID' in self.meta.keys():
-            outStr += '=== Datatable - ' + self.meta['ID'] + ' ===<br/>\n'
-        else:
-            outStr += '=== Datatable ===<br/>\n'
-        for key in self.meta.keys():
-            if self.meta[key] is not None and not str(self.meta[key]).startswith('_'):
-                outStr += key + ': ' + str(self.meta[key]) + ' <br/>\n'
-        outStr += super(Datatable, self)._repr_html_()
-        return outStr
-
+ 
 
 
 class TableSet(dict):

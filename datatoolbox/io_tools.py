@@ -11,6 +11,7 @@ import pandas as pd
 import numpy as np
 from tqdm import tqdm
 import deprecated as dp
+import numpy as np
 
 from . import config
 
@@ -103,9 +104,9 @@ def read_PRIMAP_csv(fileName):
     try:
         int(firstDataRow)
     except:
-        firstDataRow = pd.np.where(allDf.index == "Countries\Years")[0][0] + 3
+        firstDataRow = np.where(allDf.index == "Countries\Years")[0][0] + 3
 
-    firstMetaRow = pd.np.where(allDf.index == "&SHEET_SPECIFICATIONS")[0][0] + 1
+    firstMetaRow = np.where(allDf.index == "&SHEET_SPECIFICATIONS")[0][0] + 1
 
     metaPrimap = dict()
     for row in range(firstMetaRow, firstDataRow):
@@ -167,7 +168,7 @@ def _read_PRIMAP_Excel_single(fileName, sheet_name=0, xlsFile=None):
     try:
         int(firstDataRow)
     except:
-        firstDataRow = pd.np.where(allDf.index == "Countries\Years")[0][0] + 3
+        firstDataRow = np.where(allDf.index == "Countries\Years")[0][0] + 3
 
     # print(firstDataRow)
     setup = dict()

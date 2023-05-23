@@ -123,6 +123,13 @@ def _get_dimensions(table_iterable, dimensions):
             dims[dim] = dims.get(dim, set()).union(_get_unique_labels(table, dim))
     return dims
 
+def _get_stacked_levels(index, st_dim, sub_dims):
+    df = index.to_frame()
+    # for st_dim, sub_dims in stacked_dims.items():
+    df[st_dim] = df.loc[:, sub_dims].agg('__'.join, axis=1)
+    df = df.set_index([st_dim] + list(sub_dims))
+    return df.index.codes[0], df.index.levels[0]
+
 
 def _to_xarray(tables, dimensions, stacked_dims):
     """
@@ -303,7 +310,35 @@ def _xDataArray_to_wide_df(xarr):
     wdf.columns = wdf.columns.droplevel(0)
     return wdf
 
+#%% Public functions
 
+def multi_index_df_to_datatables(df, index_col_name = 'region'):
+    #%%
+    if not index_col_name in df.index.names:
+        raise(Exception(f'New index columns name {index_col_name} must be in mult-index'))
+    groupby_levels = [x for x in df.index.names if x != index_col_name]
+    
+    tables =  list()
+    for idx, sub_df in df.groupby(groupby_levels):
+        
+        table = dt.Datatable.from_multi_indexed_dataframe(sub_df)
+        tables.append(table)
+    return tables
+    #%%
+
+def datatables_to_multi_index_df(tables,
+                                 exclude_meta =['ID', 'creator', 'source_name','source_year'],
+                                 use_index_names = None):
+    
+    dfs = list()
+    for table in tables:
+        dfs.append(table.to_multi_index_dataframe(exclude_meta=exclude_meta,
+                                                  use_index_names=use_index_names))
+    index_names = set([x.index.names for x in dfs])
+    if len(index_names) > 1:
+        raise(Exception(f'Index level names do not aligen, please check: {index_names}'))
+    return pd.concat(dfs)
+    
 def to_pyam(data):
     """
     Converts known data tyes to a tableset. Recognized data types are:
@@ -443,12 +478,6 @@ def to_tableset(data, additional_meta=dict()):
         raise (Exception(f'{type(data)} is not implemented'))
 
 
-def _get_stacked_levels(index, st_dim, sub_dims):
-    df = index.to_frame()
-    # for st_dim, sub_dims in stacked_dims.items():
-    df[st_dim] = df.loc[:, sub_dims].agg('__'.join, axis=1)
-    df = df.set_index([st_dim] + list(sub_dims))
-    return df.index.codes[0], df.index.levels[0]
 
 
 def idf_to_xdset(idf, stacked_dims={'pathway': ('model', 'scenario')}):
@@ -554,41 +583,14 @@ def to_xdataset(
         raise (Exception(f'Data type {type(data)} conversion not implemented'))
 
 
-#%%
-# idf = dt.findp(source='IPCC_AR6', variable = 'Secondary Energy|Heat|Geothermal').as_pyam()
-# #%%
-# tt = time()
-# ds1 = idf_to_xdset(idf, stacked_dims={'pathway': ('model', 'scenario')})
-# print(time()-tt)
-
-# tt = time()
-# ds2 = to_xdataset(idf, stacked_dims={'pathway': ('model', 'scenario')})
-# print(time()-tt)
 
 
 #%%
 if __name__ == '__main__':
 
-    #%test
+    
     import datatoolbox as dt
 
-    # local_data_file = '/media/sf_Documents/python/ca_data_management/data/IPCC_AR6/AR6_Scenarios_Database_World_v1.0.csv'#,
-    # data = pd.read_csv(local_data_file)
-    # dimensions = ['Model', 'Scenario', 'Region', 'year']
-    # stacked_dims = {'Pathway': ('Model', 'Scenario'),
-    #                 'varunit' : ("Variable", "Unit")}
-    # data = data.set_index(data.columns[:5].tolist()).rename_axis(columns= 'year').stack()
-
-    # from datatoolbox.tools.pyam import idf_to_xarray
-
-    # xds = idf_to_xarray(data, stacked_dims= stacked_dims)
-
-    # tbs = dt.getTables(dt.find(source='IAMC15_2019_R2').index[:10])
-    # idf = tbs.to_IamDataFrame()
-    # # xda = idf_to_xarray(idf)
-    # stacked_dims= {'pathway': ('model', 'scenario')}
-
-    # index, labels = _pack_dimensions(idf.index, **stacked_dims)
     xdata = dt.findp(
         variable=[
             'Emissions|CO2|Energy|Supply|Electricity',

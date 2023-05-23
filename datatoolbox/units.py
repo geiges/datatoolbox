@@ -16,3 +16,11 @@ conversionFactor = core.conversionFactor
 
 getUnit = core.getUnit
 getUnitWindows = core.getUnitWindows
+
+def is_valid_unit(unit_str):
+    
+    try:
+        ur(unit_str)
+        return True
+    except:
+        return False
