@@ -402,10 +402,12 @@ class IEA_GHG_FUEL_DETAILED(BaseImportTool):
         self,
         year,
         raw_data_folder=None,
+        clean = False
     ):
 
         if raw_data_folder is None:
             raw_data_folder = os.path.join(config.PATH_TO_DATASHELF, 'rawdata')
+        self.clean = clean
         self.setup = setupStruct()
         self.setup.SOURCE_ID = f"IEA_GHG_FUEL_DETAILED_{year}"
         self.setup.SOURCE_PATH = os.path.join(raw_data_folder, f'IEA_GHG_FUEL_{year}')
@@ -452,17 +454,21 @@ class IEA_GHG_FUEL_DETAILED(BaseImportTool):
         return pd.read_excel(self.setup.MAPPING_FILE, sheet_name='spatial', index_col=0)
 
     def loadData(self):
-        cols = pd.read_csv(
-            self.setup.DATA_FILE, encoding="ISO-8859-1", header=0, skiprows=1, nrows=0
-        ).columns
-        self.data = pd.read_csv(
-            self.setup.DATA_FILE,
-            encoding="ISO-8859-1",
-            header=0,
-            skiprows=[1],
-            na_values=["x", "..", "c"],
-        )
-        self.data.columns = cols[:3].append(self.data.columns[3:])
+        if self.clean : 
+            self.data = pd.read_csv(
+            self.setup.DATA_FILE)
+        else :
+            cols = pd.read_csv(
+                self.setup.DATA_FILE, encoding="ISO-8859-1", header=0, skiprows=1, nrows=0
+            ).columns
+            self.data = pd.read_csv(
+                self.setup.DATA_FILE,
+                encoding="ISO-8859-1",
+                header=0,
+                skiprows=[1],
+                na_values=["x", "..", "c"],
+            )
+            self.data.columns = cols[:3].append(self.data.columns[3:])
 
     def createVariableMapping(self):
 
@@ -1176,8 +1182,9 @@ class IEA_World_Energy_Balance(BaseImportTool):
     IEA World balance data import
     """
 
-    def __init__(self, year=2020, detailed=False):
+    def __init__(self, year=2020, detailed=False, clean = False):
         self.detailed = detailed
+        self.clean = clean
 
         self.setup = setupStruct()
         if not self.detailed:
@@ -1219,7 +1226,11 @@ class IEA_World_Energy_Balance(BaseImportTool):
         self.createSourceMeta()
 
     def loadData(self):
-        if not self.detailed:
+        if self.clean: 
+            self.data = pd.read_csv(
+                    self.setup.DATA_FILE) 
+            
+        elif not self.detailed:
             self.data = pd.read_csv(
                 self.setup.DATA_FILE,
                 encoding='utf8',
@@ -1245,6 +1256,7 @@ class IEA_World_Energy_Balance(BaseImportTool):
                 na_values=["x", "..", "c"],
             )
             self.data.columns = cols[:3].append(self.data.columns[3:])
+                                
 
     def loadSpatialMapping(
         self,
