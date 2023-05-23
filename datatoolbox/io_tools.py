@@ -21,9 +21,7 @@ from . import mapping as mapp
 from .tools.pandas import yearsColumnsOnly
 
 
-from . import greenhouse_gas_database as gh
 
-GHG_data = gh.GreenhouseGasTable()
 from .data_structures import Datatable, TableSet
 from openpyxl import load_workbook
 
@@ -207,6 +205,10 @@ def _read_PRIMAP_Excel_single(fileName, sheet_name=0, xlsFile=None):
 
 
 def read_MAGICC6_ScenFile(fileName, **kwargs):
+    
+    from . import greenhouse_gas_database as gh
+
+    GHG_data = gh.GreenhouseGasTable()
     VALID_MASS_UNITS = {
         'Pt': 1e18,
         'Gt': 1e15,

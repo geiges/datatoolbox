@@ -74,7 +74,6 @@ def export_to_pdf(dataframe, fileName):
     pdfkit.from_string(html, fileName)
 
 
-GHG_data = GreenhouseGasTable()
 
 
 def diff_eps(df1, df2, eps=1e-6):

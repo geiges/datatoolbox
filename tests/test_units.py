@@ -37,7 +37,7 @@ def test_GWP_AR6_conversion_CH4():
         
     
 def test_context_and_missing_space():        
-    obs = dt.units.conversionFactor("MtCH4", "tCO2eq", context="AR5GWP100")
+    obs = dt.units.conversionFactor("MtCH4", "MtCO2eq", context="AR5GWP100")
     exp = 28
     npt.assert_almost_equal(obs, exp)
     
