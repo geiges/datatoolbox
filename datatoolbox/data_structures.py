@@ -739,9 +739,9 @@ class Datatable(pd.DataFrame):
         else:
             meta_for_index = {x: self.meta[x] for x in sorted(use_index_names) if x!='region' }
         
-        return assignlevel(self, **meta_for_index)
+        return assignlevel(self.copy(), **meta_for_index)
 
-    def convert(self, newUnit, context=None):
+    def convert(self, newUnit, context=None, suffix_dict=dict(), **new_meta):
         """
         Convert datatable to different unit and returns converted
         datatable.
@@ -760,6 +760,9 @@ class Datatable(pd.DataFrame):
 
         """
         if self.meta['unit'] == newUnit:
+            for key, suffix in suffix_dict.items():
+                self.meta[key] =self.meta[key] +suffix
+            self.meta.update(new_meta)
             return self
 
         dfNew = self.copy()
@@ -771,6 +774,10 @@ class Datatable(pd.DataFrame):
         dfNew.loc[:] = self.values * factor
         dfNew.meta['unit'] = newUnit
         dfNew.meta['modified'] = core.get_time_string()
+        for key, suffix in suffix_dict.items():
+            dfNew.meta[key] =dfNew.meta[key] +suffix
+        dfNew.meta.update(new_meta)
+        # dfNew._update_meta()
         return dfNew
 
 

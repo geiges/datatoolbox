@@ -327,7 +327,7 @@ def multi_index_df_to_datatables(df, index_col_name = 'region'):
     #%%
 
 def datatables_to_multi_index_df(tables,
-                                 exclude_meta =['ID', 'creator', 'source_name','source_year'],
+                                 exclude_meta =['ID', 'creator', 'source_name','source_year', 'modified'],
                                  use_index_names = None):
     
     dfs = list()

@@ -1175,7 +1175,7 @@ class Database:
             index_col=0,
             dtype={"source_year": str},
         )
-        self.inventory = self.inventory.append(sourceInventory, verify_integrity=True)
+        self.inventory = pd.concat([self.inventory, sourceInventory], verify_integrity=True)
         self._gitCommit("imported " + remoteName)
 
     def exportSourceToRemote(self, sourceID):
