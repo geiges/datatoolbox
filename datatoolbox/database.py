@@ -1529,6 +1529,28 @@ class GitRepository_Manager:
 
     #%% Public methods
     
+    
+    def available_remote_data_updates(self):
+        
+        new_items, updated_items = self._get_difference_to_remote()
+        
+        print('New items:')
+        print(tabulate(
+            self.remote_sources.loc[new_items, ['tag', 'last_to_update']], 
+            headers="keys", tablefmt="psql"))
+        
+        print('Sources with newer data:')
+        
+        df = pd.concat(
+            [
+                self.sources.loc[updated_items, ['tag']].rename(columns={'tag':'local_tag'}),
+                self.remote_sources.loc[updated_items, ['tag']].rename(columns={'tag':'remote_tag'}),
+            ], axis=1)
+        print(tabulate(
+            df, 
+            headers="keys", tablefmt="psql"))
+    
+        
     def check_if_online_repo_exists(self, sourceID):
         return sourceID in self.remote_sources.index
     
@@ -1556,29 +1578,56 @@ class GitRepository_Manager:
                 import traceback
 
                 traceback.print_exc()
-                
-    def available_remote_data_updates(self):
-        
-        new_items, updated_items = self._get_difference_to_remote()
-        
-        print('New items:')
-        print(tabulate(
-            self.remote_sources.loc[new_items, ['tag', 'last_to_update']], 
-            headers="keys", tablefmt="psql"))
-        
-        print('Sources with newer data:')
-        
-        df = pd.concat(
-            [
-                self.sources.loc[updated_items, ['tag']].rename(columns={'tag':'local_tag'}),
-                self.remote_sources.loc[updated_items, ['tag']].rename(columns={'tag':'remote_tag'}),
-            ], axis=1)
-        print(tabulate(
-            df, 
-            headers="keys", tablefmt="psql"))
-    
-        
+         
+    def clone_source_from_remote(self, repoName, repoPath):
+        """
+        Function to clone a remote git repository as a local copy.
 
+        Input
+        -----
+        repoName : str - valid repository in the remove database
+        repoPath : str - path of the repository
+        """
+
+        self._pull_remote_sources()
+        try:
+            print("Try cloning source via ssh...", end='')
+            url = config.DATASHELF_REMOTE + repoName + ".git"
+            repo = git.Repo.clone_from(
+                url=url, to_path=repoPath, progress=TqdmProgressPrinter()
+            )
+        except:
+            print('failed.')
+            try:
+                
+                print("Try Cloning source via https...", end='')
+                url = config.DATASHELF_REMOTE_HTTPS + repoName + ".git"
+                repo = git.Repo.clone_from(
+                    url=url, to_path=repoPath, progress=TqdmProgressPrinter()
+                )
+            except Exception:
+                print('failed.')
+                if config.DEBUG:
+                    print(traceback.format_exc())
+                    print("Failed to import source {}".format(repoName))
+                raise(Exception(f"""Both SSH and HTTPs import failed. Check your connection, password or if requrested data exists on remote.
+                Consider the following options:                
+                    1) Does "{repoName}" exists in {config.DATASHELF_REMOTE_HTTPS}
+                    2) Check your ssh connection with: dt.test_ssh_remote_connection())
+                    """))
+        self.repositories[repoName] = repo
+
+        # Update source file
+        sourceMetaDict = util.csv_to_dict(os.path.join(repoPath, "meta.csv"))
+        sourceMetaDict["git_commit_hash"] = repo.commit().hexsha
+        tag = self.get_tag_of_source(repoName)
+        sourceMetaDict["tag"] = tag
+        self.sources.loc[repoName] = pd.Series(sourceMetaDict)
+        self.sources.to_csv(config.SOURCE_FILE)
+        self.gitAddFile("main", config.SOURCE_FILE)
+
+        return repo
+    
 
     def get_source_repo_failsave(self, sourceID):
         """
@@ -1786,6 +1835,14 @@ class GitRepository_Manager:
         self[repoName].remotes.origin.push(progress=TqdmProgressPrinter(), tags=True)
 
     def test_ssh_remote_connection(self):
+        """
+        Function to test the ssh connection to the remote data repository using
+        'ssh -T host'
+        Returns
+        -------
+        None.
+
+        """
         host = config.DATASHELF_REMOTE.split(':')[0]
         print(f'Testing connection to host {host}')
         cmd = f"ssh -T {host}"
@@ -1795,54 +1852,7 @@ class GitRepository_Manager:
             print('Successfully connected')
         else:
             print(f'Connection failed with exit code {retcode}')
-    def clone_source_from_remote(self, repoName, repoPath):
-        """
-        Function to clone a remote git repository as a local copy.
-
-        Input
-        -----
-        repoName : str - valid repository in the remove database
-        repoPath : str - path of the repository
-        """
-
-        self._pull_remote_sources()
-        try:
-            print("Try cloning source via ssh...", end='')
-            url = config.DATASHELF_REMOTE + repoName + ".git"
-            repo = git.Repo.clone_from(
-                url=url, to_path=repoPath, progress=TqdmProgressPrinter()
-            )
-        except:
-            print('failed.')
-            try:
-                
-                print("Try Cloning source via https...", end='')
-                url = config.DATASHELF_REMOTE_HTTPS + repoName + ".git"
-                repo = git.Repo.clone_from(
-                    url=url, to_path=repoPath, progress=TqdmProgressPrinter()
-                )
-            except Exception:
-                print('failed.')
-                if config.DEBUG:
-                    print(traceback.format_exc())
-                    print("Failed to import source {}".format(repoName))
-                raise(Exception(f"""Both SSH and HTTPs import failed. Check your connection, password or if requrested data exists on remote.
-                Consider the following options:                
-                    1) Does "{repoName}" exists in {config.DATASHELF_REMOTE_HTTPS}
-                    2) Check your ssh connection with: dt.test_ssh_remote_connection())
-                    """))
-        self.repositories[repoName] = repo
-
-        # Update source file
-        sourceMetaDict = util.csv_to_dict(os.path.join(repoPath, "meta.csv"))
-        sourceMetaDict["git_commit_hash"] = repo.commit().hexsha
-        tag = self.get_tag_of_source(repoName)
-        sourceMetaDict["tag"] = tag
-        self.sources.loc[repoName] = pd.Series(sourceMetaDict)
-        self.sources.to_csv(config.SOURCE_FILE)
-        self.gitAddFile("main", config.SOURCE_FILE)
-
-        return repo
+    
 
     def pull_update_from_remote(self, repoName, old_inventory):
         """

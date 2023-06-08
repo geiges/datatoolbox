@@ -77,6 +77,11 @@ Datatables that contain the search string
 ```
 dt.findp(variable ='', entity='', category='', scenario ='', model='' source='')
 ```
+Two find functions are currently available:
+- dt.findp : Finds mathces according to patterns
+- dt.findc : Finds matches that contain the given strings
+
+
 #%% List all data sources
 ```
 sources = list(dt.findp().source.unique())
@@ -84,9 +89,10 @@ sources.sort()
 print(sources)
 ```
 
+
 #%% List all scenarios within a source
 ```
-res = dt.find(source='PRIMAP_2019')
+res = dt.findp(source='PRIMAP_2019')
 print(res.scenario.unique())
 ```
 
@@ -97,21 +103,11 @@ print(res.entity.unique())
 
 #%% List all Emissions|KYOTOGHG data tables 
 ```
-res = dt.find(entity = "Emissions|KYOTOGHG", source='PRIMAP_2019')
+res = dt.findp(entity = "Emissions|KYOTOGHG", source='PRIMAP_2019')
 print(res.entity.unique())
 ```
 
-#%% dt.findExact
 
-dt.find returns multiple matching datatables
-```
-res = dt.find(entity = "Emissions|CO2", source='IAMC')
-print(res.entity.unique())
-```
-Finds datatables that match the search string exactly
-```
-res = dt.findExact(entity = "Emissions|CO2", source='IAMC15_2019_R2')
-print(res.entity.unique())
 ```
 ## Handling sources:
 
