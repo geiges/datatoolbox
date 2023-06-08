@@ -104,7 +104,7 @@ if db_connected:
     #show available remote data sources
     remote_sourceInfo = core.DB.remote_sourceInfo
     available_remote_data_updates = core.DB.gitManager.available_remote_data_updates
-    
+    test_ssh_remote_connection = core.DB.gitManager.test_ssh_remote_connection
 #%% TOOLS
 # Tools related to packages
 import datatoolbox.tools as tools

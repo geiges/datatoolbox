@@ -1785,6 +1785,16 @@ class GitRepository_Manager:
 
         self[repoName].remotes.origin.push(progress=TqdmProgressPrinter(), tags=True)
 
+    def test_ssh_remote_connection(self):
+        host = config.DATASHELF_REMOTE.split(':')[0]
+        print(f'Testing connection to host {host}')
+        cmd = f"ssh -T {host}"
+        import subprocess
+        retcode = subprocess.call(cmd,shell=True)
+        if retcode==0:
+            print('Successfully connected')
+        else:
+            print(f'Connection failed with exit code {retcode}')
     def clone_source_from_remote(self, repoName, repoPath):
         """
         Function to clone a remote git repository as a local copy.
@@ -1797,18 +1807,30 @@ class GitRepository_Manager:
 
         self._pull_remote_sources()
         try:
-            print("Try cloning source via ssh")
+            print("Try cloning source via ssh...", end='')
             url = config.DATASHELF_REMOTE + repoName + ".git"
             repo = git.Repo.clone_from(
                 url=url, to_path=repoPath, progress=TqdmProgressPrinter()
             )
         except:
-            print("Failed... Try Cloning source via https:")
-            url = config.DATASHELF_REMOTE_HTTPS + repoName + ".git"
-            repo = git.Repo.clone_from(
-                url=url, to_path=repoPath, progress=TqdmProgressPrinter()
-            )
-
+            print('failed.')
+            try:
+                
+                print("Try Cloning source via https...", end='')
+                url = config.DATASHELF_REMOTE_HTTPS + repoName + ".git"
+                repo = git.Repo.clone_from(
+                    url=url, to_path=repoPath, progress=TqdmProgressPrinter()
+                )
+            except Exception:
+                print('failed.')
+                if config.DEBUG:
+                    print(traceback.format_exc())
+                    print("Failed to import source {}".format(repoName))
+                raise(Exception(f"""Both SSH and HTTPs import failed. Check your connection, password or if requrested data exists on remote.
+                Consider the following options:                
+                    1) Does "{repoName}" exists in {config.DATASHELF_REMOTE_HTTPS}
+                    2) Check your ssh connection with: dt.test_ssh_remote_connection())
+                    """))
         self.repositories[repoName] = repo
 
         # Update source file

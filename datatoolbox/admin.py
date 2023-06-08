@@ -305,6 +305,8 @@ def create_personal_setting(
     if (userName is None) or (file_path_variable is None):
         userName, file_path_variable = _open_dialog_for_user()
     
+    if file_path_variable.startswith('..'):
+        raise(Exception('Please use an absolute path to the datashelf directory.'))
     for line in fin.readlines():
         outLine = line.replace('XX', userName).replace('/PPP/PPP', file_path_variable)
         fout.write(outLine)
