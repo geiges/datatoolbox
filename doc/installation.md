@@ -8,13 +8,7 @@ sudo apt install git
 ```
 #### Datatoolbox python dependencies
 
-```bash
-pip install pint==0.9
-pip install pyam-iamc==0.3.0
-pip install pycountry
-pip install datatoolbox --upgrade
-
-```
+See enviroment file.
 
 
 ## Set up datatoolbox and connect to a database

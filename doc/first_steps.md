@@ -75,11 +75,11 @@ Normal pandas command can be used:
 Datatables that contain the search string
 
 ```
-dt.find(variable ='', entity='', category='', scenario ='', model='' source='')
+dt.findp(variable ='', entity='', category='', scenario ='', model='' source='')
 ```
 #%% List all data sources
 ```
-sources = list(dt.find().source.unique())
+sources = list(dt.findp().source.unique())
 sources.sort()
 print(sources)
 ```
