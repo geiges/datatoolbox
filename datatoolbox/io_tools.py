@@ -10,14 +10,14 @@ import os
 import pandas as pd
 import numpy as np
 from tqdm import tqdm
-import deprecated as dp
-import numpy as np
+#import deprecated as dp
+#import numpy as np
 
-from . import config
+#from . import config
 
-from . import core
-from . import util
-from . import mapping as mapp
+#from . import core
+#from . import util
+#from . import mapping as mapp
 from .tools.pandas import yearsColumnsOnly
 
 

@@ -8,7 +8,7 @@ in various locations and tools.
 """
 
 import time
-import pint
+tt = time.time()
 
 import re
 
@@ -16,8 +16,14 @@ import numpy as np
 import pandas as pd
 from datatoolbox import config
 from datatoolbox import naming_convention
+#import pandas_indexing as pix
+
+if config.DEBUG:
+    print('Core import in {:2.4f} seconds'.format(time.time() - tt))
+
 
 tt = time.time()
+import pint
 
 #%% Pint unit handling
 gases = {
@@ -26,56 +32,169 @@ gases = {
     "NO2": "NO2",
     'PM25': 'PM25',
 }
-
 from openscm_units import unit_registry as ur
 
+# self.ur = self_ur
 
 try:
     
-    ur._add_gases(gases)
+   ur._add_gases(gases)
     
-    ur.define('fraction = [] = frac')
-    ur.define('percent = 1e-2 frac = pct')
-    ur.define('ppm = 1e-6 fraction')
-    ur.define('sqkm = km * km')
-    ur.define('none = dimensionless')
+   ur.define('fraction = [] = frac')
+   ur.define('percent = 1e-2 frac = pct')
+   ur.define('ppm = 1e-6 fraction')
+   ur.define('sqkm = km * km')
+   ur.define('none = dimensionless')
 
-    ur.load_definitions(config.PATH_PINT_DEFINITIONS)
-    ur.define('CO2eq = CO2')
+   ur.load_definitions(config.PATH_PINT_DEFINITIONS)
+   ur.define('CO2eq = CO2')
 except pint.errors.DefinitionSyntaxError:
     # avoid double import of units defintions
     pass
-
+   
 import pint
 
+if config.DEBUG:
+    print('pint unit handling initialised in core in {:2.4f} seconds'.format(time.time() - tt))
+
+
+# class Unit_Reg_Wrapper:
+#     """
+#     Wrapper around the pin unit registry to allow on-demand loading of pint
+#     """
+#     def __init__(self):
+        
+#         self.pint_loaded = False
+        
+#     def _load_pint_definitions(self):
+#         tt = time.time()
+#         import pint
+        
+#         #%% Pint unit handling
+#         gases = {
+#             "CO2eq": "carbon_dioxide_equivalent",
+#             # "CO2e": "CO2eq",
+#             "NO2": "NO2",
+#             'PM25': 'PM25',
+#         }
+#         from openscm_units import unit_registry as self_ur
+        
+#         self.ur = self_ur
+        
+#         try:
+            
+#             self.ur._add_gases(gases)
+            
+#             self.ur.define('fraction = [] = frac')
+#             self.ur.define('percent = 1e-2 frac = pct')
+#             self.ur.define('ppm = 1e-6 fraction')
+#             self.ur.define('sqkm = km * km')
+#             self.ur.define('none = dimensionless')
+        
+#             self.ur.load_definitions(config.PATH_PINT_DEFINITIONS)
+#             self.ur.define('CO2eq = CO2')
+#         except pint.errors.DefinitionSyntaxError:
+#             # avoid double import of units defintions
+#             pass
+       
+#         import pint
+    
+#         if config.DEBUG:
+#             print('pint unit handling initialised in core in {:2.4f} seconds'.format(time.time() - tt))
+
+#     def __call__(self, string):
+        
+#         if not self.pint_loaded:
+#             self._load_pint_definitions()
+#             self.pint_loaded = True
+            
+#         return self.ur(string)
+    
+#     def get_pint_ur(self):
+#         if not self.pint_loaded:
+#             self._load_pint_definitions()
+#             self.pint_loaded = True
+#         return self.ur
+
+# ur = Unit_Reg_Wrapper()        
+        
 #
 #     from .tools import xarray as _xr
 #     to_XDataSet = _xr.to_XDataSet
 #     to_XDataArray = _xr.to_XDataArray
-if config.AVAILABLE_XARRAY:
-    import pint_xarray
 
-    pint_xarray.accessors.setup_registry(ur)
-    pint_xarray.unit_registry = ur
-    pint_xarray.accessors.default_registry = ur
 
 #%%
 
-c = pint.Context('GWP_AR5')
+# c = pint.Context('GWP_AR5')
 
-CO2EQ_LIST = [
-    'CO2eq',
-    'CO2e',
-]
+# CO2EQ_LIST = [
+#     'CO2eq',
+#     'CO2e',
+# ]
 
-AR4GWPDict = {'CH4': 25, 'HFC': 1430, 'N2O': 298, 'SF6': 22800, 'PFC': 7390, 'CO2': 1}
+# AR4GWPDict = {'CH4': 25, 'HFC': 1430, 'N2O': 298, 'SF6': 22800, 'PFC': 7390, 'CO2': 1}
 
 
 LOG = dict()
 LOG['tableIDs'] = list()
 
-ur.add_context(c)
+# ur.add_context(c)
 
+
+def slim_index(df):
+    """
+    Function to move all unique index levels to the meta of the dataframe
+
+    Parameters
+    ----------
+    df : pd.Dataframe
+        Dataframe to squeeze.
+
+    Returns
+    -------
+    df : pd.Dataframe
+        resulting dataframe with squeezed index and filled meta.
+
+    """
+    import pix
+    levels_to_squeeze  = [l.name  for l in df.index.levels if len(pix.projectlevel(df.index, l.name).unique()) == 1]
+    level_values = [l[0] for l in df.index.levels if l.name in levels_to_squeeze]
+    
+    for level, value in zip(levels_to_squeeze, level_values):
+        df.meta[level] = value
+        
+    df = df.droplevel(levels_to_squeeze)
+    
+    return df
+
+def blow_index(df, levels_to_add = None):
+    """
+    Unsqueeze levels from meta into the (multi-index) of the dataframe. 
+
+    Parameters
+    ----------
+    df : pd.Dataframe
+        Dataframe with levels squeezed to meta.
+    levels_to_add : list, optional
+        Optional parameter to restrict the unsqueezed levels to the given list. The default is None.
+ 
+    Returns
+    -------
+    df : pd.Dataframe
+        resulting dataframe with unsqueezed meta.
+
+
+    """
+    import pix
+    #check that values are str
+    idx_meta = {x : y for x,y in df.meta.items() if isinstance(y, (int, float, str))}
+    
+    if levels_to_add is not None:
+        idx_meta = {x : y for x,y in idx_meta.items() if x in levels_to_add}    
+    df = pix.assignlevel(df, **idx_meta)
+    
+    return df
 
 def is_known_entity(variable):
     entity_matches = list()
@@ -299,6 +418,7 @@ def getUnit(string, ur=ur):
     -------
     unit : pint unit
     """
+    import pint
     # if not isinstance(string, str):
     #     string = str(string)
     # capture if already is pint unit
@@ -414,25 +534,25 @@ def _findGases(string, candidateList):
     return hits
 
 
-def _AR4_conversionFactor(unitFrom, unitTo):
-    #    weirdSet = set(['CO2','CO','VOC', 'OC'])
+# def _AR4_conversionFactor(unitFrom, unitTo):
+#     #    weirdSet = set(['CO2','CO','VOC', 'OC'])
 
-    # look if unitTo is CO2eq -> conversion into co2 equivalent
-    co2eqkeys = _findGases(unitTo, CO2EQ_LIST)
-    gasesToconvert = _findGases(unitFrom, list(AR4GWPDict))
+#     # look if unitTo is CO2eq -> conversion into co2 equivalent
+#     co2eqkeys = _findGases(unitTo, CO2EQ_LIST)
+#     gasesToconvert = _findGases(unitFrom, list(AR4GWPDict))
 
-    assert len(co2eqkeys) == 1 and len(gasesToconvert) == 1
-    co2Key = co2eqkeys[0]
-    gasKey = gasesToconvert[0]
+#     assert len(co2eqkeys) == 1 and len(gasesToconvert) == 1
+#     co2Key = co2eqkeys[0]
+#     gasKey = gasesToconvert[0]
 
-    if config.DEBUG:
-        print('Converting from {} to {} using GWP AR4'.format(gasKey, co2Key))
+#     if config.DEBUG:
+#         print('Converting from {} to {} using GWP AR4'.format(gasKey, co2Key))
 
-    unitFrom = unitFrom.replace(gasKey, co2Key)
-    conversFactor = getUnit(unitFrom).to(unitTo).m
-    co2eq_factor = AR4GWPDict[gasKey]
-    factor = conversFactor * co2eq_factor
-    return factor
+#     unitFrom = unitFrom.replace(gasKey, co2Key)
+#     conversFactor = getUnit(unitFrom).to(unitTo).m
+#     co2eq_factor = AR4GWPDict[gasKey]
+#     factor = conversFactor * co2eq_factor
+#     return factor
 
 
 #%%

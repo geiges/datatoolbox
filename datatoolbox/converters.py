@@ -8,7 +8,7 @@ Created on Tue Nov 16 10:43:55 2021
 import numpy as np
 import pandas as pd
 import xarray as xr
-import pyam
+#import pyam
 from tqdm import tqdm
 from datatoolbox import config
 from time import time
@@ -354,6 +354,7 @@ def to_pyam(data):
     pyam.IamDataFrame
 
     """
+    import pyam
     if isinstance(data, xr.Dataset):
         wdf = _xDataSet_to_wide_dataframe(data)
         return pyam.IamDataFrame(wdf)
@@ -403,7 +404,7 @@ def to_tableset(data, additional_meta=dict()):
     None.
 
     """
-
+    import pyam
     if isinstance(data, pd.DataFrame):
         years = _yearsColumnsOnly(data)
         meta_cols = data.columns.difference(years)
@@ -552,7 +553,7 @@ def to_xdataset(
     dimensions=['model', 'scenario', 'region', 'time'],
     stacked_dims={'pathway': ('model', 'scenario')},
 ):
-
+    import pyam
     if isinstance(data, pd.DataFrame):
         # wide dataframe
         data = data.reset_index()

@@ -10,13 +10,13 @@ from collections import defaultdict
 import datatoolbox as dt
 from datatoolbox import config
 from datatoolbox.data_structures import Datatable
-from datatoolbox.util import isUnit, identifyCountry
+#from datatoolbox.util import isUnit, identifyCountry
 from datatoolbox.tools.pandas import yearsColumnsOnly
 from datatoolbox import mapping
-from collections import defaultdict
+#from collections import defaultdict
 from functools import reduce
 import pandas as pd
-import numpy as np
+#import numpy as np
 import os
 import time
 import pint
@@ -5459,12 +5459,14 @@ class PIK_NDC(BaseImportTool):
         return [pledge_high, pledge_low], None
 
 
-import pyam
+
 from tqdm import tqdm
 
 
 class IIASA(BaseImportTool):
     def __init__(self, source_ID, iiasa_source=None, data_file=None, meta_file=None):
+        
+        import pyam
         self.setup = setupStruct()
 
         self.setup.SOURCE_ID = source_ID

@@ -5,6 +5,8 @@ Created on Fri Mar  1 14:15:56 2019
 
 @author: andreas geiges
 """
+import time 
+tt = time.time()
 import os
 import platform
 import appdirs
@@ -417,6 +419,10 @@ def get_personal():
     import personal
 
     return personal
+
+
+if DEBUG:
+    print('Config initialised in {:2.4f} seconds'.format(time.time() - tt))
 
 
 #### FUNCTION TESTS ########

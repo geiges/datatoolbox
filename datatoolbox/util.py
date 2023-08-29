@@ -22,12 +22,12 @@ from datatoolbox import mapping as mapp
 from datatoolbox import core
 from datatoolbox import config
 from datatoolbox import data_structures
-from datatoolbox.greenhouse_gas_database import GreenhouseGasTable
+#from datatoolbox.greenhouse_gas_database import GreenhouseGasTable
 import matplotlib.pylab as plt
 
 import tqdm
 
-import deprecated as dp
+#import deprecated as dp
 
 # from .tools import kaya_idendentiy_decomposition
 

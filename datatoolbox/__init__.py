@@ -17,15 +17,20 @@ Authors: Andreas Geiges
          Matthew Giddens
          
 """
-
+import time
+all_tt = time.time()
 from .version import version as __version__
 
 import os
 from . import config
 from . import core
 
+
 try:
+    tt = time.time()
     from . import database
+    if config.DEBUG:
+          print("Database import in {:2.4f} seconds".format(time.time() - tt))
 
     core.DB = database.Database()
     db_connected = True
@@ -35,18 +40,31 @@ except:
     print('Database connection broken. Running without database connection.')
     traceback.print_exc()
     db_connected = False
-
+tt = time.time()
 from . import mapping as mapp
+if config.DEBUG:
+      print("Mapping loaded in {:2.4f} seconds".format(time.time() - tt))
 
+tt = time.time()
 from . import interfaces
+if config.DEBUG:
+      print("Interfaces loaded in {:2.4f} seconds".format(time.time() - tt))
+
+tt = time.time()
 from . import util as util
+if config.DEBUG:
+      print("Utils loaded in {:2.4f} seconds".format(time.time() - tt))
+
 from . import admin as admin
 from . import templates
+tt = time.time()
 from . import converters
+if config.DEBUG:
+      print("Converters loaded in {:2.4f} seconds".format(time.time() - tt))
 
 
 
-
+tt3 = time.time()
 #%% DATA STRUCTURES
 from .data_structures import (
     Datatable, 
@@ -54,11 +72,24 @@ from .data_structures import (
     DataSet
     )
 
+if config.DEBUG:
+      print("Data structures loaded in {:2.4f} seconds".format(time.time() - tt3))
+
 
 #%% IO 
+tt = time.time()
 from .data_structures import read_csv, read_excel
+if config.DEBUG:
+      print("Read csv and escel loded in {:2.4f} seconds".format(time.time() - tt))
+tt = time.time()
 from . import data_readers
+if config.DEBUG:
+      print("data_readers loaded in {:2.4f} seconds".format(time.time() - tt))
+tt = time.time()
 from . import io_tools as io
+
+if config.DEBUG:
+      print("IO loaded in {:2.4f} seconds".format(time.time() - tt))
 
 #%% SETS
 # Predefined sets for regions and scenrarios
@@ -98,21 +129,25 @@ if db_connected:
     import_new_source_from_remote = core.DB.importSourceFromRemote
     export_new_source_to_remote = core.DB.exportSourceToRemote
     remove_source = core.DB.removeSource
-    push_source_to_remote = core.DB.gitManager.push_to_remote_datashelf
+    push_source_to_remote = core.DB.push_source_to_remote
     pull_source_from_remote = core.DB.pull_update_from_remote
 
     #show available remote data sources
     remote_sourceInfo = core.DB.remote_sourceInfo
-    available_remote_data_updates = core.DB.gitManager.available_remote_data_updates
-    test_ssh_remote_connection = core.DB.gitManager.test_ssh_remote_connection
+    available_remote_data_updates = core.DB.available_remote_data_updates
+    test_ssh_remote_connection = core.DB.test_ssh_remote_connection
 #%% TOOLS
 # Tools related to packages
+if config.DEBUG:
+    tt = time.time()
 import datatoolbox.tools as tools
 from .tools import pandas as pd
 from .tools import matplotlib as plt
 from .tools import xarray as xr
 from .tools import excel as xl
 from .tools import pyam as pyam
+if config.DEBUG:
+     print('Tools initialised in {:2.4f} seconds'.format(time.time() - tt))
 
 insertDataIntoExcelFile = io.insertDataIntoExcelFile
 
@@ -165,3 +200,7 @@ else:
           ################################################################
           """
     )
+
+
+if config.DEBUG:
+      print("Full datatoolbox init took {:2.4f} seconds".format(time.time() - all_tt))

@@ -13,7 +13,6 @@ from . import config
 
 
 class _Regions:
-    @_deprecated(version='0.4.7', reason="Please use PATHWAYS in the future")
     def __init__(self):
         # 2020
         self.CAT_COUNTRIES_2020 = set(

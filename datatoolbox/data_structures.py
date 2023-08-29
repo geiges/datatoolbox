@@ -1141,9 +1141,9 @@ class TableSet(dict):
         (see config.INVENTORY_FIELDS)
 
         Parameters
-        ----------
-        **kwargs : dict-like
-            Filter arguments as string that need to be contained in the fields..
+        -------
+        kwargs : dict-like
+            Filter arguments as string that need to be contained in the fields.
 
         Returns
         -------

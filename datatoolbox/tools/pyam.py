@@ -5,7 +5,7 @@ Created on Fri Nov 12 09:14:25 2021
 
 @author: ageiges
 """
-import pyam
+#import pyam
 import pandas as pd
 import xarray as xr
 from .. import util
@@ -49,6 +49,7 @@ def read_partial(filename, **filters):
     pyam.IamDataframe
 
     """
+    import pyam
     dfs = list()
     for df in tqdm.tqdm(pd.read_csv(filename, chunksize=100000)):
 
@@ -103,7 +104,7 @@ def idf_to_xarray(s, stacked_dims=None):
     """
     Convert multiindex series or pyam dataframe to xarray
     """
-
+    import pyam
     if isinstance(s, pyam.IamDataFrame):
         # meta
         meta_dims = dict(pathway=("model", "scenario"))
@@ -133,7 +134,7 @@ def pd_long_to_xarray(s, **stacked_dims):
     """
     Convert multiindex series or pyam dataframe to xarray
     """
-
+    import pyam
     if isinstance(s, pyam.IamDataFrame):
         # meta
         meta_dims = dict(pathway=("model", "scenario"))
@@ -174,6 +175,7 @@ def compute_ghg_emissions(
     append=True,
 ):
 
+    import pyam
     # make sure all variables exist in data
     for variable in variables:
         assert variable in idf.variable
@@ -229,6 +231,7 @@ def complete_world_emission(
     idf, reg_mapping={'World': ['ASIA', 'LAM', 'MAF', 'OECD90', 'REF']}
 ):
     #%%
+    import pyam
     # idf = native_AR5_data.copy()
     org_timeseries = idf.timeseries()
     agg_data = list()

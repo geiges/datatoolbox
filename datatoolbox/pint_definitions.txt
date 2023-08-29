@@ -38,7 +38,7 @@ million_USD_ppp_2011 = USD_ppp_2011 * 1e6
 USD_ppp_2012 = [constant_PPP2012]
 USD_ppp_2015 = [constant_PPP2015]
 USD_ppp_2016 = [constant_PPP2016]
-USD_ppp_2018 = [constant_PPP2018]
+USD_ppp_2017 = [constant_PPP2017]
 USD_MER_2018 = [constant_MER2018]
 cuPPP = [current_PPP]
 

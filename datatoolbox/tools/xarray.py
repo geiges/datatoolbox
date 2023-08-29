@@ -15,7 +15,6 @@ from time import time
 from .. import core, config
 import xarray as xr
 import numpy as np
-import xarray as xr
 
 import pandas as pd
 

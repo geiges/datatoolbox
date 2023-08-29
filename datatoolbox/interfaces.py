@@ -10,7 +10,7 @@ from .data_structures import Datatable, TableSet
 from . import config
 import os
 import pandas as pd
-from . import core
+#from . import core
 from .util import isin
 
 

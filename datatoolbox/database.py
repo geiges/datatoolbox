@@ -5,11 +5,12 @@ CSV and git-based database to store year-country data in a multi-user
 setup
 """
 
-
+import time
+tt=time.time()
 import os
 import git
 import tqdm
-import time
+
 import copy
 import types
 
@@ -24,12 +25,16 @@ import numpy as np
 
 from . import config
 from .data_structures import Datatable, TableSet, read_csv
-from . import mapping as mapp
+#from . import mapping as mapp
 from . import io_tools as io
 from . import util
 from . import core
-from .tools import xarray
+
 from tabulate import tabulate
+
+if config.DEBUG:
+    
+    print('Database -> Import libary in {:2.4f} seconds'.format(time.time() - tt))
 
 # helper funtions
 def restore_source(repoName):
@@ -110,23 +115,22 @@ class Database:
         if not os.path.exists(os.path.join(self.path, "inventory.csv")):
             self.create_empty_datashelf(config.MODULE_PATH, self.path)
             
-        tt2 = time.time()
-        self.gitManager = GitRepository_Manager(config)
-        if config.DEBUG:
-            print("Git Manager loaded in {:2.4f} seconds".format(time.time() - tt2))
+        # tt2 = time.time()
+        # self.gitManager = GitRepository_Manager(config)
+        # self.sources = self.gitManager.sources
+        
+        # if config.DEBUG:
+        #     print("Git Manager loaded in {:2.4f} seconds".format(time.time() - tt2))
 
-        self.INVENTORY_PATH = os.path.join(self.path, "inventory.csv")
-        self.inventory = self._load_inventory(self.INVENTORY_PATH)
-        self.sources = self.gitManager.sources
+        # self.INVENTORY_PATH = os.path.join(self.path, "inventory.csv")
+        # self.inventory = self._load_inventory(self.INVENTORY_PATH)
+        
 
-        # check for patch
-        if "tag" not in self.sources.columns:
-            from .patches import patch_050_update_sources_csv
+        # # check for patch
+        # # if "tag" not in self.sources.columns:
+        # #     from .patches import patch_050_update_sources_csv
 
-            patch_050_update_sources_csv(self)
-
-        if config.DEBUG:
-            print("Database loaded in {:2.4f} seconds".format(time.time() - tt))
+        # #     patch_050_update_sources_csv(self)
 
         if config.TEST_ENV:
             # if no config is given, the empty sandbox is populated with some test
@@ -149,7 +153,47 @@ class Database:
             )
             print("Added test tables to Sandbox datashelf")
 
+        if config.DEBUG:
+            print("Database class loaded in {:2.4f} seconds".format(time.time() - tt))
+
+    def __getattribute__(self, name):
+        """
         
+
+        Parameters
+        ----------
+        name : TYPE
+            DESCRIPTION.
+
+        Returns
+        -------
+        None.
+
+        """
+        
+        if (
+                (name == 'inventory' and 'inventory' not in self.__dict__) or 
+                (name == 'INVENTORY_PATH' and 'INVENTORY_PATH' not in self.__dict__)):
+            tt = time.time()
+            self.INVENTORY_PATH = os.path.join(self.path, "inventory.csv")
+            self.inventory = self._load_inventory(self.INVENTORY_PATH)
+            if config.DEBUG:
+                print("Database loaded in {:2.4f} seconds".format(time.time() - tt))
+        
+            
+        if (
+            (name == 'sources' and 'sources' not in self.__dict__) or 
+            (name == 'gitManager' and 'gitManager' not in self.__dict__)
+            ):
+            
+            tt2 = time.time()
+            self.gitManager = GitRepository_Manager(config)
+            self.sources = self.gitManager.sources
+            
+            if config.DEBUG:
+                print("Git Manager loaded in {:2.4f} seconds".format(time.time() - tt2))
+
+        return super().__getattribute__(name)
         
 
     #%% private functions
@@ -276,8 +320,8 @@ class Database:
 
     def _load_inventory(self, pathname):
         return pd.read_csv(
-            pathname, index_col=0, dtype={"source_year": str}, low_memory=False
-        )
+            pathname, index_col=0, dtype={"source_year": str},
+            engine='pyarrow')
 
     def _reloadInventory(self):
         """
@@ -338,7 +382,12 @@ class Database:
         return self.gitManager._validateRepository(repoID)
 
     #%% public functions
+    def available_remote_data_updates(self):
+        return self.gitManager.available_remote_data_updates()
 
+
+
+    
     def create_empty_datashelf(self, modulePath, pathToDataself):
         """
         Method to create the required files for an empty csv-based data base.
@@ -426,12 +475,19 @@ class Database:
         print(tabulate(remote_sources_df, headers="keys", tablefmt="psql"))
         return remote_sources_df
 
-    def sourceInfo(self):
+    def sourceInfo(self, show_number_of_table=False):
         """
         Returns a list of available sources and meta data
         """
-
-        return self.sources.sort_index()
+        if show_number_of_table:
+            inv = self.sources.sort_index().copy()
+            
+            n_tables = [len(self.findp(source=x).index) for x in inv.index]
+            inv.loc[:, 'size'] = n_tables
+            return inv
+        else:
+                
+            return self.sources.sort_index()
 
     def returnInventory(self):
         """
@@ -501,7 +557,7 @@ class Database:
         matches : pd.Series
         Mask for selecting matched rows
         """
-
+        from .tools import xarray
         # filter by columns and list of values
         keep = True
 
@@ -1147,6 +1203,11 @@ class Database:
         #        self.gitManager.updatedRepos.add('main')
         self._gitCommit(sourceID + " deleted")
 
+
+    def test_ssh_remote_connection(self):
+        return self.gitManager.test_ssh_remote_connection()
+        
+    
     def updateExcelInput(self, fileName):
         """
         This function updates all data values that are defined in the input sheet
@@ -1206,6 +1267,10 @@ class Database:
         # commit all
         self._gitCommit(f"Set source {sourceID} to tag {tag}")
 
+
+    def push_source_to_remote(self, repoName, force=True):
+        return self.gitManager.push_to_remote_datashelf(repoName, repoName, force)
+   
     def pull_update_from_remote(self, repoName):
         """
         Updates the local data repository by the newest version on the remote repository

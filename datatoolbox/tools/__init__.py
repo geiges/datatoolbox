@@ -16,6 +16,13 @@ from . import matplotlib
 #%% optional
 if config.AVAILABLE_XARRAY:
     from . import xarray
+    import pint_xarray
+    from datatoolbox.core import ur
+    
+    
+    pint_xarray.accessors.setup_registry(ur)
+    pint_xarray.unit_registry = ur
+    pint_xarray.accessors.default_registry = ur
 
 if config.AVAILABLE_DOCX:
     from . import word
