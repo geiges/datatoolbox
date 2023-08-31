@@ -1269,7 +1269,7 @@ class Database:
 
 
     def push_source_to_remote(self, repoName, force=True):
-        return self.gitManager.push_to_remote_datashelf(repoName, repoName, force)
+        return self.gitManager.push_to_remote_datashelf(repoName, force)
    
     def pull_update_from_remote(self, repoName):
         """

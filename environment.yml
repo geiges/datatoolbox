@@ -27,6 +27,7 @@ dependencies:
 - xlsxwriter
 - tabulate
 - python-docx
+- pyarrow
 - pip:
   - hdx-python-country
   - -e .
