@@ -42,7 +42,6 @@ try:
     
    ur.define('fraction = [] = frac')
    ur.define('percent = 1e-2 frac = pct')
-   ur.define('ppm = 1e-6 fraction')
    ur.define('sqkm = km * km')
    ur.define('none = dimensionless')
 

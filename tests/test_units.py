@@ -45,7 +45,6 @@ def test_HFC_units():
     dt.core.ur('HFC134aeq') 
     
 def test_unique_conversion():
-    assert dt.units.conversionFactor("ppm", "fraction") == 1e-6
     assert dt.units.conversionFactor("%", "fraction") == 0.01
     assert dt.units.conversionFactor("fraction", "percent") == 100
     
