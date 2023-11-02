@@ -649,31 +649,32 @@ class Database:
 
                 raise (BaseException("Table {} not found".format(ID)))
 
-            try:
-                if config.DEBUG:
-                    print("Trying to import source {}".format(source))
-                self.importSourceFromRemote(source)
-
-                print(
-                    """###########################################################
-                         Successfully imported source: {}
-                         ###########################################################""".format(
-                        source
+            else:
+                try:
+                    if config.DEBUG:
+                        print("Trying to import source {}".format(source))
+                    self.importSourceFromRemote(source)
+    
+                    print(
+                        """###########################################################
+                             Successfully imported source: {}
+                             ###########################################################""".format(
+                            source
+                        )
                     )
-                )
-
-                if self._tableExists(ID):
-                    # load table from database
-
-                    filePath = self._getTableFilePath(ID)
-                    table = read_csv(filePath, native_regions).drop_duplicates()
-                    table = table[table.index.notnull()]
-                    return table
-            except Exception:
-
-                if config.DEBUG:
-                    print(traceback.format_exc())
-                    print("Failed to import source {}".format(source))
+    
+                    if self._tableExists(ID):
+                        # load table from database
+    
+                        filePath = self._getTableFilePath(ID)
+                        table = read_csv(filePath, native_regions).drop_duplicates()
+                        table = table[table.index.notnull()]
+                        return table
+                except Exception:
+    
+                    if config.DEBUG:
+                        print(traceback.format_exc())
+                        print("Failed to import source {}".format(source))
 
         raise (BaseException("Table {} not found".format(ID)))
 

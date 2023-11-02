@@ -1951,6 +1951,11 @@ def read_csv(fileName, native_regions=False):
     # print(meta)
 
     df = pd.read_csv(fid)
+    
+    #fix for mutant pyam style files #TODO
+    cols_to_keep = [x for x in df.columns if x not in meta.keys()]
+    df = df.loc[:,cols_to_keep]
+    
     if 'standard_region' not in df.columns:
         # backward compatibility
         df = df.set_index(df.columns[0])
