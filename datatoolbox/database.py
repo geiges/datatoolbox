@@ -54,8 +54,7 @@ def restore_source(repoName):
 
     """
 
-    # gitManager = GitRepository_Manager(config)
-    # sources   = gitManager.sources
+    
     sources = pd.read_csv(config.SOURCE_FILE, index_col="SOURCE_ID")
     git_hash = sources.git_commit_hash.loc[repoName]
     repoPath = os.path.join(config.PATH_TO_DATASHELF, "database", repoName)
@@ -115,26 +114,10 @@ class Database:
         if not os.path.exists(os.path.join(self.path, "inventory.csv")):
             self.create_empty_datashelf(config.MODULE_PATH, self.path)
             
-        # tt2 = time.time()
-        # self.gitManager = GitRepository_Manager(config)
-        # self.sources = self.gitManager.sources
         
-        # if config.DEBUG:
-        #     print("Git Manager loaded in {:2.4f} seconds".format(time.time() - tt2))
-
-        # self.INVENTORY_PATH = os.path.join(self.path, "inventory.csv")
-        # self.inventory = self._load_inventory(self.INVENTORY_PATH)
-        
-
-        # # check for patch
-        # # if "tag" not in self.sources.columns:
-        # #     from .patches import patch_050_update_sources_csv
-
-        # #     patch_050_update_sources_csv(self)
-
         if config.TEST_ENV:
             # if no config is given, the empty sandbox is populated with some test
-            # tables
+            
             tablesToCommit, source_meta = util._create_sandbox_tables(
                 "SOURCE_A_2020", 1
             )
@@ -225,7 +208,6 @@ class Database:
         Pools functionality to add table to the database
         """
 
-        # ID = datatable.generateTableID()
         source = datatable.source()
         datatable.meta["creator"] = config.CRUNCHER
         sourcePath = os.path.join("database", source)
@@ -307,13 +289,6 @@ class Database:
         return os.path.join(
             config.PATH_TO_DATASHELF, "database", source, "tables", fileName
         )
-
-    # def _getTableFileName(self, ID):
-    #     """
-    #     For compatibility to windows based sytems, the pipe '|' symbols is replaces
-    #     by double underscore '__' for the csv filename.
-    #     """
-    #     return ID.replace('|','-').replace('/','-') + '.csv'
 
     def _get_source_path(self, sourceID):
         return os.path.join(config.PATH_TO_DATASHELF, "database", sourceID)
@@ -434,10 +409,6 @@ class Database:
                 self.gitManager["main"].git.rev_list("--all", "--count")
             )
         )
-        #        root_directory = Path(config.PATH_TO_DATASHELF)
-        #        print('Size of datashelf: {:2.2f} MB'.format(sum(f.stat().st_size for f in root_directory.glob('**/*') if f.is_file() )/1e6))
-        #        root_directory = Path(os.path.join(config.PATH_TO_DATASHELF, 'rawdata'))
-        #        print('Size of raw_data: {:2.2f} MB'.format(sum(f.stat().st_size for f in root_directory.glob('**/*') if f.is_file() )/1e6))
         print("#############################################")
 
     def remote_sourceInfo(self):
@@ -511,8 +482,7 @@ class Database:
         self.inventory.loc[datatable.ID] = [
             datatable.meta.get(x, None) for x in config.INVENTORY_FIELDS
         ]
-        # self.gitManager.updatedRepos.add('main') # TODO not needed anymore?
-
+        
     def remove_from_inventory(self, tableID):
         """
         Method to remove a table from the global inventory
@@ -629,7 +599,6 @@ class Database:
             filePath = self._getTableFilePath(ID)
 
             table = read_csv(filePath, native_regions)
-            # table = table[table.index.notnull()]
             return table
 
         elif os.path.exists("data"):
@@ -638,7 +607,7 @@ class Database:
 
             if os.path.exists(filePath):
                 table = read_csv(filePath, native_regions)
-                # table = table[table.index.notnull()]
+               
                 return table
 
         if config.AUTOLOAD_SOURCES:
@@ -1020,8 +989,7 @@ class Database:
         tables = pd.DataFrame(rows)
         # change datetime
         tables["last_update"] = tables["last_update"].dt.strftime("%d-%m-%Y")
-        # tables['fetched']     = tables['fetched'].dt.strftime('%d-%m-%Y')
-        # overwrite table in module data
+        
         tables.to_csv(
             os.path.join(config.MODULE_DATA_PATH, "datashelf_contents.csv"), index=False
         )
@@ -1307,11 +1275,7 @@ class Database:
             if table.empty:
                 continue
 
-            # if native_regions:
-            #     table = table.reset_index('standard_region',drop=True)
-            # else:
-            #     table = table.reset_index('region',drop=True)
-
+            
             inp_dict = dict()
             for metaKey in meta_list:
                 if metaKey == "region":
@@ -1450,7 +1414,6 @@ class GitRepository_Manager:
         remote_repo_path = os.path.join(config.PATH_TO_DATASHELF, "remote_sources")
         remote_repo = git.Repo(remote_repo_path)
 
-        # self.remote_repo = remote_repo()
         return remote_repo
 
     def _pull_remote_sources(self):
@@ -1473,9 +1436,6 @@ class GitRepository_Manager:
 
     def _clone_remote_sources(self):
 
-        # if  not os.path.exists(os.path.join(config.PATH_TO_DATASHELF,
-        #                           'remote_sources')):
-        # no remote folder locally
         url = config.DATASHELF_REMOTE + "remote_sources.git"
         remote_repo = git.Repo.clone_from(
             url=url,
@@ -1505,17 +1465,10 @@ class GitRepository_Manager:
             f.write(core.get_time_string())
 
     def _update_local_sources_tag(self, repoName):
+        
         repo = self.repositories[repoName]
-        # repo.index.add(self.filesToAdd[repoID])
-        # commit = repo.index.commit(message + " by " + config.CRUNCHER)
-        # self.sources.loc[repoID, 'git_commit_hash'] = commit.hexsha
         tag = self.get_tag_of_source(repoName)
         self.sources.loc[repoName, "tag"] = tag
-        # del self.filesToAdd[repoID]
-
-        # commit main repository
-        # self.sources.to_csv(config.SOURCE_FILE)
-        # self.gitAddFile('main', config.SOURCE_FILE)
         self.commit("Update tags of sources")
 
     def _update_remote_sources(self, repoName):
@@ -1556,7 +1509,7 @@ class GitRepository_Manager:
 
         # update remote sources csv
         repo.create_tag(tag)
-        # tag = repo.tags[-1].name
+        
         rem_sources_df.loc[repoName, :] = (hash, tag, user)
         rem_sources_df.to_csv(dpath)
         
@@ -1618,10 +1571,38 @@ class GitRepository_Manager:
     
         
     def check_if_online_repo_exists(self, sourceID):
+        """
+        Check if source in local inventory
+
+        Parameters
+        ----------
+        sourceID : TYPE
+            DESCRIPTION.
+
+        Returns
+        -------
+        TYPE
+            DESCRIPTION.
+
+        """
         return sourceID in self.remote_sources.index
     
     def check_for_new_remote_data(self, force_check=False, foreground=False):
+        """
+        Checks if source is in online repositorty
 
+        Parameters
+        ----------
+        force_check : TYPE, optional
+            DESCRIPTION. The default is False.
+        foreground : TYPE, optional
+            DESCRIPTION. The default is False.
+
+        Returns
+        -------
+        None.
+
+        """
         if (force_check or self._check_online_data()) and not ("PYTEST_CURRENT_TEST" in os.environ):
                 
             # check for remote data
@@ -1637,8 +1618,7 @@ class GitRepository_Manager:
                         thread.start()
                     else:
                         print('SSH agent not running, not checking for remote data.')
-                # 
-                # print("Done!")
+                
             except:
                 print("Could not check online data repository")
                 import traceback
@@ -1893,7 +1873,6 @@ class GitRepository_Manager:
         self._update_remote_sources(repoName)
         self._update_local_sources_tag(repoName)
 
-        # if repoName not in rem_sources.index:
         remote_repo.remotes.origin.push(progress=TqdmProgressPrinter())
 
         self[repoName].remotes.origin.push(progress=TqdmProgressPrinter())
