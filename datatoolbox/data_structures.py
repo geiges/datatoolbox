@@ -29,7 +29,8 @@ class Datatable(pd.DataFrame):
     Datatable
     ^^^^^^^^^
 
-    Datatable is derrived from pandas dataframe.
+    Datatable is derrived from pandas dataframe.  Datatables contain the 
+    addition meta attribute and have autotmated unit conversions
     """
 
     _metadata = ['meta', 'ID', 'attrs']
@@ -59,7 +60,6 @@ class Datatable(pd.DataFrame):
         # append metaDict to datatable
         self.__appendMetaData__(meta)
 
-        # self.vis = Visualization(self)
         try:
             self.generateTableID()
         except:
@@ -71,7 +71,7 @@ class Datatable(pd.DataFrame):
         self.columns.name = config.DATATABLE_COLUMN_NAME
         self.index.name = config.DATATABLE_INDEX_NAME
 
-        # print(self.meta)
+        
         if ('_timeformat' in self.meta.keys()) and (
             self.meta['_timeformat'] != '%Y' and self.meta['_timeformat'] != 'Y'
         ):
@@ -651,18 +651,6 @@ class Datatable(pd.DataFrame):
         else:
             assert fileName[-4:] == '.csv'
 
-        #         fid = open(fileName,'w', encoding='utf-8')
-        #         fid.write(config.META_DECLARATION)
-
-        #         for key, value in sorted(self.meta.items()):
-        # #            if key == 'unit':
-        # #                value = str(value.u)
-        #             fid.write(key + ',' + str(value) + '\n')
-
-        #         fid.write(config.DATA_DECLARATION)
-        #         super(Datatable, self).to_csv(fid)
-        #         fid.close()
-
         core.csv_writer(fileName, pd.DataFrame(self), self.meta)
 
     def to_pyam(self, **kwargs):
@@ -766,8 +754,6 @@ class Datatable(pd.DataFrame):
             return self
 
         dfNew = self.copy()
-        #        oldUnit = core.getUnit(self.meta['unit'])
-        #        factor = (1* oldUnit).to(newUnit).m
 
         factor = core.conversionFactor(self.meta['unit'], newUnit, context)
 
@@ -777,7 +763,7 @@ class Datatable(pd.DataFrame):
         for key, suffix in suffix_dict.items():
             dfNew.meta[key] =dfNew.meta[key] +suffix
         dfNew.meta.update(new_meta)
-        # dfNew._update_meta()
+        
         return dfNew
 
 
@@ -894,6 +880,15 @@ class Datatable(pd.DataFrame):
         return self.ID
 
     def getTableFilePath(self):
+        """
+        Returns path to data on hard disk
+
+        Returns
+        -------
+        TYPE
+            DESCRIPTION.
+
+        """
         source = self.meta['source']
         fileName = core.generate_table_file_name(self.ID)
         return os.path.join(
@@ -1206,6 +1201,25 @@ class TableSet(dict):
     def to_compact_excel(
         self, writer, sheet_name="Sheet1", include_id=False, meta_columns=None
     ):
+        """
+        writes an excel file with a wide data format and a leadin meta header
+
+        Parameters
+        ----------
+        writer : TYPE
+            DESCRIPTION.
+        sheet_name : TYPE, optional
+            DESCRIPTION. The default is "Sheet1".
+        include_id : TYPE, optional
+            DESCRIPTION. The default is False.
+        meta_columns : TYPE, optional
+            DESCRIPTION. The default is None.
+
+        Returns
+        -------
+        None.
+
+        """
 
         use_index = include_id
 
@@ -2066,6 +2080,27 @@ def read_excel(
 
 
 def read_compact_excel(file_name, sheet_name=None):
+    """
+    Reader that reads a wide data fromat excel with a leading meta header.
+
+    Parameters
+    ----------
+    file_name : TYPE
+        DESCRIPTION.
+    sheet_name : TYPE, optional
+        DESCRIPTION. The default is None.
+
+    Raises
+    ------
+    
+        DESCRIPTION.
+
+    Returns
+    -------
+    out : TYPE
+        DESCRIPTION.
+
+    """
     #%%
     if sheet_name is None:
         xlFile = pd.ExcelFile(file_name)
@@ -2096,9 +2131,6 @@ def read_compact_excel(file_name, sheet_name=None):
 
             if 'ID' in metaDict['meta_columns']:
                 lDf.loc[:, 'ID'] = fileContent.loc[columnIdx:, 0]
-            # import json
-            # x = '[ "A","B","C" , " D"]'
-            # json.loads(metaDict['meta_columns'])
 
             try:
                 meta_columns = ast.literal_eval(metaDict['meta_columns'])
@@ -2106,12 +2138,12 @@ def read_compact_excel(file_name, sheet_name=None):
                 meta_columns = metaDict['meta_columns']
             if isinstance(meta_columns, str):
                 meta_columns = meta_columns.split(', ')
-            # if 'region' in meta_columns:
+            
             meta_columns.remove('region')
 
             for idx, line in lDf.iterrows():
 
-                # print(idx)
+
 
                 meta = {
                     x: metaDict[x] for x in metaDict.keys() if x not in ['meta_columns']
@@ -2151,7 +2183,7 @@ def read_compact_excel(file_name, sheet_name=None):
                 )
 
                 if ID not in out.keys():
-                    # table  = Datatable()
+                    
                     table = Datatable(
                         columns=numerical_columns, index=[region], meta=meta
                     )
@@ -2171,9 +2203,7 @@ def read_compact_excel(file_name, sheet_name=None):
 
     return out
 
-    # except:
-    #         print('Failed to read the sheet: {}'.format(sheet))
-
+    
 
 #%%
 class MetaData(dict):
@@ -2226,7 +2256,7 @@ def _add_required_meta(data, meta, stacked_dims):
 def _add_meta(data, meta, stacked_dims):
 
     data = data.join(meta)
-    # data['meta'] = range(len(data.index))
+    
     stacked_dims.update({'meta': list(meta.columns)})
     idx_names = set(data.index.names).union(list(meta.columns))
     data = data.reset_index().set_index(list(idx_names))
