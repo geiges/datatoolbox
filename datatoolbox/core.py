@@ -57,89 +57,9 @@ if config.DEBUG:
     print('pint unit handling initialised in core in {:2.4f} seconds'.format(time.time() - tt))
 
 
-# class Unit_Reg_Wrapper:
-#     """
-#     Wrapper around the pin unit registry to allow on-demand loading of pint
-#     """
-#     def __init__(self):
-        
-#         self.pint_loaded = False
-        
-#     def _load_pint_definitions(self):
-#         tt = time.time()
-#         import pint
-        
-#         #%% Pint unit handling
-#         gases = {
-#             "CO2eq": "carbon_dioxide_equivalent",
-#             # "CO2e": "CO2eq",
-#             "NO2": "NO2",
-#             'PM25': 'PM25',
-#         }
-#         from openscm_units import unit_registry as self_ur
-        
-#         self.ur = self_ur
-        
-#         try:
-            
-#             self.ur._add_gases(gases)
-            
-#             self.ur.define('fraction = [] = frac')
-#             self.ur.define('percent = 1e-2 frac = pct')
-#             self.ur.define('ppm = 1e-6 fraction')
-#             self.ur.define('sqkm = km * km')
-#             self.ur.define('none = dimensionless')
-        
-#             self.ur.load_definitions(config.PATH_PINT_DEFINITIONS)
-#             self.ur.define('CO2eq = CO2')
-#         except pint.errors.DefinitionSyntaxError:
-#             # avoid double import of units defintions
-#             pass
-       
-#         import pint
-    
-#         if config.DEBUG:
-#             print('pint unit handling initialised in core in {:2.4f} seconds'.format(time.time() - tt))
-
-#     def __call__(self, string):
-        
-#         if not self.pint_loaded:
-#             self._load_pint_definitions()
-#             self.pint_loaded = True
-            
-#         return self.ur(string)
-    
-#     def get_pint_ur(self):
-#         if not self.pint_loaded:
-#             self._load_pint_definitions()
-#             self.pint_loaded = True
-#         return self.ur
-
-# ur = Unit_Reg_Wrapper()        
-        
-#
-#     from .tools import xarray as _xr
-#     to_XDataSet = _xr.to_XDataSet
-#     to_XDataArray = _xr.to_XDataArray
-
-
-#%%
-
-# c = pint.Context('GWP_AR5')
-
-# CO2EQ_LIST = [
-#     'CO2eq',
-#     'CO2e',
-# ]
-
-# AR4GWPDict = {'CH4': 25, 'HFC': 1430, 'N2O': 298, 'SF6': 22800, 'PFC': 7390, 'CO2': 1}
-
 
 LOG = dict()
 LOG['tableIDs'] = list()
-
-# ur.add_context(c)
-
 
 def slim_index(df):
     """
@@ -324,7 +244,20 @@ def _fix_filename(name, max_length=255):
 
 
 def _validate_unit(table):
+    """
+    Testinf using pint if unit can be applied. Return False if error occured
 
+    Parameters
+    ----------
+    table : TYPE
+        DESCRIPTION.
+
+    Returns
+    -------
+    bool
+        is valid.
+
+    """
     try:
         getUnit(table.meta['unit'])
 
@@ -334,6 +267,20 @@ def _validate_unit(table):
 
 
 def generate_table_file_name(ID):
+    """
+    Generate table ID using the meta data and separators given in the config
+
+    Parameters
+    ----------
+    ID : TYPE
+        DESCRIPTION.
+
+    Returns
+    -------
+    str
+        ID
+
+    """
     ID_for_filename = _fix_filename(ID)
     ID_for_filename = ID.replace('|', '-').replace('/', '-')
     return ID_for_filename + '.csv'
@@ -346,6 +293,25 @@ def _createDatabaseID(metaDict):
 
 
 def csv_writer(filename, dataframe, meta, index=0):
+    """
+    wrapper to write csv file with head to contain meta data
+
+    Parameters
+    ----------
+    filename : TYPE
+        DESCRIPTION.
+    dataframe : TYPE
+        DESCRIPTION.
+    meta : TYPE
+        DESCRIPTION.
+    index : TYPE, optional
+        DESCRIPTION. The default is 0.
+
+    Returns
+    -------
+    None.
+
+    """
     fid = open(filename, 'w', encoding='utf-8')
     fid.write(config.META_DECLARATION)
 
@@ -363,9 +329,13 @@ def csv_writer(filename, dataframe, meta, index=0):
 
 
 def excel_writer(
+    
     writer, dataframe, meta, sheet_name="Sheet1", index=False, engine=None
 ):
-
+    """
+    Excel writer to include head of meta data before the csv like data block.
+    
+    """
     if isinstance(writer, pd.ExcelWriter):
         need_save = False
     else:
@@ -456,9 +426,7 @@ def getUnitWindows(string):
     return ur(string)
 
 
-# re-defintion of getUnit function for windows users
-if osIsWindows():
-    getUnit = getUnitWindows
+
 
 
 def get_time_string():
@@ -533,27 +501,6 @@ def _findGases(string, candidateList):
     return hits
 
 
-# def _AR4_conversionFactor(unitFrom, unitTo):
-#     #    weirdSet = set(['CO2','CO','VOC', 'OC'])
-
-#     # look if unitTo is CO2eq -> conversion into co2 equivalent
-#     co2eqkeys = _findGases(unitTo, CO2EQ_LIST)
-#     gasesToconvert = _findGases(unitFrom, list(AR4GWPDict))
-
-#     assert len(co2eqkeys) == 1 and len(gasesToconvert) == 1
-#     co2Key = co2eqkeys[0]
-#     gasKey = gasesToconvert[0]
-
-#     if config.DEBUG:
-#         print('Converting from {} to {} using GWP AR4'.format(gasKey, co2Key))
-
-#     unitFrom = unitFrom.replace(gasKey, co2Key)
-#     conversFactor = getUnit(unitFrom).to(unitTo).m
-#     co2eq_factor = AR4GWPDict[gasKey]
-#     factor = conversFactor * co2eq_factor
-#     return factor
-
-
 #%%
 def get_dimension_extend(table_iterable, dimensions):
     """
@@ -622,6 +569,9 @@ def get_meta_collection(table_iterable, dimensions):
 
     return metaCollection
 
-
+# re-defintion of getUnit function for windows users
+if osIsWindows():
+    getUnit = getUnitWindows
+    
 if config.DEBUG:
     print('core loaded in {:2.4f} seconds'.format(time.time() - tt))
