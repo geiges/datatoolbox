@@ -3906,6 +3906,7 @@ class PRIMAP_HIST(BaseImportTool):
         #        self.setup.COLUMNS_TO_DROP = ['Country Name', 'Indicator Name']
         self.setup.COLUMNS_TO_DROP = [
             'scenario',
+            'provenance',
             'category',
             'entity',
             'unit',
