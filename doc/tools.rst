@@ -10,3 +10,10 @@ Datatoolbox - tools
   pandas
   xarray
 
+
+
+.. automodule:: datatoolbox.tools
+   :members:
+   :undoc-members:
+   :show-inheritance:
+   :private-members:

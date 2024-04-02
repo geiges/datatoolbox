@@ -27,7 +27,7 @@ from . import converters
 class Datatable(pd.DataFrame):
     """
     Datatable
-    ^^^^^^^^^
+    
 
     Datatable is derrived from pandas dataframe.  Datatables contain the 
     addition meta attribute and have autotmated unit conversions
@@ -380,14 +380,13 @@ class Datatable(pd.DataFrame):
     
     def copy(self, deep=True):
         """
-        Make a copy of this Datatable object
-        Parameters
+        Make a copy of this Datatable object Parameters
         ----------
         deep : boolean, default True
             Make a deep copy, i.e. also copy data
         Returns
         -------
-        copy : Datatable
+            copy : Datatable
         """
         # FIXME: this will likely be unnecessary in pandas >= 0.13
         data = self._data
@@ -659,7 +658,7 @@ class Datatable(pd.DataFrame):
 
         Parameters
         ----------
-        **kwargs : TYPE
+        kwargs : TYPE
             DESCRIPTION.
 
         Raises
@@ -712,11 +711,12 @@ class Datatable(pd.DataFrame):
         
         Parameters
         -------
-        exclude_meta: optinal list of meta keys that should be ignored
+            exclude_meta: optinal list of meta keys that should be ignored
+        
         Returns
         -------
-        Datatable
-            New Datatable with multi_index and not meta data.
+            Datatable
+                New Datatable with multi_index and not meta data.
 
         """
  
@@ -731,8 +731,7 @@ class Datatable(pd.DataFrame):
 
     def convert(self, newUnit, context=None, suffix_dict=dict(), **new_meta):
         """
-        Convert datatable to different unit and returns converted
-        datatable.
+        Convert datatable to different unit and returns converted datatable.
 
         Parameters
         ----------
@@ -819,6 +818,7 @@ class Datatable(pd.DataFrame):
 
     def yearlyChange(self, forward=True):
         """
+        :noindex:
         This methods returns the yearly change for all years (t1) that reported
         and and where the previous year (t0) is also reported
 
@@ -897,8 +897,8 @@ class Datatable(pd.DataFrame):
 
     def getTableFileName(self):
         """
-        For compatibility to windows based sytems, the pipe '|' symbols is replaces
-        by double underscore '__' for the csv filename.
+        For compatibility to windows based sytems, the pipe symbols is replaces
+        by double underscore for the csv filename.
         """
         self.generateTableID()
 
@@ -1132,8 +1132,7 @@ class TableSet(dict):
 
     def filter(self, **kwargs):
         """
-        Filter tableSet based on the given table inventory columns.
-        (see config.INVENTORY_FIELDS)
+        Filter tableSet based on the given table inventory columns. (see config.INVENTORY_FIELDS)
 
         Parameters
         -------
@@ -1171,7 +1170,7 @@ class TableSet(dict):
         Create tableSet form list of datatables.
 
         Parameters
-        ----------
+        -------
         cls : TYPE
             DESCRIPTION.
         tableList : list
@@ -1205,7 +1204,7 @@ class TableSet(dict):
         writes an excel file with a wide data format and a leadin meta header
 
         Parameters
-        ----------
+        -------
         writer : TYPE
             DESCRIPTION.
         sheet_name : TYPE, optional
@@ -1257,7 +1256,7 @@ class TableSet(dict):
         Sace TableSet as excel file with individual datatables in individual sheets.
 
         Parameters
-        ----------
+        -------
         fileName : str
             File path.
         append : bool, optional
@@ -1433,8 +1432,7 @@ class TableSet(dict):
 
     def to_xarray(self, dimensions=None):
         """
-        Convert tableset to and xarray with the given dimenions.
-        Requires xarray installed
+        Convert tableset to and xarray with the given dimenions. Requires xarray installed
 
         Parameters
         ----------
